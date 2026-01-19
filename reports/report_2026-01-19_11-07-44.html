@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ASIN Performance Report</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- PropTypes (Required for Recharts) -->
+    <script src="https://unpkg.com/prop-types/prop-types.min.js"></script>
+    
+    <!-- Recharts -->
+    <script src="https://unpkg.com/recharts/umd/Recharts.js"></script>
+    
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f5f5f7; }
+        .card { background: white; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); }
+        .glass { background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(10px); }
+    </style>
+</head>
+<body>
+
+<div id="root"></div>
+
+<script type="text/babel">
+    const { useState, useEffect, useMemo } = React;
+    const { 
+        LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
+        ScatterChart, Scatter, ZAxis, ReferenceLine
+    } = Recharts;
+
+    // --- DATA INJECTION ---
+    const marketData = {"global_trend": [{"week": "2025-W51", "our_clicks": 13186, "comp_clicks": 29992, "our_share": 21.67, "comp_share": 49.29}, {"week": "2025-W52", "our_clicks": 10421, "comp_clicks": 25277, "our_share": 21.83, "comp_share": 52.95}, {"week": "2026-W01", "our_clicks": 6087, "comp_clicks": 13365, "our_share": 22.59, "comp_share": 49.6}], "brand_trend": [{"week": "2025-W51", "Our Brand": 21.67, "NORITUAL LAB": 25.51, "Ceremonial": 11.41, "VAHDAM": 3.49, "Others": 8.88}, {"week": "2025-W52", "Our Brand": 21.83, "NORITUAL LAB": 27.19, "Ceremonial": 8.42, "VAHDAM": 5.66, "Others": 11.68}, {"week": "2026-W01", "Our Brand": 22.59, "NORITUAL LAB": 26.72, "Ceremonial": 7.38, "VAHDAM": 3.15, "Others": 12.35}], "efficiency": [{"asin": "B0F9B1LWQQ", "brand": "UNREAL®", "is_ours": false, "rank": 19.0, "click_share": 1.57, "price": 31.2725, "deal": false, "coupon": false, "choice": false, "title": "UNREAL® 100g Ceremonial Bio Matcha – 100% Japanisc......"}, {"asin": "B0DRP6Y6XC", "brand": "Matcha", "is_ours": false, "rank": 16.0, "click_share": 3.0, "price": 10.39, "deal": false, "coupon": true, "choice": false, "title": "Matcha Pulver - 90g - 100% Natürlich & Fein Gemahl......"}, {"asin": "B0DRP6Y6XC", "brand": "Special Leaves", "is_ours": false, "rank": 16.0, "click_share": 3.0, "price": 10.39, "deal": false, "coupon": true, "choice": false, "title": "Matcha Pulver - 90g - 100% Natürlich & Fein Gemahl......"}, {"asin": "B06XQ5DCYJ", "brand": "NaturaleBio", "is_ours": true, "rank": 2.0, "click_share": 12.9, "price": 14.6075, "deal": false, "coupon": false, "choice": false, "title": "NaturaleBio Matcha Tee Pulver Bio - Premium-Qualit......"}, {"asin": "B0FSL3C3Z8", "brand": "NORITUAL LAB", "is_ours": false, "rank": 6.0, "click_share": 7.38, "price": 15.5575, "deal": false, "coupon": false, "choice": false, "title": "Ceremonial Matcha Ryoku - Reines Grüntee-Pulver au......"}, {"asin": "B06XQ69YCQ", "brand": "NaturaleBio", "is_ours": true, "rank": 5.0, "click_share": 3.35, "price": 10.2225, "deal": false, "coupon": false, "choice": false, "title": "NaturaleBio Matcha Tee Pulver Bio - Premium-Qualit......"}, {"asin": "B079VQ52MK", "brand": "NaturaleBio", "is_ours": true, "rank": 5.0, "click_share": 3.66, "price": 24.5275, "deal": false, "coupon": false, "choice": false, "title": "NaturaleBio Matcha Tee Pulver Bio - Premium-Qualit......"}, {"asin": "B0FSL3C3Z8", "brand": "Ceremonial", "is_ours": false, "rank": 6.0, "click_share": 7.38, "price": 15.5575, "deal": false, "coupon": false, "choice": false, "title": "Ceremonial Matcha Ryoku - Reines Grüntee-Pulver au......"}, {"asin": "B08XVX8V1T", "brand": "Bio", "is_ours": false, "rank": 10.0, "click_share": 2.39, "price": 11.9975, "deal": false, "coupon": false, "choice": false, "title": "Bio Matcha Pulver 100 g – Japan Matcha Tee, 100% n......"}, {"asin": "B08XVX8V1T", "brand": "bioKontor", "is_ours": false, "rank": 10.0, "click_share": 2.39, "price": 11.9975, "deal": false, "coupon": false, "choice": false, "title": "Bio Matcha Pulver 100 g – Japan Matcha Tee, 100% n......"}, {"asin": "B07MD4LB49", "brand": "VAHDAM", "is_ours": false, "rank": 9.0, "click_share": 3.15, "price": 10.43, "deal": false, "coupon": false, "choice": false, "title": "VAHDAM, Matcha Grüntee Pulver (100g, 50+ Tassen) A......"}, {"asin": "B0CNRX8G5S", "brand": "NORITUAL LAB", "is_ours": false, "rank": 2.0, "click_share": 19.34, "price": 23.91, "deal": false, "coupon": false, "choice": true, "title": "Ceremonial Matcha - Reines Matcha Pulver aus Japan......"}, {"asin": "B07SZFD3P9", "brand": "NaturaleBio", "is_ours": true, "rank": 0.0, "click_share": 2.68, "price": 30.27, "deal": false, "coupon": false, "choice": false, "title": "NaturaleBio Matcha Ceremonial Grade 100g. Original......"}], "top_competitors": ["NORITUAL LAB", "Ceremonial", "VAHDAM"], "our_brand": "NaturaleBio", "insights": ["Global Trend: Our brand visibility is stable (+0.76% pts vs previous week). Current share: 22.59%.", "Price Positioning: Your average price is 26.6% higher than competitors.", "Efficiency Gap: 3 ASINs rank Top 5 but capture <5% click share."], "recommendations": ["Pricing: High price premium detected. Consider coupons to convert traffic if conversion rate drops.", "CTR Optimization: Review main images for high-ranking variants to improve Click-Through Rate.", "Inventory: Ensure top-performing variants stay in stock to maintain organic momentum."]};
+    
+    // --- UTILS ---
+    const formatPct = (val) => `${val.toFixed(1)}%`;
+    const formatNum = (val) => new Intl.NumberFormat().format(val);
+    const COLORS = {
+        primary: '#2563eb', // Blue
+        secondary: '#64748b', // Slate
+        accent: '#f59e0b', // Amber
+        comp1: '#ef4444', // Red
+        comp2: '#10b981', // Emerald
+        comp3: '#8b5cf6', // Violet
+        others: '#94a3b8' // Light Slate
+    };
+
+    // --- COMPONENTS ---
+
+    // 1. GLOBAL TREND CHART
+    const GlobalTrend = ({ data }) => {
+        return (
+            <div className="card p-6 mb-8">
+                <div className="flex justify-between items-center mb-6">
+                    <div>
+                        <h2 className="text-xl font-bold text-gray-900">Global Parent Trend</h2>
+                        <p className="text-sm text-gray-500">Total estimated clicks over time (Our Variants vs Competitors)</p>
+                    </div>
+                    <div className="flex gap-4 text-sm font-medium">
+                        <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-blue-600"></span> Ours</div>
+                        <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-gray-400"></span> Competition</div>
+                    </div>
+                </div>
+                <div className="h-72 w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={data}>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                            <XAxis dataKey="week" axisLine={false} tickLine={false} tick={{fill: '#6b7280'}} />
+                            <YAxis axisLine={false} tickLine={false} tick={{fill: '#6b7280'}} />
+                            <Tooltip 
+                                contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)'}}
+                                formatter={(value, name) => [formatNum(value), name === 'our_clicks' ? 'Our Clicks' : 'Comp Clicks']}
+                            />
+                            <Line type="monotone" dataKey="our_clicks" stroke={COLORS.primary} strokeWidth={3} dot={{r: 4}} activeDot={{r: 6}} />
+                            <Line type="monotone" dataKey="comp_clicks" stroke={COLORS.secondary} strokeWidth={3} dot={{r: 4}} activeDot={{r: 6}} />
+                        </LineChart>
+                    </ResponsiveContainer>
+                </div>
+                <div className="mt-4 grid grid-cols-2 gap-4 text-center">
+                    <div className="p-3 bg-blue-50 rounded-xl">
+                        <p className="text-xs text-blue-600 uppercase font-semibold">Latest Our Share</p>
+                        <p className="text-2xl font-bold text-blue-900">{data[data.length-1].our_share}%</p>
+                    </div>
+                    <div className="p-3 bg-gray-50 rounded-xl">
+                        <p className="text-xs text-gray-600 uppercase font-semibold">Market Stability</p>
+                        <p className="text-2xl font-bold text-gray-900">
+                           {Math.abs(data[data.length-1].comp_share - data[data.length-2].comp_share) < 2 ? 'Stable' : 'Volatile'}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
+    // 2. BRAND SHARE STACKED
+    const BrandCompetitiveness = ({ data, ourBrand, competitors }) => {
+        return (
+            <div className="card p-6 mb-8">
+                 <div className="flex justify-between items-center mb-6">
+                    <div>
+                        <h2 className="text-xl font-bold text-gray-900">Brand Competitiveness</h2>
+                        <p className="text-sm text-gray-500">Click Share distribution week over week</p>
+                    </div>
+                </div>
+                <div className="h-72 w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={data} margin={{top: 10, right: 30, left: 0, bottom: 0}}>
+                            <defs>
+                                <linearGradient id="colorOur" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%" stopColor={COLORS.primary} stopOpacity={0.2}/>
+                                    <stop offset="95%" stopColor={COLORS.primary} stopOpacity={0}/>
+                                </linearGradient>
+                            </defs>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                            <XAxis dataKey="week" axisLine={false} tickLine={false} tick={{fill: '#6b7280'}} />
+                            <YAxis axisLine={false} tickLine={false} tick={{fill: '#6b7280'}} unit="%" />
+                            <Tooltip contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)'}}/>
+                            <Legend />
+                            <Area type="monotone" dataKey="Our Brand" name={ourBrand} stackId="1" stroke={COLORS.primary} fill="url(#colorOur)" strokeWidth={2} />
+                            {competitors[0] && <Area type="monotone" dataKey={competitors[0]} stackId="1" stroke={COLORS.comp1} fill={COLORS.comp1} fillOpacity={0.6} />}
+                            {competitors[1] && <Area type="monotone" dataKey={competitors[1]} stackId="1" stroke={COLORS.comp2} fill={COLORS.comp2} fillOpacity={0.6} />}
+                            {competitors[2] && <Area type="monotone" dataKey={competitors[2]} stackId="1" stroke={COLORS.comp3} fill={COLORS.comp3} fillOpacity={0.6} />}
+                            <Area type="monotone" dataKey="Others" stackId="1" stroke={COLORS.others} fill={COLORS.others} fillOpacity={0.3} />
+                        </AreaChart>
+                    </ResponsiveContainer>
+                </div>
+            </div>
+        );
+    };
+
+    // 3. EFFICIENCY SCATTER
+    const EfficiencyMap = ({ data }) => {
+        // Prepare data: Reversing rank for visualization (Rank 1 is 'high' on Y axis visually if we flipped it, but chart logic: X=Rank)
+        // Let's use X = Rank, Y = Share.
+        
+        return (
+            <div className="card p-6 mb-8">
+                 <div className="mb-6">
+                    <h2 className="text-xl font-bold text-gray-900">Organic Efficiency (Latest Week)</h2>
+                    <p className="text-sm text-gray-500">Are high rankings converting into click share?</p>
+                </div>
+                <div className="h-96 w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                        <ScatterChart margin={{top: 20, right: 20, bottom: 20, left: 20}}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                            <XAxis type="number" dataKey="rank" name="Rank" label={{ value: 'Organic Rank (Lower is Better)', position: 'bottom', offset: 0 }} reversed={true} domain={[0, 'auto']} />
+                            <YAxis type="number" dataKey="click_share" name="Click Share" unit="%" label={{ value: 'Click Share %', angle: -90, position: 'insideLeft' }} />
+                            <Tooltip cursor={{ strokeDasharray: '3 3' }} content={({ payload }) => {
+                                if (payload && payload.length) {
+                                    const d = payload[0].payload;
+                                    return (
+                                        <div className="bg-white p-3 rounded-xl shadow-lg border border-gray-100 max-w-xs">
+                                            <p className="font-bold text-gray-800 mb-1">{d.brand}</p>
+                                            <p className="text-xs text-gray-500 mb-2 truncate">{d.title}</p>
+                                            <div className="flex justify-between text-xs mb-1">
+                                                <span>Rank: <strong>{d.rank}</strong></span>
+                                                <span>Share: <strong>{d.click_share}%</strong></span>
+                                            </div>
+                                            <div className="flex justify-between text-xs text-gray-500">
+                                                <span>Price: {d.price.toFixed(2)}</span>
+                                                <span>{d.deal ? '🏷️ Deal' : ''} {d.choice ? '🏆 Choice' : ''}</span>
+                                            </div>
+                                        </div>
+                                    );
+                                }
+                                return null;
+                            }} />
+                            <Scatter name="Ours" data={data.filter(d => d.is_ours)} fill={COLORS.primary} shape="circle" />
+                            <Scatter name="Competitors" data={data.filter(d => !d.is_ours)} fill={COLORS.others} opacity={0.6} shape="triangle" />
+                            
+                            {/* Quadrant Lines roughly at Rank 10 and Share 5% */}
+                            <ReferenceLine x={10} stroke="#e5e7eb" strokeDasharray="3 3" />
+                            <ReferenceLine y={5} stroke="#e5e7eb" strokeDasharray="3 3" />
+                        </ScatterChart>
+                    </ResponsiveContainer>
+                </div>
+                <div className="flex justify-center gap-6 mt-2 text-sm text-gray-600">
+                    <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-blue-600"></span> Our ASINs</div>
+                    <div className="flex items-center gap-2"><span className="w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-b-[10px] border-b-gray-400"></span> Competitors</div>
+                </div>
+            </div>
+        );
+    };
+
+    // 4. INSIGHTS SECTION
+    const InsightsPanel = ({ insights, recs }) => {
+        return (
+            <div className="grid md:grid-cols-2 gap-6 mb-8">
+                <div className="card p-6 border-l-4 border-blue-500">
+                    <div className="flex items-center gap-2 mb-4">
+                        <i data-lucide="lightbulb" className="w-5 h-5 text-blue-600"></i>
+                        <h3 className="font-bold text-gray-900">Key Insights</h3>
+                    </div>
+                    <ul className="space-y-3">
+                        {insights.map((ins, i) => (
+                            <li key={i} className="flex gap-3 text-sm text-gray-700 items-start">
+                                <span className="bg-blue-100 text-blue-600 rounded-full w-5 h-5 flex items-center justify-center text-xs flex-shrink-0 mt-0.5">{i+1}</span>
+                                {ins}
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+
+                <div className="card p-6 border-l-4 border-amber-400">
+                     <div className="flex items-center gap-2 mb-4">
+                        <i data-lucide="zap" className="w-5 h-5 text-amber-500"></i>
+                        <h3 className="font-bold text-gray-900">Actionable Recommendations</h3>
+                    </div>
+                    <ul className="space-y-3">
+                        {recs.map((rec, i) => (
+                            <li key={i} className="flex gap-3 text-sm text-gray-700 items-start">
+                                <span className="bg-amber-100 text-amber-600 rounded-full w-5 h-5 flex items-center justify-center text-xs flex-shrink-0 mt-0.5">!</span>
+                                {rec}
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            </div>
+        );
+    };
+
+    // 5. INTERACTIVE TAB
+    const Comparator = ({ data, rawData, topComps }) => {
+        const [selectedWeek, setSelectedWeek] = useState(data[data.length-1].week);
+        const [selectedComp, setSelectedComp] = useState(topComps[0] || 'Unknown');
+
+        // Filter data based on selection
+        const weekData = useMemo(() => {
+            // Re-filtering raw data would be best, but we have aggregated snapshots. 
+            // For the Head-to-Head, let's use the 'brand_trend' for Share and aggregate price/rank from rawData if available, 
+            // else use mocked averages based on the efficiency snapshot (since rawData only has latest week in this JSON structure for efficiency).
+            // NOTE: In a full app, we'd have full raw history. Here we use the latest week snapshot logic for detailed metrics.
+            
+            // Getting Share from brand_trend
+            const trendEntry = data.find(d => d.week === selectedWeek) || {};
+            const ourShare = trendEntry['Our Brand'] || 0;
+            const compShare = trendEntry[selectedComp] || 0;
+
+            return { ourShare, compShare };
+        }, [selectedWeek, selectedComp, data]);
+
+        // Mocking price/deal comparison for older weeks since we only passed latest_raw in 'efficiency'.
+        // We will display a disclaimer or just use the share trend which is accurate.
+        
+        return (
+            <div className="space-y-6 animate-fade-in">
+                {/* Controls */}
+                <div className="card p-4 flex flex-wrap gap-4 items-center">
+                    <div>
+                        <label className="block text-xs font-semibold text-gray-500 mb-1">Select Week</label>
+                        <select 
+                            value={selectedWeek} 
+                            onChange={(e) => setSelectedWeek(e.target.value)}
+                            className="bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-40 p-2.5"
+                        >
+                            {data.map(d => <option key={d.week} value={d.week}>{d.week}</option>)}
+                        </select>
+                    </div>
+                    <div>
+                        <label className="block text-xs font-semibold text-gray-500 mb-1">Vs Competitor</label>
+                        <select 
+                            value={selectedComp} 
+                            onChange={(e) => setSelectedComp(e.target.value)}
+                            className="bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-40 p-2.5"
+                        >
+                            {topComps.map(c => <option key={c} value={c}>{c}</option>)}
+                        </select>
+                    </div>
+                </div>
+
+                {/* Head to Head Cards */}
+                <div className="grid md:grid-cols-2 gap-6">
+                    {/* Share Battle */}
+                    <div className="card p-8 flex flex-col items-center justify-center text-center relative overflow-hidden">
+                        <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-blue-500 to-red-500"></div>
+                        <h3 className="text-lg font-semibold text-gray-700 mb-6">Click Share Battle</h3>
+                        <div className="flex items-end gap-8">
+                            <div>
+                                <div className="text-4xl font-bold text-blue-600">{weekData.ourShare}%</div>
+                                <div className="text-sm text-gray-500 mt-1">Our Brand</div>
+                            </div>
+                            <div className="text-2xl text-gray-300 font-light">vs</div>
+                            <div>
+                                <div className="text-4xl font-bold text-red-500">{weekData.compShare}%</div>
+                                <div className="text-sm text-gray-500 mt-1">{selectedComp}</div>
+                            </div>
+                        </div>
+                        <div className="mt-6 w-full bg-gray-100 rounded-full h-2.5">
+                            <div className="bg-blue-600 h-2.5 rounded-full" style={{ width: `${(weekData.ourShare / (weekData.ourShare + weekData.compShare || 1)) * 100}%` }}></div>
+                        </div>
+                    </div>
+
+                    {/* Simulation/Advisory */}
+                    <div className="card p-8 bg-gradient-to-br from-slate-800 to-slate-900 text-white">
+                        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                            <i data-lucide="crosshair" className="w-5 h-5"></i> Strategy Check
+                        </h3>
+                        <p className="text-slate-300 text-sm mb-4">
+                            Based on {selectedWeek} data, if {selectedComp} is gaining share, check their price relative to yours.
+                        </p>
+                        <div className="p-3 bg-white/10 rounded-lg backdrop-blur-sm border border-white/10">
+                            <span className="text-xs text-slate-400 uppercase tracking-wide">Action</span>
+                            <p className="font-medium mt-1">
+                                {weekData.compShare > weekData.ourShare 
+                                    ? "Defensive Mode: Increase Branded Keyword Bidding." 
+                                    : "Offensive Mode: Target their ASINs with Sponsored Products."}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
+    // --- MAIN APP ---
+    const App = () => {
+        const [activeTab, setActiveTab] = useState('report');
+
+        useEffect(() => {
+            if (window.lucide) {
+                window.lucide.createIcons();
+            }
+        }, [activeTab]);
+
+        return (
+            <div className="max-w-6xl mx-auto p-4 md:p-8">
+                {/* Header */}
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+                    <div>
+                        <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Market Intelligence Report</h1>
+                        <p className="text-gray-500 mt-1">Analyzed Parent ASIN: <span className="font-mono text-blue-600 bg-blue-50 px-2 py-0.5 rounded">Matcha Premium</span></p>
+                    </div>
+                    <div className="flex bg-white p-1 rounded-xl shadow-sm border border-gray-100">
+                        <button 
+                            onClick={() => setActiveTab('report')}
+                            className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${activeTab === 'report' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-600 hover:bg-gray-50'}`}
+                        >
+                            Static Report
+                        </button>
+                        <button 
+                            onClick={() => setActiveTab('comparator')}
+                            className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${activeTab === 'comparator' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-600 hover:bg-gray-50'}`}
+                        >
+                            Interactive Lab
+                        </button>
+                    </div>
+                </div>
+
+                {/* Content */}
+                {activeTab === 'report' ? (
+                    <div className="animate-fade-in space-y-6">
+                        <InsightsPanel insights={marketData.insights} recs={marketData.recommendations} />
+                        <GlobalTrend data={marketData.global_trend} />
+                        <div className="grid lg:grid-cols-2 gap-8">
+                            <BrandCompetitiveness 
+                                data={marketData.brand_trend} 
+                                ourBrand={marketData.our_brand} 
+                                competitors={marketData.top_competitors} 
+                            />
+                            <EfficiencyMap data={marketData.efficiency} />
+                        </div>
+                    </div>
+                ) : (
+                    <Comparator 
+                        data={marketData.brand_trend} 
+                        rawData={marketData.efficiency} 
+                        topComps={marketData.top_competitors} 
+                    />
+                )}
+                
+                <div className="mt-12 text-center text-xs text-gray-400">
+                    Generated by AI Market Analyst • {new Date().toLocaleDateString()}
+                </div>
+            </div>
+        );
+    };
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+</script>
+
+</body>
+</html>
