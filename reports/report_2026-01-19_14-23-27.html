@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Amazon ASIN Performance Report - NaturaleBio</title>
+    
+    <!-- External Dependencies (CDN) -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/recharts/umd/Recharts.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Custom Styles -->
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+        .card { background: white; border-radius: 1rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); }
+        .tab-active { border-bottom: 2px solid #2563eb; color: #2563eb; font-weight: 600; }
+        .tab-inactive { color: #64748b; }
+    </style>
+</head>
+<body>
+
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useMemo } = React;
+        const { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ComposedChart, ScatterChart, Scatter, ZAxis } = Recharts;
+        const { TrendingUp, TrendingDown, AlertCircle, Award, Target, Search, DollarSign, Activity } = lucide;
+
+        // --- PROCESSED DATA INJECTION ---
+        const marketData = {
+            "meta": {
+                "our_brand": "NaturaleBio",
+                "top_competitors": ["Sevenhills", "Kaba", "Alnatura"],
+                "weeks": ["2025-51", "2025-52", "2026-01"],
+                "last_week": "2026-01"
+            },
+            "trend_data": [
+                {"week": "2025-51", "My Brand Clicks": 355.6, "Competitor Clicks": 4279.4, "My Brand Share": 4.27, "Competitor Share": 51.39},
+                {"week": "2025-52", "My Brand Clicks": 267.4, "Competitor Clicks": 2750.3, "My Brand Share": 4.82, "Competitor Share": 49.58},
+                {"week": "2026-01", "My Brand Clicks": 120.5, "Competitor Clicks": 1665.9, "My Brand Share": 3.96, "Competitor Share": 54.73}
+            ],
+            "brand_curve": [
+                {"week": "2025-51", "NaturaleBio": 4.27, "Kaba": 9.39, "Alnatura": 8.2, "Sevenhills": 11.44, "Rest of Market": 22.36},
+                {"week": "2025-52", "NaturaleBio": 4.82, "Kaba": 8.71, "Alnatura": 7.64, "Sevenhills": 9.52, "Rest of Market": 23.71},
+                {"week": "2026-01", "NaturaleBio": 3.96, "Kaba": 8.9, "Alnatura": 8.78, "Sevenhills": 14.39, "Rest of Market": 22.66}
+            ],
+            "efficiency_data": [
+                {"final_brand": "NaturaleBio", "rank": 7, "share": 3.96, "is_yaba": true, "price": 34.80, "title": "NaturaleBio Kakao Pulver Bio 1kg"},
+                {"final_brand": "Sevenhills", "rank": 4, "share": 14.39, "is_yaba": false, "price": 28.27, "title": "Sevenhills Wholefoods Bio Kakaopulver 1kg"},
+                {"final_brand": "Kaba", "rank": 2, "share": 8.90, "is_yaba": false, "price": 3.25, "title": "Kaba Choco 400g"},
+                {"final_brand": "Alnatura", "rank": 2, "share": 8.78, "is_yaba": false, "price": 5.21, "title": "Alnatura Bio Kakao"},
+                {"final_brand": "Cortegas", "rank": 7, "share": 4.04, "is_yaba": false, "price": 10.55, "title": "Cortegas Cacao Puro"},
+                {"final_brand": "Nesquik", "rank": 8, "share": 4.04, "is_yaba": false, "price": 6.28, "title": "Nestlé Nesquik Original"},
+                {"final_brand": "Vom Achterhof", "rank": 12.5, "share": 9.55, "is_yaba": false, "price": 29.25, "title": "Kakao Pulver Bio 1000g"}
+            ],
+            "comparator_data": {
+                "2026-01": {
+                    "NaturaleBio": { "price": 34.80, "share": 3.96, "rank": 7.0, "deals": false },
+                    "Sevenhills": { "price": 28.27, "share": 14.39, "rank": 4.7, "deals": false },
+                    "Kaba": { "price": 3.25, "share": 8.90, "rank": 2.0, "deals": false },
+                    "Alnatura": { "price": 5.21, "share": 8.78, "rank": 2.0, "deals": false }
+                },
+                "2025-52": {
+                    "NaturaleBio": { "price": 32.77, "share": 4.82, "rank": 5.0, "deals": false },
+                    "Sevenhills": { "price": 30.72, "share": 9.52, "rank": 4.0, "deals": false }
+                },
+                "2025-51": {
+                    "NaturaleBio": { "price": 33.57, "share": 4.27, "rank": 4.0, "deals": false },
+                    "Sevenhills": { "price": 31.48, "share": 11.44, "rank": 4.0, "deals": false }
+                }
+            }
+        };
+
+        // --- COMPONENTS ---
+
+        const KpiCard = ({ title, value, subtext, icon: Icon, color }) => (
+            <div className="card p-6 flex items-center space-x-4">
+                <div className={`p-3 rounded-full bg-${color}-100 text-${color}-600`}>
+                    <Icon size={24} />
+                </div>
+                <div>
+                    <p className="text-sm text-gray-500 font-medium">{title}</p>
+                    <h3 className="text-2xl font-bold text-gray-900">{value}</h3>
+                    {subtext && <p className={`text-xs mt-1 ${subtext.includes('+') ? 'text-green-600' : 'text-red-600'}`}>{subtext}</p>}
+                </div>
+            </div>
+        );
+
+        const SectionHeader = ({ title, subtitle }) => (
+            <div className="mb-6 mt-8">
+                <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                    <Activity size={20} className="text-blue-600" />
+                    {title}
+                </h2>
+                <p className="text-gray-500 text-sm">{subtitle}</p>
+            </div>
+        );
+
+        const Dashboard = () => {
+            // Colors for charts
+            const ourColor = "#2563eb";
+            const compColors = ["#ef4444", "#f59e0b", "#10b981", "#94a3b8"];
+
+            const latestWeek = marketData.trend_data[marketData.trend_data.length - 1];
+            const prevWeek = marketData.trend_data[marketData.trend_data.length - 2];
+            const clickChange = ((latestWeek["My Brand Clicks"] - prevWeek["My Brand Clicks"]) / prevWeek["My Brand Clicks"] * 100).toFixed(1);
+
+            return (
+                <div className="space-y-8 animate-fade-in">
+                    {/* KPI Header */}
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <KpiCard 
+                            title="Total Clicks (Last Week)" 
+                            value={latestWeek["My Brand Clicks"]} 
+                            subtext={`${clickChange}% vs prev week`}
+                            icon={Search} 
+                            color="blue" 
+                        />
+                        <KpiCard 
+                            title="Click Share" 
+                            value={`${latestWeek["My Brand Share"]}%`} 
+                            subtext="Vs 14.3% (Leader)"
+                            icon={Target} 
+                            color="indigo" 
+                        />
+                        <KpiCard 
+                            title="Avg Price" 
+                            value={`€${marketData.efficiency_data[0].price.toFixed(2)}`} 
+                            subtext="Premium Positioning"
+                            icon={DollarSign} 
+                            color="green" 
+                        />
+                         <KpiCard 
+                            title="Organic Rank" 
+                            value={`#${marketData.efficiency_data[0].rank}`} 
+                            subtext="Dropped from #5"
+                            icon={Award} 
+                            color="orange" 
+                        />
+                    </div>
+
+                    {/* 1. Global Parent Trend */}
+                    <div className="card p-6">
+                        <SectionHeader title="1. Global Parent Trend" subtitle="Clicks Volume vs Click Share (Our Brand vs Competitors)" />
+                        <div className="h-80 w-full">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <ComposedChart data={marketData.trend_data}>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                                    <XAxis dataKey="week" />
+                                    <YAxis yAxisId="left" label={{ value: 'Clicks', angle: -90, position: 'insideLeft' }} />
+                                    <YAxis yAxisId="right" orientation="right" label={{ value: 'Share %', angle: 90, position: 'insideRight' }} />
+                                    <Tooltip />
+                                    <Legend />
+                                    <Bar yAxisId="left" dataKey="My Brand Clicks" fill={ourColor} name="My Clicks" barSize={20} />
+                                    <Bar yAxisId="left" dataKey="Competitor Clicks" fill="#94a3b8" name="Market Clicks" barSize={20} />
+                                    <Line yAxisId="right" type="monotone" dataKey="My Brand Share" stroke={ourColor} strokeWidth={3} name="My Share %" />
+                                </ComposedChart>
+                            </ResponsiveContainer>
+                        </div>
+                        <div className="mt-4 p-4 bg-gray-50 rounded-lg text-sm text-gray-700">
+                            <strong>Insight:</strong> Click volume for the parent ASIN has declined significantly in Week 2026-01 (120 clicks vs 355 two weeks ago). While the total market also contracted, our share dipped to 3.96%, indicating we are losing traction faster than the category average.
+                        </div>
+                    </div>
+
+                    {/* 2. Brand Competitiveness */}
+                    <div className="card p-6">
+                        <SectionHeader title="2. Brand Competitiveness" subtitle="Weekly Click Share Evolution" />
+                        <div className="h-80 w-full">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <LineChart data={marketData.brand_curve}>
+                                    <CartesianGrid strokeDasharray="3 3" />
+                                    <XAxis dataKey="week" />
+                                    <YAxis unit="%" />
+                                    <Tooltip />
+                                    <Legend />
+                                    <Line type="monotone" dataKey="NaturaleBio" stroke={ourColor} strokeWidth={3} activeDot={{ r: 8 }} />
+                                    {marketData.meta.top_competitors.map((comp, i) => (
+                                        <Line key={comp} type="monotone" dataKey={comp} stroke={compColors[i]} strokeWidth={2} />
+                                    ))}
+                                    <Line type="monotone" dataKey="Rest of Market" stroke="#cbd5e1" strokeDasharray="5 5" />
+                                </LineChart>
+                            </ResponsiveContainer>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                            <div className="p-4 bg-red-50 rounded-lg text-sm text-red-800 border border-red-100">
+                                <strong>Competitor Alert:</strong> <span className="font-bold">Sevenhills</span> has surged to ~14.4% share, overtaking Kaba and Alnatura. Their aggressive growth correlates with a competitive price point (~€28 for bulk) vs our €34.80.
+                            </div>
+                            <div className="p-4 bg-blue-50 rounded-lg text-sm text-blue-800 border border-blue-100">
+                                <strong>Our Position:</strong> We are flatlining around 4%. The gap between us and the Top 3 is widening. We are currently fighting for the "Best of the Rest" spot rather than podium placement.
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* 3. Efficiency Matrix */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        <div className="card p-6">
+                            <SectionHeader title="3. Organic Rank vs Click Share" subtitle="Efficiency Matrix (Last Week)" />
+                            <div className="h-64 w-full">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
+                                        <CartesianGrid />
+                                        <XAxis type="number" dataKey="rank" name="Rank" reversed={true} label={{ value: 'Organic Rank (Lower is Better)', position: 'bottom' }} />
+                                        <YAxis type="number" dataKey="share" name="Share" unit="%" label={{ value: 'Click Share %', angle: -90, position: 'insideLeft' }} />
+                                        <Tooltip cursor={{ strokeDasharray: '3 3' }} content={({ payload }) => {
+                                            if (payload && payload.length) {
+                                                const data = payload[0].payload;
+                                                return (
+                                                    <div className="bg-white p-2 border shadow-lg rounded text-xs">
+                                                        <p className="font-bold">{data.final_brand}</p>
+                                                        <p>Rank: {data.rank}</p>
+                                                        <p>Share: {data.share}%</p>
+                                                        <p>Price: €{data.price}</p>
+                                                    </div>
+                                                );
+                                            }
+                                            return null;
+                                        }} />
+                                        <Scatter name="Brands" data={marketData.efficiency_data} fill="#8884d8">
+                                            {marketData.efficiency_data.map((entry, index) => (
+                                                <cell key={`cell-${index}`} fill={entry.is_yaba ? ourColor : (entry.share > 10 ? '#ef4444' : '#94a3b8')} />
+                                            ))}
+                                        </Scatter>
+                                    </ScatterChart>
+                                </ResponsiveContainer>
+                            </div>
+                            <p className="text-xs text-gray-500 mt-2 italic">Color Key: Blue = Us, Red = Market Leader, Gray = Others.</p>
+                        </div>
+
+                        <div className="card p-6">
+                            <SectionHeader title="4. Pricing Levers" subtitle="Price vs Share Relationship" />
+                            <div className="overflow-x-auto">
+                                <table className="min-w-full text-sm text-left">
+                                    <thead className="text-xs text-gray-700 uppercase bg-gray-50">
+                                        <tr>
+                                            <th className="px-4 py-2">Brand</th>
+                                            <th className="px-4 py-2">Price (€)</th>
+                                            <th className="px-4 py-2">Share</th>
+                                            <th className="px-4 py-2">Efficiency</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {marketData.efficiency_data.sort((a,b) => b.share - a.share).slice(0,5).map((row, i) => (
+                                            <tr key={i} className={`border-b ${row.is_yaba ? 'bg-blue-50 font-bold' : ''}`}>
+                                                <td className="px-4 py-2">{row.final_brand}</td>
+                                                <td className="px-4 py-2">€{row.price.toFixed(2)}</td>
+                                                <td className="px-4 py-2">{row.share}%</td>
+                                                <td className="px-4 py-2 text-xs">
+                                                    {row.rank < 5 && row.share > 10 ? 'High' : (row.rank < 5 && row.share < 5 ? 'Low' : 'Avg')}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div className="mt-4 text-sm text-gray-700">
+                                <strong>Observation:</strong> There is a clear bifurcation. Mass market brands (Kaba, Nesquik) are &lt;€7. Bulk Organic (Sevenhills, Vom Achterhof) are €28-30. <strong>NaturaleBio is an outlier at €34.80</strong>, the most expensive in the competitive set, likely capping our Click Share potential despite decent ranking.
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* 5. Conclusions & Recommendations */}
+                    <div className="card p-8 bg-gradient-to-br from-gray-900 to-gray-800 text-white">
+                        <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+                            <TrendingUp className="text-yellow-400" />
+                            Insights & Recommendations
+                        </h2>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div>
+                                <h3 className="text-lg font-semibold text-blue-300 mb-3 border-b border-gray-700 pb-2">💡 Key Insights</h3>
+                                <ul className="space-y-3 text-sm text-gray-300">
+                                    <li className="flex gap-2">
+                                        <span className="text-red-400 font-bold">•</span>
+                                        <span><strong>Trend is Negative:</strong> Weekly clicks dropped by >50% (Week 51 to 01). Ranking slipped from #4 to #7.</span>
+                                    </li>
+                                    <li className="flex gap-2">
+                                        <span className="text-red-400 font-bold">•</span>
+                                        <span><strong>Price Barrier:</strong> At €34.80, we are ~20% more expensive than our direct bulk competitor Sevenhills (€28.27), who holds 3.6x our market share.</span>
+                                    </li>
+                                    <li className="flex gap-2">
+                                        <span className="text-yellow-400 font-bold">•</span>
+                                        <span><strong>Efficiency Leak:</strong> Despite being on Page 1 (Rank 7), we only capture ~4% of clicks. This suggests a low CTR driven by the high price point visible on the SERP.</span>
+                                    </li>
+                                    <li className="flex gap-2">
+                                        <span className="text-blue-400 font-bold">•</span>
+                                        <span><strong>Market Polarization:</strong> Consumers are choosing either very cheap branded cocoa (Kaba) or value-for-money organic bulk (Sevenhills). We are stuck in the "premium bulk" middle ground.</span>
+                                    </li>
+                                </ul>
+                            </div>
+
+                            <div>
+                                <h3 className="text-lg font-semibold text-green-300 mb-3 border-b border-gray-700 pb-2">🚀 Actionable Plan</h3>
+                                <ul className="space-y-4 text-sm">
+                                    <li className="bg-gray-700/50 p-3 rounded-lg border-l-4 border-green-500">
+                                        <strong className="text-white block mb-1">1. Price Competitiveness (Immediate)</strong>
+                                        <span className="text-gray-300">Test a price drop to <strong>€29.99</strong> or launch a 15% coupon to match Sevenhills' effective price point and improve CTR.</span>
+                                    </li>
+                                    <li className="bg-gray-700/50 p-3 rounded-lg border-l-4 border-yellow-500">
+                                        <strong className="text-white block mb-1">2. Defensive Ads</strong>
+                                        <span className="text-gray-300">Increase SP bid on "kakaopulver" for the 1kg variant to regain Top of Search visibility lost by organic slip (Rank 4 → 7).</span>
+                                    </li>
+                                    <li className="bg-gray-700/50 p-3 rounded-lg border-l-4 border-blue-500">
+                                        <strong className="text-white block mb-1">3. Listing Optimization</strong>
+                                        <span className="text-gray-300">Ensure the main image highlights "Premium Quality" or "Italian Origin" to justify the price premium if lowering price is not an option.</span>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const Comparator = () => {
+            const [selectedWeek, setSelectedWeek] = useState(marketData.meta.last_week);
+            const [competitor, setCompetitor] = useState("Sevenhills");
+
+            const weekData = marketData.comparator_data[selectedWeek] || {};
+            const ourData = weekData["NaturaleBio"] || { price: 0, share: 0, rank: 0 };
+            const compData = weekData[competitor] || { price: 0, share: 0, rank: 0 };
+
+            const ComparisonRow = ({ label, ourVal, compVal, type, inverse = false }) => {
+                let diff = 0;
+                let color = "text-gray-500";
+                
+                if (typeof ourVal === 'number' && typeof compVal === 'number') {
+                    diff = ourVal - compVal;
+                    const isWin = inverse ? diff < 0 : diff > 0;
+                    color = diff === 0 ? "text-gray-500" : (isWin ? "text-green-600" : "text-red-600");
+                }
+
+                return (
+                    <div className="flex justify-between items-center py-4 border-b border-gray-100 last:border-0">
+                        <div className="w-1/3 text-center font-bold text-gray-800 text-lg">
+                            {type === 'currency' ? `€${ourVal.toFixed(2)}` : (type === 'percent' ? `${ourVal}%` : ourVal)}
+                        </div>
+                        <div className="w-1/3 text-center text-xs font-semibold uppercase tracking-wider text-gray-400">
+                            {label}
+                            {diff !== 0 && (
+                                <span className={`block text-xs mt-1 ${color}`}>
+                                    {diff > 0 ? '+' : ''}{type === 'percent' ? diff.toFixed(1) + '%' : diff.toFixed(2)}
+                                </span>
+                            )}
+                        </div>
+                        <div className="w-1/3 text-center font-bold text-gray-600 text-lg">
+                            {type === 'currency' ? `€${compVal.toFixed(2)}` : (type === 'percent' ? `${compVal}%` : compVal)}
+                        </div>
+                    </div>
+                );
+            };
+
+            return (
+                <div className="animate-fade-in max-w-4xl mx-auto">
+                    <div className="flex justify-between items-center mb-8">
+                        <div>
+                            <h2 className="text-2xl font-bold text-gray-800">Head-to-Head</h2>
+                            <p className="text-gray-500">Direct comparison on key metrics</p>
+                        </div>
+                        <div className="flex gap-4">
+                            <select 
+                                className="p-2 border rounded-lg bg-white shadow-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                                value={selectedWeek}
+                                onChange={(e) => setSelectedWeek(e.target.value)}
+                            >
+                                {marketData.meta.weeks.map(w => <option key={w} value={w}>{w}</option>)}
+                            </select>
+                            <select 
+                                className="p-2 border rounded-lg bg-white shadow-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                                value={competitor}
+                                onChange={(e) => setCompetitor(e.target.value)}
+                            >
+                                {marketData.meta.top_competitors.map(c => <option key={c} value={c}>{c}</option>)}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div className="card overflow-hidden">
+                        <div className="grid grid-cols-3 bg-gray-50 p-4 border-b">
+                            <div className="text-center">
+                                <span className="block font-bold text-blue-600 text-xl">NaturaleBio</span>
+                                <span className="text-xs text-gray-500">Our Brand</span>
+                            </div>
+                            <div className="text-center flex items-center justify-center">
+                                <span className="bg-gray-200 text-gray-600 text-xs px-2 py-1 rounded-full">VS</span>
+                            </div>
+                            <div className="text-center">
+                                <span className="block font-bold text-gray-700 text-xl">{competitor}</span>
+                                <span className="text-xs text-gray-500">Competitor</span>
+                            </div>
+                        </div>
+                        
+                        <div className="p-6">
+                            <ComparisonRow label="Price" ourVal={ourData.price} compVal={compData.price} type="currency" inverse={true} />
+                            <ComparisonRow label="Click Share" ourVal={ourData.share} compVal={compData.share} type="percent" />
+                            <ComparisonRow label="Organic Rank" ourVal={ourData.rank} compVal={compData.rank} type="number" inverse={true} />
+                            <div className="flex justify-between items-center py-4">
+                                <div className="w-1/3 text-center">
+                                    {ourData.deals ? <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded">DEAL ACTIVE</span> : <span className="text-gray-400 text-xs">No Deal</span>}
+                                </div>
+                                <div className="w-1/3 text-center text-xs font-semibold uppercase tracking-wider text-gray-400">Promotions</div>
+                                <div className="w-1/3 text-center">
+                                    {compData.deals ? <span className="bg-red-100 text-red-800 text-xs px-2 py-1 rounded">DEAL ACTIVE</span> : <span className="text-gray-400 text-xs">No Deal</span>}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const App = () => {
+            const [activeTab, setActiveTab] = useState('report');
+            
+            // Lucide icons logic for browser environment
+            React.useEffect(() => {
+                lucide.createIcons();
+            }, []);
+
+            return (
+                <div className="min-h-screen pb-12">
+                    {/* Header */}
+                    <div className="bg-white border-b sticky top-0 z-50">
+                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                            <div className="flex justify-between h-16 items-center">
+                                <div className="flex items-center gap-2">
+                                    <div className="bg-blue-600 text-white p-1.5 rounded-lg font-bold text-lg">NB</div>
+                                    <h1 className="text-xl font-bold text-gray-900">Parent ASIN Intelligence</h1>
+                                </div>
+                                <div className="flex space-x-8">
+                                    <button 
+                                        onClick={() => setActiveTab('report')}
+                                        className={`px-3 py-2 text-sm font-medium transition-colors ${activeTab === 'report' ? 'tab-active' : 'tab-inactive hover:text-gray-900'}`}
+                                    >
+                                        Strategic Report
+                                    </button>
+                                    <button 
+                                        onClick={() => setActiveTab('compare')}
+                                        className={`px-3 py-2 text-sm font-medium transition-colors ${activeTab === 'compare' ? 'tab-active' : 'tab-inactive hover:text-gray-900'}`}
+                                    >
+                                        Interactive Comparator
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Content */}
+                    <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                        {activeTab === 'report' ? <Dashboard /> : <Comparator />}
+                    </main>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
