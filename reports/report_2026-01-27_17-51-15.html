@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Parent ASIN Intelligence Report</title>
+    <!-- Google Native Ecosystem Dependencies -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://www.gstatic.com/charts/loader.js"></script>
+
+    <style>
+        :root {
+            --primary: #0071e3; /* Apple Blue */
+            --secondary: #86868b;
+            --bg: #f5f5f7;
+            --card-bg: #ffffff;
+            --text-main: #1d1d1f;
+            --danger: #ff3b30;
+            --success: #34c759;
+            --warning: #ffcc00;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--bg);
+            color: var(--text-main);
+            margin: 0;
+            padding: 0;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Layout Utilities */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            gap: 20px;
+        }
+
+        .col-12 { grid-column: span 12; }
+        .col-8 { grid-column: span 8; }
+        .col-6 { grid-column: span 6; }
+        .col-4 { grid-column: span 4; }
+
+        @media (max-width: 768px) {
+            .col-8, .col-6, .col-4 { grid-column: span 12; }
+        }
+
+        /* Card Component */
+        .card {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+            transition: transform 0.2s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-2px);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .card-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Metrics */
+        .metric-value {
+            font-size: 32px;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+        }
+
+        .metric-label {
+            font-size: 13px;
+            color: var(--secondary);
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .trend-up { color: var(--success); display: flex; align-items: center; font-size: 14px; margin-top: 4px; }
+        .trend-down { color: var(--danger); display: flex; align-items: center; font-size: 14px; margin-top: 4px; }
+
+        /* Navigation Tabs */
+        .nav-tabs {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 24px;
+            background: rgba(255,255,255,0.8);
+            padding: 6px;
+            border-radius: 12px;
+            width: fit-content;
+            backdrop-filter: blur(10px);
+        }
+
+        .nav-tab {
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 14px;
+            color: var(--secondary);
+            transition: all 0.2s;
+        }
+
+        .nav-tab.active {
+            background: var(--primary);
+            color: white;
+            box-shadow: 0 2px 8px rgba(0, 113, 227, 0.3);
+        }
+
+        /* Google Chart Containers */
+        .chart-container {
+            width: 100%;
+            height: 350px;
+        }
+
+        /* Insights List */
+        .insight-item {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 16px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid #eee;
+        }
+        .insight-item:last-child { border-bottom: none; }
+        .insight-icon { color: var(--primary); }
+        .insight-text strong { display: block; margin-bottom: 4px; color: var(--text-main); }
+        .insight-text { font-size: 14px; color: #555; line-height: 1.5; }
+
+        /* Interactive Controls */
+        .control-group {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+        select {
+            padding: 10px 16px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            font-size: 14px;
+            background: white;
+            min-width: 200px;
+        }
+
+        /* Utility */
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            background: #eee;
+            color: #666;
+        }
+        .badge.deal { background: #fee2e2; color: #991b1b; }
+        .badge.choice { background: #dcfce7; color: #166534; }
+        
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- Header -->
+        <header style="margin-bottom: 30px;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div>
+                    <h1 style="font-size: 28px; font-weight: 700; margin: 0;">Market Intelligence Report</h1>
+                    <p style="margin: 4px 0 0 0; color: var(--secondary);">Análisis Profundo de Parent ASIN & Competencia</p>
+                </div>
+                <div style="text-align: right;">
+                    <span class="badge" style="background:var(--primary); color:white;">CONFIDENTIAL</span>
+                    <p id="report-date" style="font-size: 12px; color: var(--secondary); margin-top: 5px;">Last Update: Loading...</p>
+                </div>
+            </div>
+        </header>
+
+        <!-- Tabs -->
+        <div class="nav-tabs">
+            <div class="nav-tab active" onclick="switchTab('static')">Reporte Estratégico</div>
+            <div class="nav-tab" onclick="switchTab('interactive')">Comparador Interactivo</div>
+        </div>
+
+        <!-- VIEW 1: STATIC DASHBOARD -->
+        <div id="view-static" class="grid">
+            
+            <!-- 1. Tendencia Global -->
+            <div class="col-12 card">
+                <div class="card-header">
+                    <div class="card-title"><span class="material-icons">trending_up</span> Tendencia Global del Parent</div>
+                </div>
+                <div class="grid" style="margin-bottom: 20px;">
+                    <div class="col-4">
+                        <div class="metric-label">Total Clicks (Last Week)</div>
+                        <div class="metric-value" id="kpi-total-clicks">-</div>
+                        <div id="kpi-clicks-trend" class="trend-up">-</div>
+                    </div>
+                    <div class="col-4">
+                        <div class="metric-label">Our Share of Voice</div>
+                        <div class="metric-value" id="kpi-sov">-</div>
+                        <div id="kpi-sov-trend" class="trend-up">-</div>
+                    </div>
+                    <div class="col-4">
+                        <div class="metric-label">Dominant Competitor</div>
+                        <div class="metric-value" id="kpi-top-comp" style="font-size: 24px;">-</div>
+                        <div class="metric-label" id="kpi-top-comp-share">Share: -</div>
+                    </div>
+                </div>
+                <div id="chart_trend" class="chart-container"></div>
+            </div>
+
+            <!-- 2. Competitividad de Marca -->
+            <div class="col-8 card">
+                <div class="card-header">
+                    <div class="card-title"><span class="material-icons">pie_chart</span> Dinámica de Cuota de Mercado (Top 3)</div>
+                </div>
+                <div id="chart_competitiveness" class="chart-container"></div>
+            </div>
+
+            <!-- 5. Insights & Conclusiones (Moved up for visibility) -->
+            <div class="col-4 card">
+                <div class="card-header">
+                    <div class="card-title"><span class="material-icons">lightbulb</span> Insights Clave</div>
+                </div>
+                <div id="insights-container" style="height: 350px; overflow-y: auto;">
+                    <!-- Filled via JS -->
+                </div>
+            </div>
+
+            <!-- 3. Palancas (Levers) -->
+            <div class="col-6 card">
+                <div class="card-header">
+                    <div class="card-title"><span class="material-icons">tune</span> Impacto de Palancas (Promociones)</div>
+                </div>
+                <div id="levers_table_div" style="height: 300px;"></div>
+            </div>
+
+            <!-- 4. Eficiencia (Rank vs Share) -->
+            <div class="col-6 card">
+                <div class="card-header">
+                    <div class="card-title"><span class="material-icons">scatter_plot</span> Eficiencia: Organic Rank vs Click Share</div>
+                </div>
+                <div id="chart_efficiency" class="chart-container" style="height: 300px;"></div>
+            </div>
+
+            <!-- Recommendations -->
+            <div class="col-12 card" style="background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border: 1px solid #bae6fd;">
+                <div class="card-header">
+                    <div class="card-title" style="color: #0369a1;"><span class="material-icons">verified</span> Recomendaciones Accionables</div>
+                </div>
+                <div class="grid" id="recommendations-container">
+                    <!-- Filled via JS -->
+                </div>
+            </div>
+        </div>
+
+        <!-- VIEW 2: INTERACTIVE COMPARATOR -->
+        <div id="view-interactive" class="hidden">
+            <div class="card col-12" style="margin-bottom: 20px;">
+                <div class="control-group">
+                    <div>
+                        <label class="metric-label" style="display:block; margin-bottom:5px;">Semana de Análisis</label>
+                        <select id="sel-week" onchange="updateInteractive()"></select>
+                    </div>
+                    <div>
+                        <label class="metric-label" style="display:block; margin-bottom:5px;">Competidor a Comparar</label>
+                        <select id="sel-comp" onchange="updateInteractive()"></select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid">
+                <!-- Head to Head Cards -->
+                <div class="col-6 card" style="border-top: 4px solid var(--primary);">
+                    <div class="card-header"><div class="card-title">Nuestra Marca</div></div>
+                    <div class="grid">
+                        <div class="col-6">
+                            <div class="metric-label">Precio Promedio</div>
+                            <div class="metric-value" id="comp-us-price">-</div>
+                        </div>
+                        <div class="col-6">
+                            <div class="metric-label">Click Share</div>
+                            <div class="metric-value" id="comp-us-share">-</div>
+                        </div>
+                        <div class="col-12" style="margin-top: 10px;">
+                            <div id="comp-us-badges"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-6 card" style="border-top: 4px solid var(--danger);">
+                    <div class="card-header"><div class="card-title" id="comp-them-name">Competidor</div></div>
+                    <div class="grid">
+                        <div class="col-6">
+                            <div class="metric-label">Precio Promedio</div>
+                            <div class="metric-value" id="comp-them-price">-</div>
+                        </div>
+                        <div class="col-6">
+                            <div class="metric-label">Click Share</div>
+                            <div class="metric-value" id="comp-them-share">-</div>
+                        </div>
+                        <div class="col-12" style="margin-top: 10px;">
+                            <div id="comp-them-badges"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Comparison Chart -->
+                <div class="col-12 card">
+                    <div class="card-title" style="margin-bottom: 20px;">Evolución de Precio vs Competidor</div>
+                    <div id="chart_interactive_price" class="chart-container"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // 1. DATA INJECTION (Synthetic Data for Demo)
+        // ==========================================
+        const marketData = [{"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENT", "week_date": "2023-10-01", "keywords": "wireless headphones", "competitor_brand": "SoundCore", "asin": "B00SOUNDCOREw", "product_title": "SoundCore wireless headphones - Premium Sound", "average_organic_rank": 14, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.1582, "clicks": 1107, "price": 50, "is_yaba_asin": "Y", "grams": 200, "organic_or_not": "Organic", "link": "http://amazon.com/dp/..."}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENT", "week_date": "2023-10-01", "keywords": "wireless headphones", "competitor_brand": "Sony", "asin": "B00SONYw", "product_title": "Sony wireless headphones - Premium Sound", "average_organic_rank": 5, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.2678, "clicks": 1874, "price": 80, "is_yaba_asin": "N", "grams": 200, "organic_or_not": "Organic", "link": "http://amazon.com/dp/..."}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENT", "week_date": "2023-10-01", "keywords": "wireless headphones", "competitor_brand": "JBL", "asin": "B00JBLw", "product_title": "JBL wireless headphones - Premium Sound", "average_organic_rank": 9, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.2161, "clicks": 1512, "price": 60, "is_yaba_asin": "N", "grams": 200, "organic_or_not": "Organic", "link": "http://amazon.com/dp/..."}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENT", "week_date": "2023-10-01", "keywords": "wireless headphones", "competitor_brand": "Bose", "asin": "B00BOSEw", "product_title": "Bose wireless headphones - Premium Sound", "average_organic_rank": 14, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.0909, "clicks": 636, "price": 150, "is_yaba_asin": "N", "grams": 200, "organic_or_not": "Organic", "link": "http://amazon.com/dp/..."}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENT", "week_date": "2023-10-01", "keywords": "wireless headphones", "competitor_brand": "Generic", "asin": "B00GENERICw", "product_title": "Generic wireless headphones - Premium Sound", "average_organic_rank": 15, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.0473, "clicks": 331, "price": 30, "is_yaba_asin": "N", "grams": 200, "organic_or_not": "Organic", "link": "http://amazon.com/dp/..."}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENT", "week_date": "2023-10-01", "keywords": "bluetooth earbuds", "competitor_brand": "SoundCore", "asin": "B00SOUNDCOREb", "product_title": "SoundCore bluetooth earbuds - Premium Sound", "average_organic_rank": 11, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.1579, "clicks": 1105, "price": 50, "is_yaba_asin": "Y", "grams": 200, "organic_or_not": "Organic", "link": "http://amazon.com/dp/..."}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENT", "week_date": "2023-10-01", "keywords": "bluetooth earbuds", "competitor_brand": "Sony", "asin": "B00SONYb", "product_title": "Sony bluetooth earbuds - Premium Sound", "average_organic_rank": 6, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.2313, "clicks": 1619, "price": 80, "is_yaba_asin": "N", "grams": 200, "organic_or_not": "Organic", "link": "http://amazon.com/dp/..."}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENT", "week_date": "2023-10-01", "keywords": "bluetooth earbuds", "competitor_brand": "JBL", "asin": "B00JBLb", "product_title": "JBL bluetooth earbuds - Premium Sound", "average_organic_rank": 9, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.2092, "clicks": 1464, "price": 60, "is_yaba_asin": "N", "grams": 200, "organic_or_not": "Organic", "link": "http://amazon.com/dp/..."}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENT", "week_date": "2023-10-01", "keywords": "bluetooth earbuds", "competitor_brand": "Bose", "asin": "B00BOSEb", "product_title": "Bose bluetooth earbuds - Premium Sound", "average_organic_rank": 17, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.0989, "clicks": 691, "price": 150, "is_yaba_asin": "N", "grams": 200, "organic_or_not": "Organic", "link": "http://amazon.com/dp/..."}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENT", "week_date": "2023-10-01", "keywords": "bluetooth earbuds", "competitor_brand": "Generic", "asin": "B00GENERICb", "product_title": "Generic bluetooth earbuds - Premium Sound", "average_organic_rank": 16, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.0523, "clicks": 366, "price": 30, "is_yaba_asin": "N", "grams": 200, "organic_or_not": "Organic", "link": "http://amazon.com/dp/..."}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENT", "week_date": "2023-10-08", "keywords": "wireless headphones", "competitor_brand": "SoundCore", "asin": "B00SOUNDCOREw", "product_title": "SoundCore wireless headphones - Premium Sound", "average_organic_rank": 11, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.1556, "clicks": 1158, "price": 50, "is_yaba_asin": "Y", "grams": 200, "organic_or_not": "Organic", "link": "http://amazon.com/dp/..."}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENT", "week_date": "2023-10-08", "keywords": "wireless headphones", "competitor_brand": "Sony", "asin": "B00SONYw", "product_title": "Sony wireless headphones - Premium Sound", "average_organic_rank": 5, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 5, "click_share": 0.3, "clicks": 2233, "price": 80, "is_yaba_asin": "N", "grams": 200, "organic_or_not": "Organic", "link": "http://amazon.com/dp/..."}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENT", "week_date": "2023-10-08", "keywords": "wireless headphones", "competitor_brand": "JBL", "asin": "B00JBLw", "product_title": "JBL wireless headphones - Premium Sound", "average_organic_rank": 9, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.1955, "clicks": 1455, "price": 60, "is_yaba_asin": "N", "grams": 200, "organic_or_not": "Organic", "link": "http://amazon.com/dp/..."}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENT", "week_date": "2023-10-08", "keywords": "wireless headphones", "competitor_brand": "Bose", "asin": "B00BOSEw", "product_title": "Bose wireless headphones - Premium Sound", "average_organic_rank": 16, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.1038, "clicks": 772, "price": 150, "is_yaba_asin": "N", "grams": 200, "organic_or_not": "Organic", "link": "http://amazon.com/dp/..."}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENT", "week_date": "2023-10-08", "keywords": "wireless headphones", "competitor_brand": "Generic", "asin": "B00GENERICw", "product_title": "Generic wireless headphones - Premium Sound", "average_organic_rank": 17, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.046, "clicks": 342, "price": 30, "is_yaba_asin": "N", "grams": 200, "organic_or_not": "Organic", "link": "http://amazon.com/dp/..."}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENT", "week_date": "2023-10-08", "keywords": "bluetooth earbuds", "competitor_brand": "SoundCore", "asin": "B00SOUNDCOREb", "product_title": "SoundCore bluetooth earbuds - Premium Sound", "average_organic_rank": 10, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.1503, "clicks": 1119, "price": 50, "is_yaba_asin": "Y", "grams": 200, "organic_or_not": "Organic", "link": "http://amazon.com/dp/..."}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENT", "week_date": "2023-10-08", "keywords": "bluetooth earbuds", "competitor_brand": "Sony", "asin": "B00SONYb", "product_title": "Sony bluetooth earbuds - Premium Sound", "average_organic_rank": 7, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 5, "click_share": 0.3, "clicks": 2233, "price": 80, "is_yaba_asin": "N", "grams": 200, "organic_or_not": "Organic", "link": "http://amazon.com/dp/..."}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENT", "week_date": "2023-10-08", "keywords": "bluetooth earbuds", "competitor_brand": "JBL", "asin": "B00JBLb", "product_title": "JBL bluetooth earbuds - Premium Sound", "average_organic_rank": 10, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.2042, "clicks": 1520, "price": 60, "is_yaba_asin": "N", "grams": 200, "organic_or_not": "Organic", "link": "http://amazon.com/dp/..."}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENT", "week_date": "2023-10-08", "keywords": "bluetooth earbuds", "competitor_brand": "Bose", "asin": "B00BOSEb", "product_title": "Bose bluetooth earbuds - Premium Sound", "average_organic_rank": 16, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.1014, "clicks": 754, "price": 150, "is_yaba_asin": "N", "grams": 200, "organic_or_not": "Organic", "link": "http://amazon.com/dp/..."}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENT", "week_date": "2023-10-08", "keywords": "bluetooth earbuds", "competitor_brand": "Generic", "asin": "B00GENERICb", "product_title": "Generic bluetooth earbuds - Premium Sound", "average_organic_rank": 15, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.0491, "clicks": 365, "price": 30, "is_yaba_asin": "N", "grams": 200, "organic_or_not": "Organic", "link": "http://amazon.com/dp/..."}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENT", "week_date": "2023-10-15", "keywords": "wireless headphones", "competitor_brand": "SoundCore", "asin": "B00SOUNDCOREw", "product_title": "SoundCore wireless headphones - Premium Sound", "average_organic_rank": 14, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.1525, "clicks": 928, "price": 50, "is_yaba_asin": "Y", "grams": 200, "organic_or_not": "Organic", "link": "http://amazon.com/dp/..."}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENT", "week_date": "2023-10-15", "keywords": "wireless headphones", "competitor_brand": "Sony", "asin": "B00SONYw", "product_title": "Sony wireless headphones - Premium Sound", "average_organic_rank": 7, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.2496, "clicks": 1520, "price": 80, "is_yaba_asin": "N", "grams": 200, "organic_or_not": "Organic", "link": "http://amazon.com/dp/..."}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENT", "week_date": "2023-10-15", "keywords": "wireless headphones", "competitor_brand": "JBL", "asin": "B00JBLw", "product_title": "JBL wireless headphones - Premium Sound", "average_organic_rank": 10, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.1995, "clicks": 1215, "price": 60, "is_yaba_asin": "N", "grams": 200, "organic_or_not": "Organic", "link": "http://amazon.com/dp/..."}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENT", "week_date": "2023-10-15", "keywords": "wireless headphones", "competitor_brand": "Bose", "asin": "B00BOSEw", "product_title": "Bose wireless headphones - Premium Sound", "average_organic_rank": 16, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.102, "clicks": 621, "price": 150, "is_yaba_asin": "N", "grams": 200, "organic_or_not": "Organic", "link": "http://amazon.com/dp/..."}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENT", "week_date": "2023-10-15", "keywords": "wireless headphones", "competitor_brand": "Generic", "asin": "B00GENERICw", "product_title": "Generic wireless headphones - Premium Sound", "average_organic_rank": 18, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.0455, "clicks": 277, "price": 30, "is_yaba_asin": "N", "grams": 200, "organic_or_not": "Organic", "link": "http://amazon.com/dp/..."}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENT", "week_date": "2023-10-15", "keywords": "bluetooth earbuds", "competitor_brand": "SoundCore", "asin": "B00SOUNDCOREb", "product_title": "SoundCore bluetooth earbuds - Premium Sound", "average_organic_rank": 12, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.1373, "clicks": 836, "price": 50, "is_yaba_asin": "Y", "grams": 200, "organic_or_not": "Organic", "link": "http://amazon.com/dp/..."}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENT", "week_date": "2023-10-15", "keywords": "bluetooth earbuds", "competitor_brand": "Sony", "asin": "B00SONYb", "product_title": "Sony bluetooth earbuds - Premium Sound", "average_organic_rank": 7, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.2325, "clicks": 1415, "price": 80, "is_yaba_asin": "N", "grams": 200, "organic_or_not": "Organic", "link": "http://amazon.com/dp/..."}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENT", "week_date": "2023-10-15", "keywords": "bluetooth earbuds", "competitor_brand": "JBL", "asin": "B00JBLb", "product_title": "JBL bluetooth earbuds - Premium Sound", "average_organic_rank": 10, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.1912, "clicks": 1164, "price": 60, "is_yaba_asin": "N", "grams": 200, "organic_or_not": "Organic", "link": "http://amazon.com/dp/..."}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENT", "week_date": "2023-10-15", "keywords": "bluetooth earbuds", "competitor_brand": "Bose", "asin": "B00BOSEb", "product_title": "Bose bluetooth earbuds - Premium Sound", "average_organic_rank": 16, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.0995, "clicks": 605, "price": 150, "is_yaba_asin": "N", "grams": 200, "organic_or_not": "Organic", "link": "http://amazon.com/dp/..."}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENT", "week_date": "2023-10-15", "keywords": "bluetooth earbuds", "competitor_brand": "Generic", "asin": "B00GENERICb", "product_title": "Generic bluetooth earbuds - Premium Sound", "average_organic_rank": 16, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.0503, "clicks": 306, "price": 30, "is_yaba_asin": "N", "grams": 200, "organic_or_not": "Organic", "link": "http://amazon.com/dp/..."}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENT", "week_date": "2023-10-22", "keywords": "wireless headphones", "competitor_brand": "SoundCore", "asin": "B00SOUNDCOREw", "product_title": "SoundCore wireless headphones - Premium Sound", "average_organic_rank": 7, "weekly_number_of_days_with_deal": 7, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.225, "clicks": 1465, "price": 40.0, "is_yaba_asin": "Y", "grams": 200, "organic_or_not": "Organic", "link": "http://amazon.com/dp/..."}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENT", "week_date": "2023-10-22", "keywords": "wireless headphones", "competitor_brand": "Sony", "asin": "B00SONYw", "product_title": "Sony wireless headphones - Premium Sound", "average_organic_rank": 6, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.248, "clicks": 1615, "price": 80, "is_yaba_asin": "N", "grams": 200, "organic_or_not": "Organic", "link": "http://amazon.com/dp/..."}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENT", "week_date": "2023-10-22", "keywords": "wireless headphones", "competitor_brand": "JBL", "asin": "B00JBLw", "product_title": "JBL wireless headphones - Premium Sound", "average_organic_rank": 9, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.2156, "clicks": 1403, "price": 60, "is_yaba_asin": "N", "grams": 200, "organic_or_not": "Organic", "link": "http://amazon.com/dp/..."}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENT", "week_date": "2023-10-22", "keywords": "wireless headphones", "competitor_brand": "Bose", "asin": "B00BOSEw", "product_title": "Bose wireless headphones - Premium Sound", "average_organic_rank": 14, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.0968, "clicks": 630, "price": 150, "is_yaba_asin": "N", "grams": 200, "organic_or_not": "Organic", "link": "http://amazon.com/dp/..."}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENT", "week_date": "2023-10-22", "keywords": "wireless headphones", "competitor_brand": "Generic", "asin": "B00GENERICw", "product_title": "Generic wireless headphones - Premium Sound", "average_organic_rank": 19, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.0454, "clicks": 295, "price": 30, "is_yaba_asin": "N", "grams": 200, "organic_or_not": "Organic", "link": "http://amazon.com/dp/..."}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENT", "week_date": "2023-10-22", "keywords": "bluetooth earbuds", "competitor_brand": "SoundCore", "asin": "B00SOUNDCOREb", "product_title": "SoundCore bluetooth earbuds - Premium Sound", "average_organic_rank": 8, "weekly_number_of_days_with_deal": 7, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.225, "clicks": 1465, "price": 40.0, "is_yaba_asin": "Y", "grams": 200, "organic_or_not": "Organic", "link": "http://amazon.com/dp/..."}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENT", "week_date": "2023-10-22", "keywords": "bluetooth earbuds", "competitor_brand": "Sony", "asin": "B00SONYb", "product_title": "Sony bluetooth earbuds - Premium Sound", "average_organic_rank": 10, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.2261, "clicks": 1472, "price": 80, "is_yaba_asin": "N", "grams": 200, "organic_or_not": "Organic", "link": "http://amazon.com/dp/..."}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENT", "week_date": "2023-10-22", "keywords": "bluetooth earbuds", "competitor_brand": "JBL", "asin": "B00JBLb", "product_title": "JBL bluetooth earbuds - Premium Sound", "average_organic_rank": 12, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.1987, "clicks": 1294, "price": 60, "is_yaba_asin": "N", "grams": 200, "organic_or_not": "Organic", "link": "http://amazon.com/dp/..."}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENT", "week_date": "2023-10-22", "keywords": "bluetooth earbuds", "competitor_brand": "Bose", "asin": "B00BOSEb", "product_title": "Bose bluetooth earbuds - Premium Sound", "average_organic_rank": 15, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.1054, "clicks": 686, "price": 150, "is_yaba_asin": "N", "grams": 200, "organic_or_not": "Organic", "link": "http://amazon.com/dp/..."}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENT", "week_date": "2023-10-22", "keywords": "bluetooth earbuds", "competitor_brand": "Generic", "asin": "B00GENERICb", "product_title": "Generic bluetooth earbuds - Premium Sound", "average_organic_rank": 19, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.0461, "clicks": 299, "price": 30, "is_yaba_asin": "N", "grams": 200, "organic_or_not": "Organic", "link": "http://amazon.com/dp/..."}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENT", "week_date": "2023-10-29", "keywords": "wireless headphones", "competitor_brand": "SoundCore", "asin": "B00SOUNDCOREw", "product_title": "SoundCore wireless headphones - Premium Sound", "average_organic_rank": 10, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.18, "clicks": 1007, "price": 50, "is_yaba_asin": "Y", "grams": 200, "organic_or_not": "Organic", "link": "http://amazon.com/dp/..."}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENT", "week_date": "2023-10-29", "keywords": "wireless headphones", "competitor_brand": "Sony", "asin": "B00SONYw", "product_title": "Sony wireless headphones - Premium Sound", "average_organic_rank": 7, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.2258, "clicks": 1263, "price": 80, "is_yaba_asin": "N", "grams": 200, "organic_or_not": "Organic", "link": "http://amazon.com/dp/..."}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENT", "week_date": "2023-10-29", "keywords": "wireless headphones", "competitor_brand": "JBL", "asin": "B00JBLw", "product_title": "JBL wireless headphones - Premium Sound", "average_organic_rank": 9, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.2066, "clicks": 1156, "price": 60, "is_yaba_asin": "N", "grams": 200, "organic_or_not": "Organic", "link": "http://amazon.com/dp/..."}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENT", "week_date": "2023-10-29", "keywords": "wireless headphones", "competitor_brand": "Bose", "asin": "B00BOSEw", "product_title": "Bose wireless headphones - Premium Sound", "average_organic_rank": 17, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.0928, "clicks": 519, "price": 150, "is_yaba_asin": "N", "grams": 200, "organic_or_not": "Organic", "link": "http://amazon.com/dp/..."}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENT", "week_date": "2023-10-29", "keywords": "wireless headphones", "competitor_brand": "Generic", "asin": "B00GENERICw", "product_title": "Generic wireless headphones - Premium Sound", "average_organic_rank": 16, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.0451, "clicks": 252, "price": 30, "is_yaba_asin": "N", "grams": 200, "organic_or_not": "Organic", "link": "http://amazon.com/dp/..."}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENT", "week_date": "2023-10-29", "keywords": "bluetooth earbuds", "competitor_brand": "SoundCore", "asin": "B00SOUNDCOREb", "product_title": "SoundCore bluetooth earbuds - Premium Sound", "average_organic_rank": 12, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.18, "clicks": 1007, "price": 50, "is_yaba_asin": "Y", "grams": 200, "organic_or_not": "Organic", "link": "http://amazon.com/dp/..."}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENT", "week_date": "2023-10-29", "keywords": "bluetooth earbuds", "competitor_brand": "Sony", "asin": "B00SONYb", "product_title": "Sony bluetooth earbuds - Premium Sound", "average_organic_rank": 7, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.2641, "clicks": 1477, "price": 80, "is_yaba_asin": "N", "grams": 200, "organic_or_not": "Organic", "link": "http://amazon.com/dp/..."}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENT", "week_date": "2023-10-29", "keywords": "bluetooth earbuds", "competitor_brand": "JBL", "asin": "B00JBLb", "product_title": "JBL bluetooth earbuds - Premium Sound", "average_organic_rank": 12, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.1982, "clicks": 1109, "price": 60, "is_yaba_asin": "N", "grams": 200, "organic_or_not": "Organic", "link": "http://amazon.com/dp/..."}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENT", "week_date": "2023-10-29", "keywords": "bluetooth earbuds", "competitor_brand": "Bose", "asin": "B00BOSEb", "product_title": "Bose bluetooth earbuds - Premium Sound", "average_organic_rank": 14, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.1021, "clicks": 571, "price": 150, "is_yaba_asin": "N", "grams": 200, "organic_or_not": "Organic", "link": "http://amazon.com/dp/..."}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENT", "week_date": "2023-10-29", "keywords": "bluetooth earbuds", "competitor_brand": "Generic", "asin": "B00GENERICb", "product_title": "Generic bluetooth earbuds - Premium Sound", "average_organic_rank": 19, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.0489, "clicks": 273, "price": 30, "is_yaba_asin": "N", "grams": 200, "organic_or_not": "Organic", "link": "http://amazon.com/dp/..."}];
+
+        // ==========================================
+        // 2. LOGIC & PROCESSING
+        // ==========================================
+        
+        // --- Helpers ---
+        function getBrand(item) {
+            if (item.competitor_brand) return item.competitor_brand;
+            if (item.product_title) return item.product_title.split(' ')[0];
+            return "Unknown Brand";
+        }
+
+        function getOurBrandName() {
+            const ourItem = marketData.find(d => d.is_yaba_asin === 'Y');
+            return ourItem ? getBrand(ourItem) : "Our Brand";
+        }
+
+        function formatCurrency(val) {
+            return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(val);
+        }
+
+        function formatPercent(val) {
+            return (val * 100).toFixed(1) + '%';
+        }
+
+        // --- Aggregation Functions ---
+        function getWeeks() {
+            return [...new Set(marketData.map(d => d.week_date))].sort();
+        }
+
+        function getDataByWeekAndBrand() {
+            const weeks = getWeeks();
+            const brandMap = {};
+
+            marketData.forEach(d => {
+                const brand = getBrand(d);
+                if (!brandMap[brand]) brandMap[brand] = {};
+                if (!brandMap[brand][d.week_date]) {
+                    brandMap[brand][d.week_date] = { clicks: 0, click_share_sum: 0, count: 0, price_sum: 0, deal_days: 0 };
+                }
+                const entry = brandMap[brand][d.week_date];
+                entry.clicks += d.clicks;
+                entry.click_share_sum += d.click_share; // Summing share across keywords for simplicity in this view
+                entry.count += 1;
+                entry.price_sum += d.price;
+                entry.deal_days = Math.max(entry.deal_days, d.weekly_number_of_days_with_deal); // Max deal days per week per brand
+            });
+
+            return brandMap;
+        }
+
+        function getTopCompetitors(brandMap) {
+            const ourBrand = getOurBrandName();
+            const brands = Object.keys(brandMap).filter(b => b !== ourBrand);
+            
+            // Calculate avg share
+            const brandScores = brands.map(b => {
+                let totalShare = 0;
+                let count = 0;
+                Object.values(brandMap[b]).forEach(v => {
+                    totalShare += v.click_share_sum;
+                    count++;
+                });
+                return { brand: b, score: totalShare / count };
+            });
+
+            return brandScores.sort((a,b) => b.score - a.score).slice(0, 3).map(b => b.brand);
+        }
+
+        // ==========================================
+        // 3. GOOGLE CHARTS RENDERING
+        // ==========================================
+        google.charts.load('current', {'packages':['corechart', 'table']});
+        google.charts.setOnLoadCallback(initDashboard);
+
+        function initDashboard() {
+            renderKPIs();
+            drawTrendChart();
+            drawCompetitivenessChart();
+            drawEfficiencyChart();
+            drawLeversTable();
+            renderInsights();
+            initInteractiveControls();
+        }
+
+        // --- Chart 1: Global Trend ---
+        function drawTrendChart() {
+            const weeks = getWeeks();
+            const data = new google.visualization.DataTable();
+            data.addColumn('string', 'Week');
+            data.addColumn('number', 'Our Clicks');
+            data.addColumn('number', 'Competitor Clicks');
+            data.addColumn('number', 'Our Click Share %');
+
+            const rows = weeks.map(week => {
+                let ourClicks = 0;
+                let compClicks = 0;
+                let totalShareDenom = 0;
+                let ourShareNum = 0;
+
+                marketData.filter(d => d.week_date === week).forEach(d => {
+                    if (d.is_yaba_asin === 'Y') {
+                        ourClicks += d.clicks;
+                        ourShareNum += d.click_share;
+                    } else {
+                        compClicks += d.clicks;
+                    }
+                    totalShareDenom += d.click_share;
+                });
+                
+                // Approximate Share normalization
+                const shareAvg = totalShareDenom > 0 ? (ourShareNum / totalShareDenom) : 0; 
+
+                return [week.substring(5), ourClicks, compClicks, shareAvg * 100]; // scaling share for line
+            });
+
+            data.addRows(rows);
+
+            const options = {
+                seriesType: 'bars',
+                series: { 2: { type: 'line', targetAxisIndex: 1, color: '#0071e3', lineWidth: 3 } },
+                colors: ['#60a5fa', '#e5e7eb'],
+                vAxes: {
+                    0: { title: 'Volume (Clicks)', gridlines: { count: 4 }, textStyle: { color: '#888' } },
+                    1: { title: 'Share %', format: '#\'%\'', textStyle: { color: '#0071e3' } }
+                },
+                hAxis: { textStyle: { color: '#888' } },
+                chartArea: { width: '85%', height: '70%' },
+                legend: { position: 'bottom' },
+                bar: { groupWidth: '60%' }
+            };
+
+            const chart = new google.visualization.ComboChart(document.getElementById('chart_trend'));
+            chart.draw(data, options);
+        }
+
+        // --- Chart 2: Competitiveness ---
+        function drawCompetitivenessChart() {
+            const weeks = getWeeks();
+            const brandMap = getDataByWeekAndBrand();
+            const topComps = getTopCompetitors(brandMap);
+            const ourBrand = getOurBrandName();
+
+            const data = new google.visualization.DataTable();
+            data.addColumn('string', 'Week');
+            data.addColumn('number', ourBrand);
+            topComps.forEach(c => data.addColumn('number', c));
+            data.addColumn('number', 'Rest of Market');
+
+            const rows = weeks.map(week => {
+                const row = [week.substring(5)];
+                
+                // Our Brand
+                const ourData = brandMap[ourBrand][week];
+                row.push(ourData ? ourData.click_share_sum : 0);
+
+                // Top Comps
+                let topCompsShare = 0;
+                topComps.forEach(c => {
+                    const cData = brandMap[c][week];
+                    const val = cData ? cData.click_share_sum : 0;
+                    row.push(val);
+                    topCompsShare += val;
+                });
+
+                // Others
+                let totalShare = 0;
+                marketData.filter(d => d.week_date === week).forEach(d => totalShare += d.click_share);
+                const ourShare = ourData ? ourData.click_share_sum : 0;
+                const rest = Math.max(0, totalShare - ourShare - topCompsShare);
+                row.push(rest);
+
+                return row;
+            });
+
+            data.addRows(rows);
+
+            const options = {
+                curveType: 'function',
+                lineWidth: 3,
+                colors: ['#0071e3', '#ff3b30', '#34c759', '#ff9500', '#e5e7eb'],
+                chartArea: { width: '85%', height: '75%' },
+                legend: { position: 'bottom' },
+                vAxis: { title: 'Aggregated Click Share', textStyle: { color: '#888' } },
+                hAxis: { textStyle: { color: '#888' } }
+            };
+
+            const chart = new google.visualization.LineChart(document.getElementById('chart_competitiveness'));
+            chart.draw(data, options);
+        }
+
+        // --- Chart 4: Efficiency (Scatter) ---
+        function drawEfficiencyChart() {
+            const latestWeek = getWeeks().pop();
+            const data = new google.visualization.DataTable();
+            data.addColumn('number', 'Organic Rank');
+            data.addColumn('number', 'Click Share');
+            data.addColumn({type: 'string', role: 'style'});
+            data.addColumn({type: 'string', role: 'tooltip'});
+
+            const rows = [];
+            marketData.filter(d => d.week_date === latestWeek).forEach(d => {
+                const isUs = d.is_yaba_asin === 'Y';
+                const color = isUs ? '#0071e3' : '#999999';
+                const pointSize = isUs ? 'point { size: 10; fill-color: #0071e3; }' : 'point { size: 5; fill-color: #cccccc; }';
+                
+                rows.push([
+                    d.average_organic_rank,
+                    d.click_share,
+                    pointSize,
+                    `${getBrand(d)} \nRank: ${d.average_organic_rank} \nShare: ${formatPercent(d.click_share)}`
+                ]);
+            });
+
+            data.addRows(rows);
+
+            const options = {
+                hAxis: { title: 'Organic Rank (Lower is Better)', direction: 1, viewWindow: {min: 1} },
+                vAxis: { title: 'Click Share', format: 'percent' },
+                legend: 'none',
+                chartArea: { width: '85%', height: '75%' },
+                colors: ['#888']
+            };
+
+            const chart = new google.visualization.ScatterChart(document.getElementById('chart_efficiency'));
+            chart.draw(data, options);
+        }
+
+        // --- Section 3: Levers Table (Google Table) ---
+        function drawLeversTable() {
+            const data = new google.visualization.DataTable();
+            data.addColumn('string', 'Brand');
+            data.addColumn('number', 'Avg Price');
+            data.addColumn('string', 'Active Deals?');
+            data.addColumn('string', 'Coupons?');
+            data.addColumn('number', 'Share Impact');
+
+            const latestWeek = getWeeks().pop();
+            const brandMap = getDataByWeekAndBrand();
+            
+            const rows = [];
+            Object.keys(brandMap).forEach(b => {
+                const d = brandMap[b][latestWeek];
+                if (!d) return;
+                
+                const avgPrice = d.price_sum / d.count;
+                const hasDeal = d.deal_days > 0 ? 'YES' : '-';
+                // Simple heuristic for coupon presence in raw data
+                const hasCoupon = marketData.some(m => getBrand(m) === b && m.week_date === latestWeek && m.weekly_number_of_days_with_coupon > 0) ? 'YES' : '-';
+                
+                rows.push([b, avgPrice, hasDeal, hasCoupon, d.click_share_sum]);
+            });
+
+            // Sort by Share
+            rows.sort((a,b) => b[4] - a[4]);
+
+            data.addRows(rows);
+
+            const table = new google.visualization.Table(document.getElementById('levers_table_div'));
+            table.draw(data, { showRowNumber: false, width: '100%', height: '100%' });
+        }
+
+        // ==========================================
+        // 4. INSIGHTS & KPI LOGIC
+        // ==========================================
+        function renderKPIs() {
+            const weeks = getWeeks();
+            const curWeek = weeks[weeks.length - 1];
+            const prevWeek = weeks[weeks.length - 2];
+            
+            // Total Clicks
+            const curClicks = marketData.filter(d => d.week_date === curWeek).reduce((sum, d) => sum + d.clicks, 0);
+            const prevClicks = marketData.filter(d => d.week_date === prevWeek).reduce((sum, d) => sum + d.clicks, 0);
+            
+            document.getElementById('kpi-total-clicks').innerText = curClicks.toLocaleString();
+            setTrend('kpi-clicks-trend', curClicks, prevClicks);
+
+            // Our Share
+            const ourBrand = getOurBrandName();
+            const brandMap = getDataByWeekAndBrand();
+            const curShare = brandMap[ourBrand][curWeek]?.click_share_sum || 0;
+            const prevShare = brandMap[ourBrand][prevWeek]?.click_share_sum || 0;
+
+            document.getElementById('kpi-sov').innerText = curShare.toFixed(2);
+            setTrend('kpi-sov-trend', curShare, prevShare);
+
+            // Top Competitor
+            const topComp = getTopCompetitors(brandMap)[0];
+            const compShare = brandMap[topComp][curWeek]?.click_share_sum || 0;
+            document.getElementById('kpi-top-comp').innerText = topComp;
+            document.getElementById('kpi-top-comp-share').innerText = 'Share: ' + compShare.toFixed(2);
+            
+            document.getElementById('report-date').innerText = 'Week: ' + curWeek;
+        }
+
+        function setTrend(elId, curr, prev) {
+            const el = document.getElementById(elId);
+            const diff = curr - prev;
+            const pct = prev > 0 ? (diff / prev) * 100 : 0;
+            
+            if (diff >= 0) {
+                el.className = 'trend-up';
+                el.innerHTML = `<span class="material-icons" style="font-size:16px;">trending_up</span> +${pct.toFixed(1)}% vs LW`;
+            } else {
+                el.className = 'trend-down';
+                el.innerHTML = `<span class="material-icons" style="font-size:16px;">trending_down</span> ${pct.toFixed(1)}% vs LW`;
+            }
+        }
+
+        function renderInsights() {
+            const container = document.getElementById('insights-container');
+            const recContainer = document.getElementById('recommendations-container');
+            const ourBrand = getOurBrandName();
+            const brandMap = getDataByWeekAndBrand();
+            const weeks = getWeeks();
+            const curWeek = weeks[weeks.length - 1];
+
+            // Logic to generate insights
+            const insights = [];
+            const recs = [];
+
+            // 1. Trend Insight
+            const curClicks = brandMap[ourBrand][curWeek]?.clicks || 0;
+            const prevClicks = brandMap[ourBrand][weeks[weeks.length-2]]?.clicks || 0;
+            if (curClicks > prevClicks) {
+                insights.push(`<strong>Momentum Positivo:</strong> ${ourBrand} ha incrementado sus clics en un ${((curClicks-prevClicks)/prevClicks*100).toFixed(0)}% esta semana.`);
+            } else {
+                insights.push(`<strong>Pérdida de Tracción:</strong> ${ourBrand} ha perdido volumen de tráfico. Revisar competitividad de precio.`);
+                recs.push(`Investigar caída de tráfico: Revisar si competidores principales han activado cupones agresivos.`);
+            }
+
+            // 2. Pricing Insight
+            const curPrice = brandMap[ourBrand][curWeek].price_sum / brandMap[ourBrand][curWeek].count;
+            const topComp = getTopCompetitors(brandMap)[0];
+            const compPrice = brandMap[topComp][curWeek].price_sum / brandMap[topComp][curWeek].count;
+            
+            if (curPrice > compPrice * 1.2) {
+                insights.push(`<strong>Riesgo de Precio:</strong> Tu precio es un ${((curPrice/compPrice)-1)*100).toFixed(0)}% más alto que el líder (${topComp}).`);
+                recs.push(`Ajuste de Precio: Considerar una promoción temporal para reducir la brecha con ${topComp} y recuperar share.`);
+            } else if (curPrice < compPrice * 0.9) {
+                insights.push(`<strong>Ventaja de Precio:</strong> Estás posicionado como opción económica frente a ${topComp}.`);
+            }
+
+            // 3. Deal Effectiveness
+            const hasDeal = brandMap[ourBrand][curWeek].deal_days > 0;
+            if (hasDeal) {
+                insights.push(`<strong>Activación de Deals:</strong> La presencia de Deals esta semana ha impactado la visibilidad.`);
+            } else {
+                recs.push(`Planificación Promocional: Evaluar activar Best Seller deal para la próxima semana.`);
+            }
+
+            // Render Insights
+            container.innerHTML = insights.map(text => `
+                <div class="insight-item">
+                    <div class="insight-icon"><span class="material-icons">info</span></div>
+                    <div class="insight-text">${text}</div>
+                </div>
+            `).join('');
+
+            // Render Recommendations
+            recContainer.innerHTML = recs.map(text => `
+                <div class="col-4">
+                    <div style="font-weight:600; margin-bottom:4px; color:#0369a1;">Acción Recomendada</div>
+                    <div style="font-size:13px; color:#555;">${text}</div>
+                </div>
+            `).join('');
+        }
+
+        // ==========================================
+        // 5. INTERACTIVE TAB LOGIC
+        // ==========================================
+        function initInteractiveControls() {
+            const weekSel = document.getElementById('sel-week');
+            const compSel = document.getElementById('sel-comp');
+            
+            // Populate Weeks
+            getWeeks().reverse().forEach(w => {
+                const opt = document.createElement('option');
+                opt.value = w;
+                opt.innerText = w;
+                weekSel.appendChild(opt);
+            });
+
+            // Populate Competitors
+            const ourBrand = getOurBrandName();
+            const brandMap = getDataByWeekAndBrand();
+            Object.keys(brandMap).filter(b => b !== ourBrand).forEach(b => {
+                const opt = document.createElement('option');
+                opt.value = b;
+                opt.innerText = b;
+                compSel.appendChild(opt);
+            });
+
+            updateInteractive();
+        }
+
+        function updateInteractive() {
+            const week = document.getElementById('sel-week').value;
+            const comp = document.getElementById('sel-comp').value;
+            const ourBrand = getOurBrandName();
+            
+            const brandMap = getDataByWeekAndBrand();
+
+            // Update Cards - US
+            const usData = brandMap[ourBrand][week] || { price_sum: 0, count: 1, click_share_sum: 0, deal_days: 0 };
+            document.getElementById('comp-us-price').innerText = formatCurrency(usData.price_sum / usData.count);
+            document.getElementById('comp-us-share').innerText = usData.click_share_sum.toFixed(2);
+            document.getElementById('comp-us-badges').innerHTML = usData.deal_days > 0 ? '<span class="badge deal">DEAL ACTIVE</span>' : '<span class="badge">NO DEAL</span>';
+
+            // Update Cards - THEM
+            document.getElementById('comp-them-name').innerText = comp;
+            const themData = brandMap[comp][week] || { price_sum: 0, count: 1, click_share_sum: 0, deal_days: 0 };
+            document.getElementById('comp-them-price').innerText = formatCurrency(themData.price_sum / themData.count);
+            document.getElementById('comp-them-share').innerText = themData.click_share_sum.toFixed(2);
+            document.getElementById('comp-them-badges').innerHTML = themData.deal_days > 0 ? '<span class="badge deal">DEAL ACTIVE</span>' : '<span class="badge">NO DEAL</span>';
+
+            // Draw Chart (Price Evolution Comparison)
+            drawInteractiveChart(ourBrand, comp);
+        }
+
+        function drawInteractiveChart(me, them) {
+            const weeks = getWeeks();
+            const brandMap = getDataByWeekAndBrand();
+            
+            const data = new google.visualization.DataTable();
+            data.addColumn('string', 'Week');
+            data.addColumn('number', me + ' Price');
+            data.addColumn('number', them + ' Price');
+
+            const rows = weeks.map(w => {
+                const p1 = brandMap[me][w] ? (brandMap[me][w].price_sum / brandMap[me][w].count) : 0;
+                const p2 = brandMap[them][w] ? (brandMap[them][w].price_sum / brandMap[them][w].count) : 0;
+                return [w.substring(5), p1, p2];
+            });
+
+            data.addRows(rows);
+
+            const options = {
+                chartArea: { width: '85%', height: '70%' },
+                legend: { position: 'bottom' },
+                colors: ['#0071e3', '#ff3b30'],
+                vAxis: { title: 'Avg Price ($)', format: 'currency' }
+            };
+
+            const chart = new google.visualization.LineChart(document.getElementById('chart_interactive_price'));
+            chart.draw(data, options);
+        }
+
+        // --- Tab Switching ---
+        function switchTab(tabName) {
+            document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+
+            if (tabName === 'static') {
+                document.getElementById('view-static').classList.remove('hidden');
+                document.getElementById('view-interactive').classList.add('hidden');
+                // Redraw to fix Google Charts size issues on hidden divs
+                drawTrendChart();
+                drawCompetitivenessChart();
+                drawEfficiencyChart();
+                drawLeversTable();
+            } else {
+                document.getElementById('view-static').classList.add('hidden');
+                document.getElementById('view-interactive').classList.remove('hidden');
+                updateInteractive();
+            }
+        }
+
+    </script>
+</body>
+</html>
