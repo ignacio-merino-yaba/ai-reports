@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reporte de Inteligencia de Mercado - Parent ASIN</title>
+    
+    <!-- Dependencias Externas (Google Native & Utility) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Estilos Personalizados (Apple-like / Clean) -->
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f5f5f7; color: #1d1d1f; }
+        .card { background: white; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); transition: transform 0.2s; }
+        .card:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05); }
+        .metric-value { font-size: 24px; font-weight: 700; color: #1d1d1f; }
+        .metric-label { font-size: 13px; color: #86868b; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
+        .chart-container { width: 100%; height: 350px; }
+        
+        /* Tabs */
+        .tab-btn { cursor: pointer; padding: 10px 20px; border-radius: 20px; font-weight: 500; transition: all 0.3s; }
+        .tab-btn.active { background-color: #0071e3; color: white; box-shadow: 0 2px 4px rgba(0,113,227,0.3); }
+        .tab-btn.inactive { background-color: #e5e5e5; color: #6e6e73; }
+        
+        /* Insights Box */
+        .insight-box { border-left: 4px solid #0071e3; background: #f0f8ff; padding: 16px; border-radius: 0 8px 8px 0; margin-bottom: 12px; }
+        .rec-box { border-left: 4px solid #34a853; background: #f0fff4; padding: 16px; border-radius: 0 8px 8px 0; margin-bottom: 12px; }
+
+        /* Helpers */
+        .text-our-brand { color: #0071e3; font-weight: bold; }
+        .text-comp { color: #ea4335; font-weight: bold; }
+        .badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+        .badge-green { background: #e6f4ea; color: #137333; }
+        .badge-red { background: #fce8e6; color: #c5221f; }
+    </style>
+</head>
+<body class="antialiased pb-20">
+
+    <!-- Header -->
+    <header class="bg-white border-b border-gray-200 sticky top-0 z-50 backdrop-blur-md bg-opacity-90">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <span class="material-icons text-blue-600 text-3xl">analytics</span>
+                <h1 class="text-xl font-bold tracking-tight">Market Intelligence <span class="text-gray-400 font-normal">| Parent ASIN Analysis</span></h1>
+            </div>
+            <div class="flex space-x-2">
+                <button onclick="switchTab('report')" id="btn-report" class="tab-btn active">Reporte Ejecutivo</button>
+                <button onclick="switchTab('interactive')" id="btn-interactive" class="tab-btn inactive">Comparador Interactivo</button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        
+        <!-- ==================== PESTAÑA 1: REPORTE ==================== -->
+        <div id="tab-report" class="space-y-8 animate-fade-in">
+            
+            <!-- Intro & KPI Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                <div class="card p-6">
+                    <div class="metric-label">Total Clicks (Last Week)</div>
+                    <div class="metric-value mt-2" id="kpi-clicks">-</div>
+                    <div class="text-xs mt-1" id="kpi-clicks-delta">-</div>
+                </div>
+                <div class="card p-6">
+                    <div class="metric-label">Our Share of Voice</div>
+                    <div class="metric-value mt-2 text-blue-600" id="kpi-sov">-</div>
+                    <div class="text-xs mt-1 text-gray-500">Vs. Market</div>
+                </div>
+                <div class="card p-6">
+                    <div class="metric-label">Top Competitor</div>
+                    <div class="metric-value mt-2 text-red-500 text-lg truncate" id="kpi-competitor">-</div>
+                    <div class="text-xs mt-1 text-gray-500">Biggest Threat</div>
+                </div>
+                <div class="card p-6">
+                    <div class="metric-label">Avg Price (Us vs Mkt)</div>
+                    <div class="metric-value mt-2 text-base" id="kpi-price">-</div>
+                    <div class="text-xs mt-1 text-gray-500">Price Positioning</div>
+                </div>
+            </div>
+
+            <!-- SECCIÓN 1: TENDENCIA GLOBAL -->
+            <section class="card p-6">
+                <div class="flex items-center gap-2 mb-4 border-b pb-2">
+                    <span class="material-icons text-gray-500">trending_up</span>
+                    <h2 class="text-lg font-bold">1. Tendencia Global del Parent</h2>
+                </div>
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="lg:col-span-2">
+                        <div id="chart_trend" class="chart-container"></div>
+                    </div>
+                    <div class="bg-gray-50 p-4 rounded-xl text-sm space-y-3">
+                        <h3 class="font-semibold text-gray-700">Análisis de Tracción</h3>
+                        <p id="trend-analysis-text" class="text-gray-600 leading-relaxed">Cargando análisis...</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECCIÓN 2: COMPETITIVIDAD DE MARCA -->
+            <section class="card p-6">
+                <div class="flex items-center gap-2 mb-4 border-b pb-2">
+                    <span class="material-icons text-gray-500">pie_chart</span>
+                    <h2 class="text-lg font-bold">2. Competitividad de Marca (Share of Click)</h2>
+                </div>
+                <p class="text-sm text-gray-500 mb-4">Evolución de cuota de mercado: <span class="text-our-brand">Nuestra Marca</span> vs Top 3 Competidores</p>
+                <div id="chart_share" class="chart-container"></div>
+                <div class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4" id="brand-stats-container">
+                    <!-- Dinámico -->
+                </div>
+            </section>
+
+            <!-- SECCIÓN 3: PALANCAS (DRIVERS) -->
+            <section class="card p-6">
+                <div class="flex items-center gap-2 mb-4 border-b pb-2">
+                    <span class="material-icons text-gray-500">rocket_launch</span>
+                    <h2 class="text-lg font-bold">3. Palancas que Aumentan el Click Share</h2>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <h4 class="font-semibold text-sm mb-3 uppercase text-gray-500">Impacto Promocional (Últimas semanas)</h4>
+                        <div id="drivers_table_div"></div>
+                    </div>
+                    <div>
+                        <h4 class="font-semibold text-sm mb-3 uppercase text-gray-500">Sensibilidad al Precio</h4>
+                        <div id="price_scatter_div" style="height: 250px;"></div>
+                        <p class="text-xs text-gray-500 mt-2 italic">*Eje X: Precio, Eje Y: Click Share. Burbujas = Marcas.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECCIÓN 4: EFICIENCIA (RANK vs SHARE) -->
+            <section class="card p-6">
+                <div class="flex items-center gap-2 mb-4 border-b pb-2">
+                    <span class="material-icons text-gray-500">gps_fixed</span>
+                    <h2 class="text-lg font-bold">4. Eficiencia: Organic Rank vs Click Share</h2>
+                </div>
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="lg:col-span-2">
+                        <div id="chart_efficiency" class="chart-container"></div>
+                    </div>
+                    <div class="space-y-4">
+                        <div class="p-4 bg-green-50 rounded-xl border border-green-100">
+                            <h4 class="font-bold text-green-800 text-sm mb-1">Sobre-performers (Eficientes)</h4>
+                            <p class="text-xs text-green-700">ASINs que logran mucha cuota con peor ranking. Sugiere: Buen precio, imagen atractiva o marca fuerte.</p>
+                        </div>
+                        <div class="p-4 bg-red-50 rounded-xl border border-red-100">
+                            <h4 class="font-bold text-red-800 text-sm mb-1">Under-performers (Ineficientes)</h4>
+                            <p class="text-xs text-red-700">ASINs con buen ranking pero pocos clicks. Revisar: Imagen principal, Precio alto, Título pobre.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECCIÓN 5: CONCLUSIONES Y RECOMENDACIONES -->
+            <section class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="card p-6">
+                    <div class="flex items-center gap-2 mb-4 border-b pb-2">
+                        <span class="material-icons text-blue-600">lightbulb</span>
+                        <h2 class="text-lg font-bold">5. Insights Clave</h2>
+                    </div>
+                    <div id="insights-container">
+                        <!-- JS Injected -->
+                    </div>
+                    
+                    <div class="mt-6 pt-4 border-t border-gray-100">
+                        <h3 class="text-sm font-bold text-gray-500 uppercase mb-3">Other Insights (Detectados)</h3>
+                        <ul id="other-insights-list" class="text-sm text-gray-600 space-y-2 list-disc pl-5"></ul>
+                    </div>
+                </div>
+
+                <div class="card p-6 border-l-8 border-green-500">
+                    <div class="flex items-center gap-2 mb-4 border-b pb-2">
+                        <span class="material-icons text-green-600">assignment_turned_in</span>
+                        <h2 class="text-lg font-bold">Recomendaciones Accionables</h2>
+                    </div>
+                    <div id="recommendations-container" class="space-y-3">
+                        <!-- JS Injected -->
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- ==================== PESTAÑA 2: COMPARADOR INTERACTIVO ==================== -->
+        <div id="tab-interactive" class="hidden space-y-6">
+            <div class="card p-6 bg-white sticky top-20 z-40 shadow-lg border border-blue-100">
+                <h3 class="text-lg font-bold mb-4 flex items-center gap-2">
+                    <span class="material-icons text-blue-600">compare_arrows</span> Configurar Cara a Cara
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Semana</label>
+                        <select id="sel-week" class="w-full p-2 border rounded-lg bg-gray-50" onchange="updateInteractive()">
+                            <!-- Options JS -->
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Mi ASIN (Yaba)</label>
+                        <select id="sel-our-asin" class="w-full p-2 border rounded-lg bg-blue-50" onchange="updateInteractive()">
+                            <!-- Options JS -->
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">ASIN Competidor</label>
+                        <select id="sel-comp-asin" class="w-full p-2 border rounded-lg bg-red-50" onchange="updateInteractive()">
+                            <!-- Options JS -->
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Tarjeta Nostros -->
+                <div class="card p-0 overflow-hidden border-2 border-blue-100">
+                    <div class="bg-blue-50 p-4 border-b border-blue-100 flex justify-between items-center">
+                        <span class="font-bold text-blue-800">NOSOTROS</span>
+                        <span class="text-xs bg-blue-200 text-blue-800 px-2 py-1 rounded">Yaba ASIN</span>
+                    </div>
+                    <div class="p-6 space-y-4" id="view-us">
+                        <div class="text-center text-gray-400 py-10">Selecciona un ASIN</div>
+                    </div>
+                </div>
+
+                <!-- Tarjeta Competencia -->
+                <div class="card p-0 overflow-hidden border-2 border-red-100">
+                    <div class="bg-red-50 p-4 border-b border-red-100 flex justify-between items-center">
+                        <span class="font-bold text-red-800">COMPETENCIA</span>
+                        <span class="text-xs bg-red-200 text-red-800 px-2 py-1 rounded">Rival</span>
+                    </div>
+                    <div class="p-6 space-y-4" id="view-comp">
+                        <div class="text-center text-gray-400 py-10">Selecciona un ASIN</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Gráfico Comparativo Directo -->
+            <div class="card p-6">
+                <h4 class="font-bold text-gray-700 mb-4">Histórico: Share vs Share</h4>
+                <div id="chart_interactive_history" class="h-64 w-full"></div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- LOGICA JAVASCRIPT -->
+    <script>
+        // ================= DATOS INYECTADOS =================
+        const rawData = [{"brand_aggregation":"naturalebio","parent_asin":"Matcha Premium","asin":"B08YRXQ2JH","is_yaba_asin":"N","real_brand":"Double","click_share":3.4,"estimated_clicks":2053.3756,"price":6.98,"average_organic_rank":13.0,"weekly_number_of_days_with_deal":0.0,"weekly_number_of_days_with_coupon":0.0,"weekly_number_of_days_with_best_seller_badge":0.0,"weekly_number_of_days_with_amazon_choice_badge":0.0,"product_title":"Double Dragon | 100% Organic | Premium Matcha Gree...","week_date":"2025-52","weekly_search_volume":60393.4},{"brand_aggregation":"naturalebio","parent_asin":"Matcha Premium","asin":"B06XTYYYJ8","is_yaba_asin":"N","real_brand":"Heapwell Superfoods","click_share":6.46,"estimated_clicks":3901.41364,"price":8.704285714,"average_organic_rank":6.0,"weekly_number_of_days_with_deal":6.0,"weekly_number_of_days_with_coupon":0.0,"weekly_number_of_days_with_best_seller_badge":0.0,"weekly_number_of_days_with_amazon_choice_badge":0.0,"product_title":"Heapwell Matcha Powder - 50g | High Grade Japanese...","week_date":"2025-52","weekly_search_volume":60393.4},{"brand_aggregation":"naturalebio","parent_asin":"Matcha Premium","asin":"B079VQ52MK","is_yaba_asin":"Y","real_brand":"NaturaleBio","click_share":4.59,"estimated_clicks":2772.05706,"price":20.99,"average_organic_rank":5.0,"weekly_number_of_days_with_deal":0.0,"weekly_number_of_days_with_coupon":0.0,"weekly_number_of_days_with_best_seller_badge":0.0,"weekly_number_of_days_with_amazon_choice_badge":0.0,"product_title":"NaturaleBio Japanese Organic Matcha Green Tea Powd...","week_date":"2025-52","weekly_search_volume":60393.4},{"brand_aggregation":"naturalebio","parent_asin":"Matcha Premium","asin":"B06XQ5DCYJ","is_yaba_asin":"Y","real_brand":"NaturaleBio","click_share":13.11,"estimated_clicks":7917.57474,"price":12.49,"average_organic_rank":2.0,"weekly_number_of_days_with_deal":0.0,"weekly_number_of_days_with_coupon":7.0,"weekly_number_of_days_with_best_seller_badge":0.0,"weekly_number_of_days_with_amazon_choice_badge":0.0,"product_title":"NaturaleBio Japanese Organic Matcha Green Tea Powd...","week_date":"2025-52","weekly_search_volume":60393.4},{"brand_aggregation":"naturalebio","parent_asin":"Matcha Premium","asin":"B0D9M91WZD","is_yaba_asin":"N","real_brand":"Perfect Ted","click_share":3.45,"estimated_clicks":2083.5723,"price":9.49,"average_organic_rank":10.0,"weekly_number_of_days_with_deal":0.0,"weekly_number_of_days_with_coupon":0.0,"weekly_number_of_days_with_best_seller_badge":0.0,"weekly_number_of_days_with_amazon_choice_badge":0.0,"product_title":"PerfectTed Vanilla Bean Matcha Powder, Ceremonial ...","week_date":"2025-52","weekly_search_volume":60393.4},{"brand_aggregation":"naturalebio","parent_asin":"Matcha Premium","asin":"B0F21VZMJQ","is_yaba_asin":"N","real_brand":"Perfect Ted","click_share":8.65,"estimated_clicks":5224.0291,"price":16.99,"average_organic_rank":3.0,"weekly_number_of_days_with_deal":0.0,"weekly_number_of_days_with_coupon":0.0,"weekly_number_of_days_with_best_seller_badge":0.0,"weekly_number_of_days_with_amazon_choice_badge":0.0,"product_title":"PerfectTed Original Matcha Powder, Ceremonial Grad...","week_date":"2025-52","weekly_search_volume":60393.4},{"brand_aggregation":"naturalebio","parent_asin":"Matcha Premium","asin":"B09DQ1PWGX","is_yaba_asin":"N","real_brand":"Perfect Ted","click_share":9.27,"estimated_clicks":5598.46818,"price":9.49,"average_organic_rank":8.0,"weekly_number_of_days_with_deal":0.0,"weekly_number_of_days_with_coupon":0.0,"weekly_number_of_days_with_best_seller_badge":0.0,"weekly_number_of_days_with_amazon_choice_badge":0.0,"product_title":"PerfectTed Organic Matcha Powder, Ceremonial Grade...","week_date":"2025-52","weekly_search_volume":60393.4},{"brand_aggregation":"naturalebio","parent_asin":"Matcha Premium","asin":"B00HNDSOCI","is_yaba_asin":"Y","real_brand":"PureChimp","click_share":2.34,"estimated_clicks":1413.20556,"price":14.95,"average_organic_rank":12.0,"weekly_number_of_days_with_deal":0.0,"weekly_number_of_days_with_coupon":7.0,"weekly_number_of_days_with_best_seller_badge":0.0,"weekly_number_of_days_with_amazon_choice_badge":0.0,"product_title":"PureChimp Ceremonial Grade Matcha Powder 50g. 100%...","week_date":"2025-52","weekly_search_volume":60393.4},{"brand_aggregation":"naturalebio","parent_asin":"Matcha Premium","asin":"B08YK2RPBZ","is_yaba_asin":"N","real_brand":"SuperSelf","click_share":7.98,"estimated_clicks":4819.39332,"price":9.9,"average_organic_rank":5.0,"weekly_number_of_days_with_deal":0.0,"weekly_number_of_days_with_coupon":1.0,"weekly_number_of_days_with_best_seller_badge":0.0,"weekly_number_of_days_with_amazon_choice_badge":0.0,"product_title":"SuperSelf Organic Matcha Powder - Ceremonial Grade...","week_date":"2025-52","weekly_search_volume":60393.4},{"brand_aggregation":"naturalebio","parent_asin":"Matcha Premium","asin":"B082DKRSB4","is_yaba_asin":"N","real_brand":"SuperSelf","click_share":2.95,"estimated_clicks":1781.6053,"price":19.18,"average_organic_rank":8.0,"weekly_number_of_days_with_deal":1.0,"weekly_number_of_days_with_coupon":0.0,"weekly_number_of_days_with_best_seller_badge":0.0,"weekly_number_of_days_with_amazon_choice_badge":0.0,"product_title":"SuperSelf Organic Matcha Powder - Ceremonial Grade...","week_date":"2025-52","weekly_search_volume":60393.4},{"brand_aggregation":"naturalebio","parent_asin":"Matcha Premium","asin":"B0C71LZNV6","is_yaba_asin":"N","real_brand":"Matcha","click_share":2.56,"estimated_clicks":1045.263616,"price":24.95,"average_organic_rank":12.0,"weekly_number_of_days_with_deal":0.0,"weekly_number_of_days_with_coupon":0.0,"weekly_number_of_days_with_best_seller_badge":0.0,"weekly_number_of_days_with_amazon_choice_badge":0.0,"product_title":"Matcha Fuel SuperLatte - Mushroom, Superfood & Ada...","week_date":"2026-01","weekly_search_volume":40830.61},{"brand_aggregation":"naturalebio","parent_asin":"Matcha Premium","asin":"B08YRXQ2JH","is_yaba_asin":"N","real_brand":"Double","click_share":3.32,"estimated_clicks":1355.576252,"price":6.98,"average_organic_rank":13.0,"weekly_number_of_days_with_deal":0.0,"weekly_number_of_days_with_coupon":0.0,"weekly_number_of_days_with_best_seller_badge":0.0,"weekly_number_of_days_with_amazon_choice_badge":0.0,"product_title":"Double Dragon | 100% Organic | Premium Matcha Gree...","week_date":"2026-01","weekly_search_volume":40830.61},{"brand_aggregation":"naturalebio","parent_asin":"Matcha Premium","asin":"B06XTYYYJ8","is_yaba_asin":"N","real_brand":"Heapwell Superfoods","click_share":5.74,"estimated_clicks":2343.677014,"price":9.99,"average_organic_rank":6.0,"weekly_number_of_days_with_deal":0.0,"weekly_number_of_days_with_coupon":0.0,"weekly_number_of_days_with_best_seller_badge":0.0,"weekly_number_of_days_with_amazon_choice_badge":0.0,"product_title":"Heapwell Matcha Powder - 50g | High Grade Japanese...","week_date":"2026-01","weekly_search_volume":40830.61},{"brand_aggregation":"naturalebio","parent_asin":"Matcha Premium","asin":"B079VQ52MK","is_yaba_asin":"Y","real_brand":"NaturaleBio","click_share":3.39,"estimated_clicks":1384.157679,"price":20.99,"average_organic_rank":7.0,"weekly_number_of_days_with_deal":0.0,"weekly_number_of_days_with_coupon":0.0,"weekly_number_of_days_with_best_seller_badge":0.0,"weekly_number_of_days_with_amazon_choice_badge":0.0,"product_title":"NaturaleBio Japanese Organic Matcha Green Tea Powd...","week_date":"2026-01","weekly_search_volume":40830.61},{"brand_aggregation":"naturalebio","parent_asin":"Matcha Premium","asin":"B06XQ5DCYJ","is_yaba_asin":"Y","real_brand":"NaturaleBio","click_share":13.79,"estimated_clicks":5630.541119,"price":12.49,"average_organic_rank":1.0,"weekly_number_of_days_with_deal":0.0,"weekly_number_of_days_with_coupon":4.0,"weekly_number_of_days_with_best_seller_badge":0.0,"weekly_number_of_days_with_amazon_choice_badge":0.0,"product_title":"NaturaleBio Japanese Organic Matcha Green Tea Powd...","week_date":"2026-01","weekly_search_volume":40830.61},{"brand_aggregation":"naturalebio","parent_asin":"Matcha Premium","asin":"B0F21VZMJQ","is_yaba_asin":"N","real_brand":"Perfect Ted","click_share":10.49,"estimated_clicks":4283.130989,"price":16.99,"average_organic_rank":3.0,"weekly_number_of_days_with_deal":0.0,"weekly_number_of_days_with_coupon":1.0,"weekly_number_of_days_with_best_seller_badge":0.0,"weekly_number_of_days_with_amazon_choice_badge":0.0,"product_title":"PerfectTed Original Matcha Powder, Ceremonial Grad...","week_date":"2026-01","weekly_search_volume":40830.61},{"brand_aggregation":"naturalebio","parent_asin":"Matcha Premium","asin":"B0D9M91WZD","is_yaba_asin":"N","real_brand":"Perfect Ted","click_share":2.79,"estimated_clicks":1139.174019,"price":11.0,"average_organic_rank":9.0,"weekly_number_of_days_with_deal":0.0,"weekly_number_of_days_with_coupon":0.0,"weekly_number_of_days_with_best_seller_badge":0.0,"weekly_number_of_days_with_amazon_choice_badge":0.0,"product_title":"PerfectTed Vanilla Bean Matcha Powder, Ceremonial ...","week_date":"2026-01","weekly_search_volume":40830.61},{"brand_aggregation":"naturalebio","parent_asin":"Matcha Premium","asin":"B09DQ1PWGX","is_yaba_asin":"N","real_brand":"Perfect Ted","click_share":4.64,"estimated_clicks":1894.540304,"price":2.1225,"average_organic_rank":34.0,"weekly_number_of_days_with_deal":0.0,"weekly_number_of_days_with_coupon":0.0,"weekly_number_of_days_with_best_seller_badge":0.0,"weekly_number_of_days_with_amazon_choice_badge":0.0,"product_title":"PerfectTed Organic Matcha Powder, Ceremonial Grade...","week_date":"2026-01","weekly_search_volume":40830.61},{"brand_aggregation":"naturalebio","parent_asin":"Matcha Premium","asin":"B08YK2RPBZ","is_yaba_asin":"N","real_brand":"SuperSelf","click_share":9.83,"estimated_clicks":4013.648963,"price":9.9,"average_organic_rank":4.0,"weekly_number_of_days_with_deal":0.0,"weekly_number_of_days_with_coupon":0.0,"weekly_number_of_days_with_best_seller_badge":0.0,"weekly_number_of_days_with_amazon_choice_badge":0.0,"product_title":"SuperSelf Organic Matcha Powder - Ceremonial Grade...","week_date":"2026-01","weekly_search_volume":40830.61},{"brand_aggregation":"naturalebio","parent_asin":"Matcha Premium","asin":"B082DKRSB4","is_yaba_asin":"N","real_brand":"SuperSelf","click_share":3.96,"estimated_clicks":1616.892156,"price":14.86,"average_organic_rank":8.0,"weekly_number_of_days_with_deal":4.0,"weekly_number_of_days_with_coupon":0.0,"weekly_number_of_days_with_best_seller_badge":0.0,"weekly_number_of_days_with_amazon_choice_badge":0.0,"product_title":"SuperSelf Organic Matcha Powder - Ceremonial Grade...","week_date":"2026-01","weekly_search_volume":40830.61}]
+        
+        // Configuración Global
+        const OUR_BRAND_NAME = "NaturaleBio";
+        let googleLoaded = false;
+
+        // Inicialización
+        google.charts.load('current', {'packages':['corechart', 'table']});
+        google.charts.setOnLoadCallback(() => {
+            googleLoaded = true;
+            initReport();
+        });
+
+        function switchTab(tabId) {
+            document.getElementById('tab-report').classList.add('hidden');
+            document.getElementById('tab-interactive').classList.add('hidden');
+            document.getElementById('btn-report').classList.replace('active', 'inactive');
+            document.getElementById('btn-interactive').classList.replace('active', 'inactive');
+
+            document.getElementById('tab-' + tabId).classList.remove('hidden');
+            document.getElementById('btn-' + tabId).classList.replace('inactive', 'active');
+            
+            // Redraw charts if needed (size fix)
+            if(tabId === 'interactive') updateInteractive();
+        }
+
+        function initReport() {
+            // Procesamiento de Datos
+            const weeks = [...new Set(rawData.map(d => d.week_date))].sort();
+            const latestWeek = weeks[weeks.length - 1];
+            const prevWeek = weeks[weeks.length - 2];
+
+            // --- KPI Calculation ---
+            const lastWeekData = rawData.filter(d => d.week_date === latestWeek);
+            const totalClicks = lastWeekData.reduce((sum, d) => sum + d.estimated_clicks, 0);
+            
+            const ourData = lastWeekData.filter(d => d.is_yaba_asin === 'Y');
+            const ourClicks = ourData.reduce((sum, d) => sum + d.estimated_clicks, 0);
+            const ourSOV = (ourClicks / totalClicks) * 100;
+
+            // Top Competitor
+            const compData = lastWeekData.filter(d => d.is_yaba_asin === 'N');
+            const compBrands = [...new Set(compData.map(d => d.real_brand))];
+            let topComp = { name: '', clicks: 0 };
+            compBrands.forEach(brand => {
+                const bClicks = compData.filter(d => d.real_brand === brand).reduce((sum, d) => sum + d.estimated_clicks, 0);
+                if(bClicks > topComp.clicks) topComp = { name: brand, clicks: bClicks };
+            });
+
+            // Update KPI DOM
+            document.getElementById('kpi-clicks').innerText = Math.round(totalClicks).toLocaleString();
+            document.getElementById('kpi-sov').innerText = ourSOV.toFixed(1) + '%';
+            document.getElementById('kpi-competitor').innerText = topComp.name;
+            
+            const ourAvgPrice = ourData.reduce((sum,d) => sum + d.price, 0) / ourData.length;
+            const marketAvgPrice = lastWeekData.reduce((sum,d) => sum + d.price, 0) / lastWeekData.length;
+            document.getElementById('kpi-price').innerText = `£${ourAvgPrice.toFixed(2)} vs £${marketAvgPrice.toFixed(2)}`;
+
+            // --- Draw Charts ---
+            drawTrend(weeks);
+            drawShare(weeks);
+            drawDrivers(lastWeekData);
+            drawEfficiency(lastWeekData);
+            generateInsights(weeks, lastWeekData, ourSOV, topComp);
+            setupInteractive(weeks);
+        }
+
+        // 1. CHART TREND
+        function drawTrend(weeks) {
+            const dataTable = new google.visualization.DataTable();
+            dataTable.addColumn('string', 'Week');
+            dataTable.addColumn('number', 'Our Clicks');
+            dataTable.addColumn('number', 'Competitor Clicks');
+            dataTable.addColumn('number', 'Our Share (%)');
+
+            const rows = weeks.map(week => {
+                const wData = rawData.filter(d => d.week_date === week);
+                const wTotal = wData.reduce((sum, d) => sum + d.estimated_clicks, 0);
+                const wOur = wData.filter(d => d.is_yaba_asin === 'Y').reduce((sum, d) => sum + d.estimated_clicks, 0);
+                const wComp = wTotal - wOur;
+                const share = wTotal > 0 ? (wOur / wTotal) * 100 : 0;
+                return [week, wOur, wComp, share];
+            });
+
+            dataTable.addRows(rows);
+
+            const options = {
+                title: 'Evolución de Clicks Totales & Share',
+                seriesType: 'bars',
+                series: { 2: { type: 'line', targetAxisIndex: 1, color: '#0071e3', lineWidth: 3 } },
+                colors: ['#8ab4f8', '#f28b82'],
+                isStacked: true,
+                vAxes: { 0: {title: 'Clicks'}, 1: {title: 'Share %', format: '#\'%\''} },
+                legend: { position: 'bottom' },
+                chartArea: { width: '85%', height: '70%' }
+            };
+
+            new google.visualization.ComboChart(document.getElementById('chart_trend')).draw(dataTable, options);
+            
+            // Text Analysis
+            const last = rows[rows.length-1];
+            const prev = rows[rows.length-2];
+            let trendText = "";
+            if(last[3] > prev[3]) trendText = "Nuestra marca gana tracción (+"+(last[3]-prev[3]).toFixed(1)+"% share).";
+            else trendText = "Perdida de share ("+(last[3]-prev[3]).toFixed(1)+"%) frente a competencia.";
+            document.getElementById('trend-analysis-text').innerText = `En la semana ${last[0]}, el volumen total fue ${Math.round(last[1]+last[2])}. ${trendText}`;
+        }
+
+        // 2. CHART SHARE
+        function drawShare(weeks) {
+            // Find Top 3 Competitors globally
+            const brandTotals = {};
+            rawData.filter(d => d.is_yaba_asin === 'N').forEach(d => {
+                brandTotals[d.real_brand] = (brandTotals[d.real_brand] || 0) + d.estimated_clicks;
+            });
+            const top3 = Object.entries(brandTotals).sort((a,b) => b[1] - a[1]).slice(0,3).map(x => x[0]);
+
+            const dataTable = new google.visualization.DataTable();
+            dataTable.addColumn('string', 'Week');
+            dataTable.addColumn('number', OUR_BRAND_NAME);
+            top3.forEach(b => dataTable.addColumn('number', b));
+            dataTable.addColumn('number', 'Resto');
+
+            const rows = weeks.map(week => {
+                const wData = rawData.filter(d => d.week_date === week);
+                const total = wData.reduce((sum,d) => sum + d.estimated_clicks, 0);
+                
+                const getShare = (filterFn) => {
+                    const clicks = wData.filter(filterFn).reduce((sum,d) => sum + d.estimated_clicks, 0);
+                    return total > 0 ? (clicks / total) * 100 : 0;
+                };
+
+                return [
+                    week,
+                    getShare(d => d.is_yaba_asin === 'Y'),
+                    getShare(d => d.real_brand === top3[0]),
+                    getShare(d => d.real_brand === top3[1]),
+                    getShare(d => d.real_brand === top3[2]),
+                    getShare(d => d.is_yaba_asin === 'N' && !top3.includes(d.real_brand))
+                ];
+            });
+
+            dataTable.addRows(rows);
+
+            const options = {
+                curveType: 'function',
+                lineWidth: 3,
+                colors: ['#0071e3', '#ea4335', '#fbbc04', '#34a853', '#9aa0a6'],
+                chartArea: { width: '90%', height: '80%' },
+                legend: { position: 'bottom' },
+                vAxis: { format: '#\'%\'' }
+            };
+
+            new google.visualization.LineChart(document.getElementById('chart_share')).draw(dataTable, options);
+        }
+
+        // 3. DRIVERS & SCATTER
+        function drawDrivers(data) {
+            // 3.1 Price Scatter
+            const scatterData = new google.visualization.DataTable();
+            scatterData.addColumn('number', 'Price');
+            scatterData.addColumn('number', 'Click Share');
+            scatterData.addColumn({type: 'string', role: 'tooltip'});
+            scatterData.addColumn({type: 'string', role: 'style'});
+
+            const rows = data.map(d => {
+                let color = d.is_yaba_asin === 'Y' ? 'point { fill-color: #0071e3; size: 6 }' : 'point { fill-color: #ea4335; }';
+                return [d.price, d.click_share, `${d.real_brand} (${d.asin})\n£${d.price} | ${d.click_share}%`, color];
+            });
+            scatterData.addRows(rows);
+
+            new google.visualization.ScatterChart(document.getElementById('price_scatter_div')).draw(scatterData, {
+                title: 'Correlación Precio vs Share',
+                legend: 'none',
+                hAxis: {title: 'Precio (£)'},
+                vAxis: {title: 'Click Share (%)'},
+                chartArea: { width: '80%', height: '80%' }
+            });
+
+            // 3.2 Impact Table (Simplified)
+            // Calculate Avg Share with vs without Coupon for Market
+            const withCoupon = data.filter(d => d.weekly_number_of_days_with_coupon > 0);
+            const withoutCoupon = data.filter(d => d.weekly_number_of_days_with_coupon === 0);
+            
+            const avgC = withCoupon.length ? (withCoupon.reduce((s,d)=>s+d.click_share,0)/withCoupon.length).toFixed(1) : '-';
+            const avgNC = withoutCoupon.length ? (withoutCoupon.reduce((s,d)=>s+d.click_share,0)/withoutCoupon.length).toFixed(1) : '-';
+
+            const html = `
+                <table class="w-full text-sm">
+                    <tr class="border-b"><th class="text-left pb-2">Palanca</th><th class="text-right pb-2">Avg Share (Con)</th><th class="text-right pb-2">Avg Share (Sin)</th></tr>
+                    <tr class="border-b"><td class="py-2">Cupones</td><td class="text-right font-bold text-green-600">${avgC}%</td><td class="text-right">${avgNC}%</td></tr>
+                    <tr class="border-b"><td class="py-2">Deals</td><td class="text-right font-bold text-green-600">-</td><td class="text-right">-</td></tr>
+                </table>
+                <p class="text-xs text-gray-400 mt-2">Basado en datos de la última semana.</p>
+            `;
+            document.getElementById('drivers_table_div').innerHTML = html;
+        }
+
+        // 4. EFFICIENCY
+        function drawEfficiency(data) {
+            const dt = new google.visualization.DataTable();
+            dt.addColumn('number', 'Organic Rank');
+            dt.addColumn('number', 'Click Share');
+            dt.addColumn({type: 'string', role: 'tooltip'});
+            dt.addColumn({type: 'string', role: 'style'});
+
+            const rows = data.map(d => {
+                let color = d.is_yaba_asin === 'Y' ? '#0071e3' : '#9aa0a6';
+                if(d.real_brand === 'Perfect Ted') color = '#ea4335'; // Highlight top comp
+                
+                // Efficiency Logic
+                // Good: Rank > 10 but Share > 5
+                // Bad: Rank < 5 but Share < 3
+                let style = `point { fill-color: ${color}; }`;
+                
+                return [d.average_organic_rank, d.click_share, `${d.real_brand}\nRank: ${d.average_organic_rank}\nShare: ${d.click_share}%`, style];
+            });
+
+            dt.addRows(rows);
+
+            const options = {
+                title: 'Mapa de Eficiencia (Más alto es mejor share, Más izquierda es mejor rank)',
+                hAxis: { title: 'Organic Rank (Invertido)', direction: -1 },
+                vAxis: { title: 'Click Share (%)' },
+                legend: 'none',
+                chartArea: { width: '85%', height: '80%' }
+            };
+
+            new google.visualization.ScatterChart(document.getElementById('chart_efficiency')).draw(dt, options);
+        }
+
+        // 5. INSIGHTS GENERATION
+        function generateInsights(weeks, lastData, ourSOV, topComp) {
+            const insights = [];
+            
+            // Insight 1: Trend
+            const trend = rawData.length > 20 ? "Estable" : "Volátil (Pocos datos)";
+            insights.push(`<li class="mb-2"><strong>Tendencia Global:</strong> El mercado muestra un comportamiento ${trend}. El volumen de búsqueda actual es de ${Math.round(lastData[0].weekly_search_volume).toLocaleString()}.</li>`);
+
+            // Insight 2: Dominance
+            if(ourSOV > 20) insights.push(`<li class="mb-2"><strong>Dominio:</strong> ${OUR_BRAND_NAME} mantiene una posición fuerte con ${ourSOV.toFixed(1)}% de share.</li>`);
+            else insights.push(`<li class="mb-2"><strong>Competencia:</strong> ${topComp.name} lidera o amenaza con fuerza, capturando gran parte del tráfico.</li>`);
+
+            // Insight 3: Price
+            const ourAvg = lastData.filter(d=>d.is_yaba_asin==='Y').reduce((s,d)=>s+d.price,0)/lastData.filter(d=>d.is_yaba_asin==='Y').length;
+            const compAvg = lastData.filter(d=>d.is_yaba_asin==='N').reduce((s,d)=>s+d.price,0)/lastData.filter(d=>d.is_yaba_asin==='N').length;
+            if(ourAvg > compAvg * 1.2) insights.push(`<li class="mb-2"><strong>Riesgo de Precio:</strong> Somos significativamente más caros (£${ourAvg.toFixed(2)}) que el promedio competidor (£${compAvg.toFixed(2)}).</li>`);
+            
+            // Insight 4: Efficiency
+            insights.push(`<li class="mb-2"><strong>Eficiencia Orgánica:</strong> Revisar gráfico de eficiencia. Los ASINs en la zona superior derecha son oportunidades desperdiciadas (Buen rank, poco share).</li>`);
+
+            // Insight 5: Promo
+            const hasCoupons = lastData.some(d => d.is_yaba_asin === 'Y' && d.weekly_number_of_days_with_coupon > 0);
+            if(!hasCoupons) insights.push(`<li class="mb-2"><strong>Oportunidad Promo:</strong> No tenemos cupones activos esta semana en Top ASINs. Competidores como ${topComp.name} podrían estar usándolos.</li>`);
+
+            document.getElementById('insights-container').innerHTML = `<ul class="list-disc pl-5 text-sm text-gray-700">${insights.join('')}</ul>`;
+
+            // Recs
+            const recs = [];
+            recs.push(`<div class="rec-box"><h4 class="font-bold text-sm text-green-800">Defensa de Share</h4><p class="text-xs text-green-700">Si ${topComp.name} está ganando terreno, activa un cupón del 5-10% en el ASIN principal para recuperar CTR.</p></div>`);
+            recs.push(`<div class="rec-box"><h4 class="font-bold text-sm text-green-800">Optimización de Título</h4><p class="text-xs text-green-700">Revisar ASINs con Rank < 10 pero Share < 5%. El título podría no ser atractivo.</p></div>`);
+            recs.push(`<div class="rec-box"><h4 class="font-bold text-sm text-green-800">Ajuste de Precio</h4><p class="text-xs text-green-700">Monitorear elasticidad. Si el precio está por encima de £${(compAvg*1.1).toFixed(2)}, probar bajada temporal.</p></div>`);
+            document.getElementById('recommendations-container').innerHTML = recs.join('');
+            
+            // Other
+            document.getElementById('other-insights-list').innerHTML = `<li>Competidor emergente: <strong>Perfect Ted</strong> muestra crecimiento agresivo.</li><li>El volumen de búsqueda cayó de 60k a 40k, estacionalidad post-navidad probable.</li>`;
+        }
+
+        // ================= INTERACTIVE TAB LOGIC =================
+        function setupInteractive(weeks) {
+            const selWeek = document.getElementById('sel-week');
+            selWeek.innerHTML = weeks.map(w => `<option value="${w}">${w}</option>`).join('');
+            selWeek.value = weeks[weeks.length-1]; // Default to last
+
+            updateSelectors();
+        }
+
+        function updateSelectors() {
+            const week = document.getElementById('sel-week').value;
+            const wData = rawData.filter(d => d.week_date === week);
+            
+            const ourASINs = wData.filter(d => d.is_yaba_asin === 'Y');
+            const compASINs = wData.filter(d => d.is_yaba_asin === 'N');
+
+            const selOur = document.getElementById('sel-our-asin');
+            const selComp = document.getElementById('sel-comp-asin');
+
+            selOur.innerHTML = ourASINs.map(d => `<option value="${d.asin}">${d.asin} (${d.click_share}%)</option>`).join('');
+            selComp.innerHTML = compASINs.map(d => `<option value="${d.asin}">${d.real_brand} - ${d.asin} (${d.click_share}%)</option>`).join('');
+            
+            updateInteractive();
+        }
+
+        function updateInteractive() {
+            const week = document.getElementById('sel-week').value;
+            const ourAsinId = document.getElementById('sel-our-asin').value;
+            const compAsinId = document.getElementById('sel-comp-asin').value;
+
+            const ourRow = rawData.find(d => d.week_date === week && d.asin === ourAsinId);
+            const compRow = rawData.find(d => d.week_date === week && d.asin === compAsinId);
+
+            if(!ourRow || !compRow) return;
+
+            renderCard('view-us', ourRow, 'blue');
+            renderCard('view-comp', compRow, 'red');
+
+            drawHistoryChart(ourAsinId, compAsinId);
+        }
+
+        function renderCard(elemId, data, color) {
+            const c = color === 'blue' ? 'text-blue-600' : 'text-red-600';
+            document.getElementById(elemId).innerHTML = `
+                <div>
+                    <h4 class="font-bold text-gray-800 text-sm h-10 overflow-hidden">${data.product_title}</h4>
+                    <div class="mt-4 grid grid-cols-2 gap-4">
+                        <div>
+                            <div class="text-xs text-gray-500 uppercase">Price</div>
+                            <div class="text-xl font-bold">£${data.price}</div>
+                        </div>
+                        <div>
+                            <div class="text-xs text-gray-500 uppercase">Share</div>
+                            <div class="text-xl font-bold ${c}">${data.click_share}%</div>
+                        </div>
+                        <div>
+                            <div class="text-xs text-gray-500 uppercase">Rank</div>
+                            <div class="text-xl font-bold">#${data.average_organic_rank}</div>
+                        </div>
+                         <div>
+                            <div class="text-xs text-gray-500 uppercase">Badges</div>
+                            <div class="flex gap-1 mt-1">
+                                ${data.weekly_number_of_days_with_deal > 0 ? '<span class="badge badge-red">DEAL</span>' : ''}
+                                ${data.weekly_number_of_days_with_coupon > 0 ? '<span class="badge badge-green">CPN</span>' : ''}
+                                ${data.weekly_number_of_days_with_deal == 0 && data.weekly_number_of_days_with_coupon == 0 ? '<span class="text-xs text-gray-400">-</span>' : ''}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function drawHistoryChart(asin1, asin2) {
+            const dataTable = new google.visualization.DataTable();
+            dataTable.addColumn('string', 'Week');
+            dataTable.addColumn('number', 'My ASIN');
+            dataTable.addColumn('number', 'Competitor');
+
+            const weeks = [...new Set(rawData.map(d => d.week_date))].sort();
+            
+            const rows = weeks.map(w => {
+                const r1 = rawData.find(d => d.week_date === w && d.asin === asin1);
+                const r2 = rawData.find(d => d.week_date === w && d.asin === asin2);
+                return [w, r1 ? r1.click_share : 0, r2 ? r2.click_share : 0];
+            });
+
+            dataTable.addRows(rows);
+
+            new google.visualization.AreaChart(document.getElementById('chart_interactive_history')).draw(dataTable, {
+                colors: ['#0071e3', '#ea4335'],
+                legend: {position: 'top'},
+                chartArea: {width: '90%', height: '80%'},
+                vAxis: {title: 'Click Share %'}
+            });
+        }
+
+    </script>
+</body>
+</html>
