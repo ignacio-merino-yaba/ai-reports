@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analítica Avanzada: Parent ASIN Report</title>
+    
+    <!-- Google Charts & Fonts -->
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --primary: #007AFF; /* Apple Blue */
+            --secondary: #5AC8FA;
+            --success: #34C759;
+            --danger: #FF3B30;
+            --text-main: #1D1D1F;
+            --text-sec: #86868B;
+            --bg-body: #F5F5F7;
+            --bg-card: #FFFFFF;
+            --border: #D2D2D7;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        header h1 {
+            font-weight: 700;
+            font-size: 28px;
+            margin-bottom: 5px;
+        }
+        header p {
+            color: var(--text-sec);
+            font-size: 16px;
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            justify-content: center;
+            background: rgba(255,255,255,0.8);
+            padding: 5px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            width: fit-content;
+            margin-left: auto;
+            margin-right: auto;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        .tab-btn {
+            border: none;
+            background: none;
+            padding: 10px 24px;
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+            border-radius: 8px;
+            color: var(--text-sec);
+            transition: all 0.3s ease;
+        }
+        .tab-btn.active {
+            background-color: var(--primary);
+            color: white;
+            box-shadow: 0 2px 8px rgba(0,122,255,0.3);
+        }
+
+        /* Sections & Cards */
+        .section-title {
+            font-size: 22px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .card {
+            background: var(--bg-card);
+            border-radius: 20px;
+            padding: 25px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.04);
+            border: 1px solid rgba(0,0,0,0.02);
+        }
+        
+        /* Grid Layouts */
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+
+        /* Metrics */
+        .metric {
+            text-align: center;
+            padding: 15px;
+            background: #F9F9F9;
+            border-radius: 12px;
+        }
+        .metric-val {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+        .metric-label {
+            font-size: 13px;
+            color: var(--text-sec);
+            margin-top: 5px;
+        }
+        .trend-up { color: var(--success); }
+        .trend-down { color: var(--danger); }
+
+        /* Charts Container */
+        .chart-box {
+            width: 100%;
+            height: 400px;
+        }
+
+        /* Text Content */
+        .insight-box {
+            background: #F0F4FF;
+            border-left: 4px solid var(--primary);
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 0 8px 8px 0;
+        }
+        .insight-box h4 { margin: 0 0 5px 0; font-size: 15px; }
+        .insight-box p { margin: 0; font-size: 14px; color: #444; }
+
+        .rec-box {
+            background: #F2FDF5;
+            border-left: 4px solid var(--success);
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 0 8px 8px 0;
+        }
+
+        /* Interactive Controls */
+        select {
+            padding: 10px 15px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            font-size: 14px;
+            outline: none;
+            background: white;
+            min-width: 200px;
+        }
+
+        /* Comparisons */
+        .vs-badge {
+            background: #000;
+            color: #fff;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        /* Hide/Show logic */
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        @media (max-width: 768px) {
+            .grid-2, .grid-3 { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>Análisis Estratégico de ASIN (Cacao Powder)</h1>
+        <p>Inteligencia de Mercado • Semana 01 2026</p>
+    </header>
+
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('report')">Reporte Estratégico</button>
+        <button class="tab-btn" onclick="switchTab('interactive')">Comparador Interactivo</button>
+    </div>
+
+    <!-- PESTAÑA 1: REPORTE ESTÁTICO -->
+    <div id="report" class="tab-content active">
+        
+        <!-- 1. TENDENCIA GLOBAL -->
+        <div class="section-title">
+            <span class="material-icons">trending_up</span> 1. Tendencia Global del Parent
+        </div>
+        <div class="card">
+            <div class="grid-2">
+                <div>
+                    <div id="chart_global_trend" class="chart-box"></div>
+                </div>
+                <div style="display: flex; flex-direction: column; justify-content: center;">
+                    <div class="insight-box">
+                        <h4>Pérdida de Tracción General</h4>
+                        <p>El volumen total de búsquedas ha caído un 45% respecto a la semana de fin de año (2025-52), pasando de ~5.5k a ~3k estimados. Esto indica una corrección estacional post-navideña.</p>
+                    </div>
+                    <div class="insight-box">
+                        <h4>Nuestra Cuota en Descenso</h4>
+                        <p>Nuestra marca (NaturaleBio) ha perdido click share, pasando de un ~8.9% a un 6.7% en la última semana. La competencia ha capitalizado mejor la caída del tráfico.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. COMPETITIVIDAD DE MARCA -->
+        <div class="section-title">
+            <span class="material-icons">pie_chart</span> 2. Competitividad de Marca
+        </div>
+        <div class="card">
+            <div id="chart_brand_comp" class="chart-box"></div>
+            <div class="grid-3" style="margin-top:20px;">
+                <div class="metric">
+                    <div class="metric-val" style="color:var(--primary)">NaturaleBio</div>
+                    <div class="metric-label">Nuestra Marca</div>
+                    <div class="metric-label trend-down">▼ Share: 6.75%</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-val">Sevenhills</div>
+                    <div class="metric-label">Top Competidor</div>
+                    <div class="metric-label trend-up">▲ Share: ~9.8%</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-val">Kaba</div>
+                    <div class="metric-label">Challenger Emergente</div>
+                    <div class="metric-label trend-up">▲ Share: 8.9% (New)</div>
+                </div>
+            </div>
+            <div style="margin-top: 20px; font-size: 14px; color: #555;">
+                <p><strong>Análisis:</strong> Sevenhills Wholefoods mantiene el liderazgo por estabilidad. La sorpresa es <strong>Kaba</strong>, que ha irrumpido esta semana con un share del 8.9% (ASIN B0D5QZYXPW), desplazando a marcas establecidas a pesar de tener un rango orgánico muy bajo (Top 1-2). Esto sugiere una fuerte intención de búsqueda de marca (Branded Search) o tráfico externo no capturado como deal.</p>
+            </div>
+        </div>
+
+        <!-- 3. PALANCAS -->
+        <div class="section-title">
+            <span class="material-icons">tune</span> 3. Palancas de Click Share
+        </div>
+        <div class="card">
+            <table style="width:100%; text-align: left; border-collapse: collapse;">
+                <thead style="border-bottom: 2px solid #eee;">
+                    <tr>
+                        <th style="padding:10px;">Palanca</th>
+                        <th>Impacto Observado (NaturaleBio vs Mercado)</th>
+                        <th>Estado</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td style="padding:15px 10px;"><strong>Precio</strong></td>
+                        <td>Nuestros competidores directos (Sevenhills) oscilan entre 20-30€. Nosotros mostramos volatilidad (de 4.82€ a 34€ según variante). El ASIN más barato de Sevenhills (19€/kg) captura más share.</td>
+                        <td style="color:var(--danger)">Crítico</td>
+                    </tr>
+                    <tr>
+                        <td style="padding:15px 10px;"><strong>Badges</strong></td>
+                        <td>No tenemos badges activos (Choice/BestSeller) esta semana. Kaba y Alnatura están posicionando con keywords de "cacao" genérico muy agresivamente.</td>
+                        <td style="color:orange">Mejorable</td>
+                    </tr>
+                    <tr>
+                        <td style="padding:15px 10px;"><strong>Organic Rank</strong></td>
+                        <td>A pesar de un Rank promedio de 7 (Top 10), el CTR es bajo comparado con Kaba (Rank 2, Share 8.9%). Estamos posicionados pero no clicados.</td>
+                        <td style="color:orange">Baja Eficiencia</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 4. EFICIENCIA -->
+        <div class="section-title">
+            <span class="material-icons">scatter_plot</span> 4. Eficiencia (Rank vs Share)
+        </div>
+        <div class="card">
+            <p style="font-size:14px; color:#666; margin-bottom:10px;">
+                Eje X: Ranking Orgánico (Menos es mejor) | Eje Y: Click Share (Más es mejor).
+                <br>Los puntos arriba a la izquierda son "Super Estrellas".
+            </p>
+            <div id="chart_efficiency" class="chart-box"></div>
+            <div class="insight-box" style="margin-top:15px;">
+                <p>Nuestros ASINs (Puntos Azules) están agrupados en ranks 5-8 pero con shares moderados (<5%). Los competidores (Puntos Rojos) como Sevenhills logran shares >5% con ranks similares, indicando mejor imagen principal, precio o reconocimiento de marca.</p>
+            </div>
+        </div>
+
+        <!-- 5. CONCLUSIONES Y RECOMENDACIONES -->
+        <div class="section-title">
+            <span class="material-icons">lightbulb</span> 5. Conclusiones y Acciones
+        </div>
+        <div class="card grid-2">
+            <div>
+                <h3 style="margin-top:0;">Insights Clave</h3>
+                <div class="insight-box">1. Caída Estacional: El mercado se contrajo un 45%, pero caímos más que el promedio.</div>
+                <div class="insight-box">2. Amenaza Kaba: Kaba entra fuerte en el segmento "kakaopulver" genérico.</div>
+                <div class="insight-box">3. Problema de Conversión: Buen rank orgánico (Top 10) pero bajo Click Share.</div>
+                <div class="insight-box">4. Inconsistencia de Precios: Variantes reportan saltos de 4€ a 34€, confundiendo al usuario.</div>
+                <div class="insight-box">5. Dominio Sevenhills: Líder estable sin grandes promociones, gana por consistencia.</div>
+            </div>
+            <div>
+                <h3 style="margin-top:0;">Recomendaciones (Accionables)</h3>
+                <div class="rec-box">
+                    <strong>1. Estabilización de Precio:</strong> Revisar la variante de 34€ (B07DFPSNGJ). Si es un pack, aclarar en título. Si es error, corregir inmediatamente para competir con los 19-20€ de Sevenhills.
+                </div>
+                <div class="rec-box">
+                    <strong>2. Defensa vs Kaba:</strong> Activar cupón del 5-10% en la variante principal para recuperar el share perdido ante la entrada de Kaba.
+                </div>
+                <div class="rec-box">
+                    <strong>3. Optimización Main Image:</strong> Dado que el Rank es bueno pero el CTR bajo, realizar A/B testing de la imagen principal enfocándose en el atributo "Bio" o "1kg" para destacar visualmente.
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- PESTAÑA 2: COMPARADOR INTERACTIVO -->
+    <div id="interactive" class="tab-content">
+        <div class="section-title">
+            <span class="material-icons">compare_arrows</span> Cara a Cara Dinámico
+        </div>
+        
+        <div class="card">
+            <div style="display:flex; gap:20px; align-items:center; margin-bottom:20px; flex-wrap:wrap;">
+                <div>
+                    <label style="display:block; font-size:12px; margin-bottom:5px; color:#666;">Seleccionar Semana</label>
+                    <select id="weekSelector" onchange="updateComparator()"></select>
+                </div>
+                <div>
+                    <label style="display:block; font-size:12px; margin-bottom:5px; color:#666;">Competidor a Analizar</label>
+                    <select id="compSelector" onchange="updateComparator()"></select>
+                </div>
+            </div>
+
+            <div class="grid-2">
+                <!-- Us -->
+                <div style="background:#F0F8FF; padding:20px; border-radius:15px; border:1px solid #B0E0E6;">
+                    <h3 style="color:var(--primary); margin-top:0;">NaturaleBio (Nosotros)</h3>
+                    <div class="metric" style="background:white; margin-bottom:10px;">
+                        <div class="metric-label">Click Share</div>
+                        <div class="metric-val" id="us_share">-</div>
+                    </div>
+                    <div class="metric" style="background:white; margin-bottom:10px;">
+                        <div class="metric-label">Rank Orgánico Promedio</div>
+                        <div class="metric-val" id="us_rank">-</div>
+                    </div>
+                    <div class="metric" style="background:white;">
+                        <div class="metric-label">Precio Promedio</div>
+                        <div class="metric-val" id="us_price">-</div>
+                    </div>
+                </div>
+
+                <!-- Them -->
+                <div style="background:#FFF5F5; padding:20px; border-radius:15px; border:1px solid #FFCCCB;">
+                    <h3 style="color:var(--danger); margin-top:0;" id="comp_name_display">Competidor</h3>
+                    <div class="metric" style="background:white; margin-bottom:10px;">
+                        <div class="metric-label">Click Share</div>
+                        <div class="metric-val" id="them_share">-</div>
+                    </div>
+                    <div class="metric" style="background:white; margin-bottom:10px;">
+                        <div class="metric-label">Rank Orgánico Promedio</div>
+                        <div class="metric-val" id="them_rank">-</div>
+                    </div>
+                    <div class="metric" style="background:white;">
+                        <div class="metric-label">Precio Promedio</div>
+                        <div class="metric-val" id="them_price">-</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div style="margin-top:20px; text-align:center;">
+                <span id="winner_badge" class="vs-badge" style="font-size:14px; padding:5px 15px; background:var(--text-main);">Ganador en Visibilidad: Calculando...</span>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- DATA AND LOGIC -->
+<script>
+    // 1. DATA INJECTION (Generated from Python Analysis)
+    const marketData = [
+        {"week_date": "2026-01-03", "real_brand": "NaturaleBio", "is_yaba_asin": "Y", "click_share": 3.96, "price": 34.79, "average_organic_rank": 7, "estimated_clicks": 121.03, "weekly_search_volume": 3056.3},
+        {"week_date": "2026-01-03", "real_brand": "Nesquik", "is_yaba_asin": "N", "click_share": 4.04, "price": 6.27, "average_organic_rank": 8, "estimated_clicks": 123.47, "weekly_search_volume": 3056.3},
+        {"week_date": "2026-01-03", "real_brand": "Sevenhills Wholefoods", "is_yaba_asin": "N", "click_share": 5.42, "price": 32.62, "average_organic_rank": 4, "estimated_clicks": 165.65, "weekly_search_volume": 3056.3},
+        {"week_date": "2026-01-03", "real_brand": "Unknown Brand", "is_yaba_asin": "N", "click_share": 4.04, "price": 10.55, "average_organic_rank": 7, "estimated_clicks": 123.47, "weekly_search_volume": 3056.3},
+        {"week_date": "2026-01-03", "real_brand": "Vom-Achterhof", "is_yaba_asin": "N", "click_share": 3.23, "price": 34.68, "average_organic_rank": 11, "estimated_clicks": 98.71, "weekly_search_volume": 3056.3},
+        {"week_date": "2026-01-03", "real_brand": "Suchard Express", "is_yaba_asin": "N", "click_share": 5.03, "price": 3.47, "average_organic_rank": 6, "estimated_clicks": 153.73, "weekly_search_volume": 3056.3},
+        {"week_date": "2026-01-03", "real_brand": "Sevenhills Wholefoods", "is_yaba_asin": "N", "click_share": 3.55, "price": 19.57, "average_organic_rank": 6, "estimated_clicks": 108.50, "weekly_search_volume": 3056.3},
+        {"week_date": "2026-01-03", "real_brand": "Vom-Achterhof", "is_yaba_asin": "N", "click_share": 6.32, "price": 23.81, "average_organic_rank": 14, "estimated_clicks": 193.15, "weekly_search_volume": 3056.3},
+        {"week_date": "2026-01-03", "real_brand": "Kaba", "is_yaba_asin": "N", "click_share": 8.90, "price": 3.25, "average_organic_rank": 2, "estimated_clicks": 272.01, "weekly_search_volume": 3056.3},
+        {"week_date": "2026-01-03", "real_brand": "Unknown Brand", "is_yaba_asin": "N", "click_share": 8.78, "price": 5.21, "average_organic_rank": 2, "estimated_clicks": 268.34, "weekly_search_volume": 3056.3},
+        {"week_date": "2025-12-27", "real_brand": "Sevenhills Wholefoods", "is_yaba_asin": "N", "click_share": 4.76, "price": 30.72, "average_organic_rank": 4, "estimated_clicks": 263.81, "weekly_search_volume": 5542.21},
+        {"week_date": "2025-12-27", "real_brand": "Vom-Achterhof", "is_yaba_asin": "N", "click_share": 3.34, "price": 32.67, "average_organic_rank": 14, "estimated_clicks": 185.11, "weekly_search_volume": 5542.21},
+        {"week_date": "2025-12-27", "real_brand": "Suchard Express", "is_yaba_asin": "N", "click_share": 5.06, "price": 3.26, "average_organic_rank": 5, "estimated_clicks": 280.43, "weekly_search_volume": 5542.21},
+        {"week_date": "2025-12-27", "real_brand": "NaturaleBio", "is_yaba_asin": "Y", "click_share": 4.82, "price": 32.77, "average_organic_rank": 5, "estimated_clicks": 267.13, "weekly_search_volume": 5542.21},
+        {"week_date": "2025-12-27", "real_brand": "Nesquik", "is_yaba_asin": "N", "click_share": 3.56, "price": 5.91, "average_organic_rank": 9, "estimated_clicks": 197.30, "weekly_search_volume": 5542.21},
+        {"week_date": "2025-12-27", "real_brand": "Vom-Achterhof", "is_yaba_asin": "N", "click_share": 4.85, "price": 22.42, "average_organic_rank": 14, "estimated_clicks": 268.80, "weekly_search_volume": 5542.21},
+        {"week_date": "2025-12-27", "real_brand": "Unknown Brand", "is_yaba_asin": "N", "click_share": 3.97, "price": 9.93, "average_organic_rank": 6, "estimated_clicks": 220.02, "weekly_search_volume": 5542.21},
+        {"week_date": "2025-12-27", "real_brand": "Unknown Brand", "is_yaba_asin": "N", "click_share": 2.93, "price": 9.72, "average_organic_rank": 12, "estimated_clicks": 162.38, "weekly_search_volume": 5542.21},
+        {"week_date": "2025-12-27", "real_brand": "Unknown Brand", "is_yaba_asin": "N", "click_share": 7.64, "price": 4.90, "average_organic_rank": 2, "estimated_clicks": 423.42, "weekly_search_volume": 5542.21},
+        {"week_date": "2025-12-27", "real_brand": "Kaba", "is_yaba_asin": "N", "click_share": 8.71, "price": 2.76, "average_organic_rank": 2, "estimated_clicks": 482.72, "weekly_search_volume": 5542.21}
+    ];
+
+    const OUR_BRAND = "NaturaleBio";
+    
+    // 2. LOGIC INIT
+    google.charts.load('current', {'packages':['corechart']});
+    google.charts.setOnLoadCallback(initCharts);
+
+    function initCharts() {
+        drawGlobalTrend();
+        drawCompetitorChart();
+        drawEfficiencyChart();
+        populateSelectors();
+        updateComparator();
+    }
+
+    // 3. CHART 1: GLOBAL TREND (COMBO)
+    function drawGlobalTrend() {
+        // Aggregation by Week
+        const weeks = [...new Set(marketData.map(d => d.week_date))].sort();
+        const dataTable = [['Semana', 'Volumen Búsqueda', 'Nuestra Cuota (%)', 'Cuota Competencia (%)']];
+
+        weeks.forEach(week => {
+            const weekData = marketData.filter(d => d.week_date === week);
+            // Volume (Assume unique per week for simplicity or take max found in rows)
+            const vol = Math.max(...weekData.map(d => d.weekly_search_volume));
+            
+            const totalClicks = weekData.reduce((sum, d) => sum + d.estimated_clicks, 0);
+            const ourClicks = weekData.filter(d => d.real_brand === OUR_BRAND).reduce((sum, d) => sum + d.estimated_clicks, 0);
+            
+            const ourShare = totalClicks > 0 ? (ourClicks / totalClicks) * 100 : 0;
+            const compShare = 100 - ourShare;
+
+            dataTable.push([week, vol, ourShare, compShare]);
+        });
+
+        const data = google.visualization.arrayToDataTable(dataTable);
+        const options = {
+            seriesType: 'bars',
+            series: {1: {type: 'line', targetAxisIndex: 1}, 2: {type: 'line', targetAxisIndex: 1}},
+            colors: ['#E0E0E0', '#007AFF', '#FF3B30'],
+            vAxes: {0: {title: 'Volumen Búsqueda'}, 1: {title: 'Click Share %'}},
+            hAxis: {title: 'Semana'},
+            legend: {position: 'bottom'},
+            chartArea: {width: '80%', height: '70%'}
+        };
+
+        const chart = new google.visualization.ComboChart(document.getElementById('chart_global_trend'));
+        chart.draw(data, options);
+    }
+
+    // 4. CHART 2: BRAND COMPETITIVENESS
+    function drawCompetitorChart() {
+        const weeks = [...new Set(marketData.map(d => d.week_date))].sort();
+        // Identify top competitors + us
+        const brands = [...new Set(marketData.map(d => d.real_brand))];
+        const brandTotals = brands.map(b => {
+            return {
+                brand: b,
+                clicks: marketData.filter(d => d.real_brand === b).reduce((s, x) => s + x.estimated_clicks, 0)
+            };
+        }).sort((a,b) => b.clicks - a.clicks);
+        
+        const topBrands = [OUR_BRAND, ...brandTotals.filter(b => b.brand !== OUR_BRAND).slice(0, 3).map(b => b.brand)];
+        
+        const header = ['Semana', ...topBrands];
+        const rows = [];
+
+        weeks.forEach(week => {
+            const row = [week];
+            const weekData = marketData.filter(d => d.week_date === week);
+            const totalClicksWeek = weekData.reduce((s, x) => s + x.estimated_clicks, 0);
+
+            topBrands.forEach(brand => {
+                const brandClicks = weekData.filter(d => d.real_brand === brand).reduce((s, x) => s + x.estimated_clicks, 0);
+                const share = totalClicksWeek > 0 ? (brandClicks / totalClicksWeek) * 100 : 0;
+                row.push(share);
+            });
+            rows.push(row);
+        });
+
+        const data = google.visualization.arrayToDataTable([header, ...rows]);
+        const options = {
+            curveType: 'function',
+            legend: { position: 'bottom' },
+            colors: ['#007AFF', '#34C759', '#FF9500', '#FF3B30'], // Blue for Us, others differ
+            vAxis: { title: 'Click Share %' },
+            chartArea: {width: '85%', height: '70%'},
+            pointSize: 5
+        };
+
+        const chart = new google.visualization.LineChart(document.getElementById('chart_brand_comp'));
+        chart.draw(data, options);
+    }
+
+    // 5. CHART 3: EFFICIENCY (SCATTER)
+    function drawEfficiencyChart() {
+        // Header: [Rank, Share, Style (Tooltip or Color)]
+        // We need to customize tooltip to show Brand name
+        const dataTable = [['Rank', 'Click Share', {'type': 'string', 'role': 'style'}, {'type': 'string', 'role': 'tooltip'}]];
+        
+        // Filter latest week for relevance
+        const latestWeek = marketData.reduce((a, b) => a.week_date > b.week_date ? a : b).week_date;
+        const currentData = marketData.filter(d => d.week_date === latestWeek);
+
+        currentData.forEach(d => {
+            const color = d.real_brand === OUR_BRAND ? 'point { fill-color: #007AFF; size: 6; }' : 'point { fill-color: #FF3B30; size: 4; }';
+            const tooltip = `${d.real_brand}\nRank: ${d.average_organic_rank}\nShare: ${d.click_share}%`;
+            dataTable.push([d.average_organic_rank, d.click_share, color, tooltip]);
+        });
+
+        const data = google.visualization.arrayToDataTable(dataTable);
+        const options = {
+            title: `Eficiencia Última Semana (${latestWeek})`,
+            hAxis: {title: 'Rank Orgánico (Inverso)', direction: -1}, // Rank 1 is right (better) or left? Typically Rank 1 is left. Let's keep normal but know 1 is good.
+            vAxis: {title: 'Click Share %'},
+            legend: 'none',
+            chartArea: {width: '80%', height: '70%'}
+        };
+
+        const chart = new google.visualization.ScatterChart(document.getElementById('chart_efficiency'));
+        chart.draw(data, options);
+    }
+
+    // 6. INTERACTIVE LOGIC
+    function switchTab(tabId) {
+        document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+        document.getElementById(tabId).classList.add('active');
+        event.target.classList.add('active');
+        
+        // Redraw charts if unhidden
+        if(tabId === 'report') {
+            initCharts();
+        }
+    }
+
+    function populateSelectors() {
+        const weeks = [...new Set(marketData.map(d => d.week_date))].sort().reverse();
+        const brands = [...new Set(marketData.map(d => d.real_brand))].filter(b => b !== OUR_BRAND).sort();
+        
+        const weekSel = document.getElementById('weekSelector');
+        const compSel = document.getElementById('compSelector');
+        
+        if (weekSel.options.length === 0) {
+            weeks.forEach(w => {
+                const opt = document.createElement('option');
+                opt.value = w;
+                opt.text = w;
+                weekSel.add(opt);
+            });
+            
+            brands.forEach(b => {
+                const opt = document.createElement('option');
+                opt.value = b;
+                opt.text = b;
+                compSel.add(opt);
+            });
+        }
+    }
+
+    function updateComparator() {
+        const week = document.getElementById('weekSelector').value;
+        const comp = document.getElementById('compSelector').value;
+        
+        if(!week || !comp) return;
+
+        // Filter data
+        const weekData = marketData.filter(d => d.week_date === week);
+        const usData = weekData.filter(d => d.real_brand === OUR_BRAND);
+        const compData = weekData.filter(d => d.real_brand === comp);
+
+        // Calculate aggregates (averages for price/rank, sum for share via estimated clicks context)
+        // Note: Share is additive if multiple ASINs
+        const calcStats = (data) => {
+            if(data.length === 0) return {share: 0, rank: 0, price: 0};
+            
+            // Total market clicks for the week needed for share? No, we have click_share raw.
+            // Let's sum click_share for the brand (multiple ASINs scenario)
+            const share = data.reduce((s, i) => s + i.click_share, 0);
+            const rank = data.reduce((s, i) => s + i.average_organic_rank, 0) / data.length;
+            const price = data.reduce((s, i) => s + i.price, 0) / data.length;
+            return {share, rank, price};
+        };
+
+        const usStats = calcStats(usData);
+        const compStats = calcStats(compData);
+
+        // Update DOM
+        document.getElementById('us_share').innerText = usStats.share.toFixed(2) + '%';
+        document.getElementById('us_rank').innerText = usStats.rank.toFixed(1);
+        document.getElementById('us_price').innerText = usStats.price.toFixed(2) + '€';
+
+        document.getElementById('comp_name_display').innerText = comp;
+        document.getElementById('them_share').innerText = compStats.share.toFixed(2) + '%';
+        document.getElementById('them_rank').innerText = compStats.rank.toFixed(1);
+        document.getElementById('them_price').innerText = compStats.price.toFixed(2) + '€';
+
+        // Badge Logic
+        const badge = document.getElementById('winner_badge');
+        if(usStats.share > compStats.share) {
+            badge.innerText = "🏆 Ganamos en Visibilidad";
+            badge.style.background = "var(--success)";
+        } else {
+            badge.innerText = "⚠️ Competidor Domina";
+            badge.style.background = "var(--danger)";
+        }
+    }
+</script>
+
+</body>
+</html>
