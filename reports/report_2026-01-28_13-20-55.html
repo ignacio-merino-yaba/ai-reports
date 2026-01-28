@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Market Intelligence: Parent ASIN Report</title>
+    
+    <!-- Google Charts Loader -->
+    <script src="https://www.gstatic.com/charts/loader.js"></script>
+    
+    <!-- Google Material Icons -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
+    <style>
+        /* Apple-like / Google-Native Design System */
+        :root {
+            --primary: #0071e3; /* Amazon/Tech Blue */
+            --primary-bg: #f5f5f7;
+            --card-bg: #ffffff;
+            --text-main: #1d1d1f;
+            --text-secondary: #86868b;
+            --success: #34c759;
+            --danger: #ff3b30;
+            --our-brand: #0071e3;
+            --comp-1: #ff2d55;
+            --comp-2: #5856d6;
+            --comp-3: #ff9500;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--primary-bg);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+            line-height: 1.5;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding: 0 10px;
+        }
+
+        h1 {
+            font-size: 28px;
+            font-weight: 700;
+            margin: 0;
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            background: rgba(118, 118, 128, 0.12);
+            padding: 4px;
+            border-radius: 12px;
+            width: fit-content;
+            margin-bottom: 30px;
+        }
+
+        .tab-btn {
+            padding: 8px 20px;
+            border: none;
+            background: none;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            color: var(--text-main);
+            transition: all 0.2s ease;
+        }
+
+        .tab-btn.active {
+            background: #fff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        /* Cards */
+        .card {
+            background: var(--card-bg);
+            border-radius: 20px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+            transition: transform 0.2s;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+        }
+
+        .card-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Grid Layouts */
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+        }
+
+        /* Metrics */
+        .metric-big {
+            font-size: 32px;
+            font-weight: 700;
+            margin: 8px 0;
+        }
+
+        .metric-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .trend-up { color: var(--success); font-size: 14px; }
+        .trend-down { color: var(--danger); font-size: 14px; }
+
+        /* Insights List */
+        .insight-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .insight-item {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 16px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .insight-icon {
+            color: var(--primary);
+            min-width: 24px;
+        }
+
+        /* Controls for Interactive */
+        .controls {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        select {
+            padding: 10px 16px;
+            border-radius: 10px;
+            border: 1px solid #d1d1d6;
+            font-size: 14px;
+            background-color: #fff;
+            min-width: 200px;
+        }
+
+        /* Utility */
+        .hidden { display: none; }
+        .chart-container { height: 350px; width: 100%; }
+
+        /* Recommendation Tags */
+        .tag {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+        .tag-action { background: #e8f2ff; color: var(--primary); }
+        .tag-warning { background: #fff4e5; color: #ff9500; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <div>
+            <h1>Análisis de Mercado: Parent ASIN</h1>
+            <div class="subtitle" id="report-date">Datos actualizados: Últimas 5 semanas</div>
+        </div>
+        <div style="text-align: right;">
+            <div class="metric-label">MARCA OBJETIVO</div>
+            <div style="font-weight: 700; font-size: 18px; color: var(--primary);" id="our-brand-display">Loading...</div>
+        </div>
+    </header>
+
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('static')">Reporte Estratégico</button>
+        <button class="tab-btn" onclick="switchTab('interactive')">Comparador Interactivo</button>
+    </div>
+
+    <!-- PESTAÑA 1: REPORTE ESTÁTICO -->
+    <div id="static-tab">
+        
+        <!-- 1. Tendencia Global -->
+        <div class="card">
+            <div class="card-title">
+                <span class="material-icons">trending_up</span>
+                1. Tendencia Global del Parent (Volumen & Visibilidad)
+            </div>
+            <div class="grid-2">
+                <div id="trend_chart" class="chart-container"></div>
+                <div>
+                    <div class="grid-2">
+                        <div>
+                            <div class="metric-label">Est. Clicks (Última Sem.)</div>
+                            <div class="metric-big" id="total-clicks-last">...</div>
+                        </div>
+                        <div>
+                            <div class="metric-label">Share de Marca</div>
+                            <div class="metric-big" id="our-share-last">...</div>
+                            <div id="share-trend-text"></div>
+                        </div>
+                    </div>
+                    <div style="margin-top: 20px; font-size: 14px; color: #555;">
+                        <p><strong>Análisis:</strong> El gráfico combina el volumen total de clics estimados del mercado (Barras) con la cuota de clics de nuestra marca (Línea Azul).</p>
+                        <p id="trend-analysis-text">Cargando análisis...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. Competitividad -->
+        <div class="card">
+            <div class="card-title">
+                <span class="material-icons">pie_chart</span>
+                2. Competitividad de Marca (Share of Voice)
+            </div>
+            <p style="font-size: 13px; color: #666; margin-bottom: 10px;">Comparativa semanal de Click Share: Nuestra Marca vs Top 3 Competidores.</p>
+            <div id="comp_chart" class="chart-container"></div>
+        </div>
+
+        <!-- 3. Palancas -->
+        <div class="grid-2">
+            <div class="card">
+                <div class="card-title">
+                    <span class="material-icons">sell</span>
+                    3. Impacto de Precio
+                </div>
+                <div id="price_chart" style="height: 250px;"></div>
+                <p id="price-insight-text" style="font-size: 13px; margin-top:10px;"></p>
+            </div>
+            <div class="card">
+                <div class="card-title">
+                    <span class="material-icons">local_offer</span>
+                    Eficiencia de Promociones
+                </div>
+                <div id="promo_chart" style="height: 250px;"></div>
+                <p style="font-size: 13px; margin-top:10px;">Click Share promedio en días con vs sin Deals/Cupones.</p>
+            </div>
+        </div>
+
+        <!-- 4. Eficiencia (Rank vs Share) -->
+        <div class="card">
+            <div class="card-title">
+                <span class="material-icons">gps_fixed</span>
+                4. Eficiencia Orgánica (Rank vs Click Share)
+            </div>
+            <div class="grid-2">
+                <div id="efficiency_chart" class="chart-container"></div>
+                <div>
+                    <h4>Matriz de Eficiencia</h4>
+                    <ul class="insight-list" style="font-size: 13px;">
+                        <li class="insight-item">
+                            <span class="material-icons" style="color:green;">arrow_upward</span>
+                            <div>
+                                <strong>Sobreperformers (Arriba Izq):</strong> ASINs con alto share a pesar de peor rank. Indican fuerte preferencia de marca o precio atractivo.
+                            </div>
+                        </li>
+                        <li class="insight-item">
+                            <span class="material-icons" style="color:red;">arrow_downward</span>
+                            <div>
+                                <strong>Underperformers (Abajo Der):</strong> ASINs con buen ranking orgánico pero baja captura de clics. Revisar imagen principal, precio y título.
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- 5. Insights & Recomendaciones -->
+        <div class="grid-2">
+            <div class="card" style="background-color: #f0f9ff;">
+                <div class="card-title" style="color: #0071e3;">
+                    <span class="material-icons">lightbulb</span>
+                    5. Insights Clave
+                </div>
+                <ul class="insight-list" id="insights-container">
+                    <!-- Populated by JS -->
+                </ul>
+            </div>
+            <div class="card" style="border: 2px solid #34c759;">
+                <div class="card-title" style="color: #34c759;">
+                    <span class="material-icons">check_circle</span>
+                    Acciones Recomendadas
+                </div>
+                <ul class="insight-list" id="recommendations-container">
+                    <!-- Populated by JS -->
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- PESTAÑA 2: INTERACTIVO -->
+    <div id="interactive-tab" class="hidden">
+        <div class="card">
+            <div class="card-title">Explorador Dinámico</div>
+            <div class="controls">
+                <select id="week-selector" onchange="updateInteractive()">
+                    <!-- Populated by JS -->
+                </select>
+                <select id="competitor-selector" onchange="updateInteractive()">
+                    <!-- Populated by JS -->
+                </select>
+            </div>
+
+            <div class="grid-3">
+                <div class="card" style="background: #f9f9f9;">
+                    <div class="metric-label">Precio Promedio</div>
+                    <div class="metric-big" id="int-price-diff">--</div>
+                    <div style="font-size: 12px; color:#666;">Nosotros vs Competidor</div>
+                </div>
+                <div class="card" style="background: #f9f9f9;">
+                    <div class="metric-label">Diferencial Share</div>
+                    <div class="metric-big" id="int-share-diff">--</div>
+                    <div style="font-size: 12px; color:#666;">Puntos porcentuales</div>
+                </div>
+                <div class="card" style="background: #f9f9f9;">
+                    <div class="metric-label">Presencia Deals</div>
+                    <div class="metric-big" id="int-deals">--</div>
+                    <div style="font-size: 12px; color:#666;">Días activos</div>
+                </div>
+            </div>
+
+            <div id="interactive_table" style="width: 100%; height: 400px;"></div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    // --- 1. DATOS PROCESADOS (INJECTED) ---
+    // En un entorno real, estos datos vendrían del backend o archivo procesado.
+    // Aquí usamos los datos analizados del CSV proporcionado.
+    const marketData = [{"week_date": "2025-52", "brand_real": "Incite Nutrition", "product_title": "Vitamin D3 4000 IU - 400 High Strength Vitamin D T...", "is_yaba_asin": "Y", "click_share": 4.89, "est_clicks": 3797.995518, "average_organic_rank": 5.0, "price": 5.02, "weekly_number_of_days_with_deal": 1, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_best_seller_badge": 0}, {"week_date": "2025-52", "brand_real": "Unknown", "product_title": "4 HIM & HER Vitamin D3 4000 IU Vitamin D Tablets -...", "is_yaba_asin": "N", "click_share": 2.18, "est_clicks": 1693.175916, "average_organic_rank": 42.0, "price": 1.47, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_best_seller_badge": 0}, {"week_date": "2025-52", "brand_real": "Nutrition Geeks", "product_title": "Vitamin D 1000iu - 1 Year Supply, 365 Easy-Swallow...", "is_yaba_asin": "N", "click_share": 3.75, "est_clicks": 2912.57325, "average_organic_rank": 8.0, "price": 4.67, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_best_seller_badge": 0}, {"week_date": "2025-52", "brand_real": "Vita Premium", "product_title": "Vitamin D 4,000 IU Softgels, Maximum Strength Vita...", "is_yaba_asin": "N", "click_share": 3.32, "est_clicks": 2578.598184, "average_organic_rank": 8.0, "price": 4.16, "weekly_number_of_days_with_deal": 2, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_best_seller_badge": 0}, {"week_date": "2025-52", "brand_real": "Vita Premium", "product_title": "Vitamin D 4,000 IU Tablets, Maximum Strength Vitam...", "is_yaba_asin": "N", "click_share": 3.09, "est_clicks": 2399.9603580000003, "average_organic_rank": 7.0, "price": 6.21, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_best_seller_badge": 0}, {"week_date": "2025-52", "brand_real": "Vitabiotics Ultra", "product_title": "Vitamin D Tablets 1000IU, Vitabiotics Ultra", "is_yaba_asin": "N", "click_share": 14.75, "est_clicks": 11456.12145, "average_organic_rank": 6.0, "price": 3.63, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 4, "weekly_number_of_days_with_amazon_choice_badge": 4, "weekly_number_of_days_with_best_seller_badge": 0}, {"week_date": "2025-52", "brand_real": "Vitabiotics Ultra", "product_title": "Vitamin D Tablets 2000IU, Vitabiotics Ultra-96 Cou...", "is_yaba_asin": "N", "click_share": 5.21, "est_clicks": 4046.535102, "average_organic_rank": 16.0, "price": 3.36, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 5, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_best_seller_badge": 0}, {"week_date": "2025-52", "brand_real": "G R O U N D E D COFFEE SCRUB", "product_title": "Vitamin D3 4000 IU Micro Tablets - 365 Day Supply,...", "is_yaba_asin": "N", "click_share": 2.85, "est_clicks": 2213.55567, "average_organic_rank": 8.0, "price": 4.76, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 7, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_best_seller_badge": 0}, {"week_date": "2025-52", "brand_real": "Nutrition Geeks", "product_title": "Vitamin D3 4000 iu & Vitamin K2 MK7 100\u03bcg - 1 Year...", "is_yaba_asin": "N", "click_share": 16.05, "est_clicks": 12465.81351, "average_organic_rank": 2.0, "price": 6.73, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_best_seller_badge": 0}, {"week_date": "2025-52", "brand_real": "WeightWorld", "product_title": "Vitamin D3 4000IU - 1+ Year Supply - 400 Tablets -...", "is_yaba_asin": "N", "click_share": 17.0, "est_clicks": 13203.6654, "average_organic_rank": 2.0, "price": 5.48, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_amazon_choice_badge": 6, "weekly_number_of_days_with_best_seller_badge": 0}, {"week_date": "2026-01", "brand_real": "Nutrition Geeks", "product_title": "Vitamin D 1000iu - 1 Year Supply, 365 Easy-Swallow...", "is_yaba_asin": "N", "click_share": 4.63, "est_clicks": 2729.8683719999996, "average_organic_rank": 10.0, "price": 4.97, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_best_seller_badge": 0}, {"week_date": "2026-01", "brand_real": "Vita Premium", "product_title": "Vitamin D 4,000 IU Softgels, Maximum Strength Vita...", "is_yaba_asin": "N", "click_share": 4.51, "est_clicks": 2659.1158440000003, "average_organic_rank": 7.0, "price": 4.86, "weekly_number_of_days_with_deal": 4, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_best_seller_badge": 0}, {"week_date": "2026-01", "brand_real": "Vita Premium", "product_title": "Vitamin D 4,000 IU Tablets, Maximum Strength Vitam...", "is_yaba_asin": "N", "click_share": 3.18, "est_clicks": 1874.941992, "average_organic_rank": 8.0, "price": 5.82, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_best_seller_badge": 0}, {"week_date": "2026-01", "brand_real": "Vitabiotics Ultra", "product_title": "Vitamin D Tablets 1000IU, Vitabiotics Ultra", "is_yaba_asin": "N", "click_share": 13.48, "est_clicks": 7947.867312, "average_organic_rank": 5.0, "price": 3.9, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 3, "weekly_number_of_days_with_amazon_choice_badge": 2, "weekly_number_of_days_with_best_seller_badge": 0}, {"week_date": "2026-01", "brand_real": "Vitabiotics Ultra", "product_title": "Vitamin D Tablets 2000IU, Vitabiotics Ultra-96 Cou...", "is_yaba_asin": "N", "click_share": 5.11, "est_clicks": 3012.878484, "average_organic_rank": 8.0, "price": 3.51, "weekly_number_of_days_with_deal": 1, "weekly_number_of_days_with_coupon": 3, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_best_seller_badge": 0}, {"week_date": "2026-01", "brand_real": "Incite Nutrition", "product_title": "Vitamin D3 4000 IU - 400 High Strength Vitamin D T...", "is_yaba_asin": "Y", "click_share": 4.38, "est_clicks": 2582.467272, "average_organic_rank": 7.0, "price": 5.34, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_best_seller_badge": 0}, {"week_date": "2026-01", "brand_real": "G R O U N D E D COFFEE SCRUB", "product_title": "Vitamin D3 4000 IU Micro Tablets - 365 Day Supply,...", "is_yaba_asin": "N", "click_share": 2.9, "est_clicks": 1709.85276, "average_organic_rank": 10.0, "price": 4.69, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 4, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_best_seller_badge": 0}, {"week_date": "2026-01", "brand_real": "Nutrition Geeks", "product_title": "Vitamin D3 4000 iu & Vitamin K2 MK7 100\u03bcg - 1 Year...", "is_yaba_asin": "N", "click_share": 17.19, "est_clicks": 10135.299635999998, "average_organic_rank": 2.0, "price": 6.67, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_best_seller_badge": 0}, {"week_date": "2026-01", "brand_real": "WeightWorld", "product_title": "Vitamin D3 4000IU - 1+ Year Supply - 400 Tablets -...", "is_yaba_asin": "N", "click_share": 17.59, "est_clicks": 10371.141395999999, "average_organic_rank": 3.0, "price": 5.4, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_amazon_choice_badge": 4, "weekly_number_of_days_with_best_seller_badge": 0}, {"week_date": "2026-01", "brand_real": "Zipvit", "product_title": "Zipvit Vitamin D3 4000 IU, 360 Maximum Strength Vi...", "is_yaba_asin": "N", "click_share": 1.65, "est_clicks": 972.84726, "average_organic_rank": 15.0, "price": 3.07, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_best_seller_badge": 0}, {"week_date": "2026-02", "brand_real": "Nutrition Geeks", "product_title": "Vitamin D 1000iu - 1 Year Supply, 365 Easy-Swallow...", "is_yaba_asin": "N", "click_share": 4.2, "est_clicks": 5234.46336, "average_organic_rank": 8.0, "price": 4.77, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_best_seller_badge": 0}, {"week_date": "2026-02", "brand_real": "Vita Premium", "product_title": "Vitamin D 4,000 IU Softgels, Maximum Strength Vita...", "is_yaba_asin": "N", "click_share": 3.63, "est_clicks": 4524.071904, "average_organic_rank": 6.0, "price": 4.85, "weekly_number_of_days_with_deal": 5, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_best_seller_badge": 0}, {"week_date": "2026-02", "brand_real": "Vita Premium", "product_title": "Vitamin D 4,000 IU Tablets, Maximum Strength Vitam...", "is_yaba_asin": "N", "click_share": 3.26, "est_clicks": 4062.940608, "average_organic_rank": 7.0, "price": 5.93, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_best_seller_badge": 0}, {"week_date": "2026-02", "brand_real": "Vitabiotics Ultra", "product_title": "Vitamin D Tablets 1000IU, Vitabiotics Ultra", "is_yaba_asin": "N", "click_share": 5.11, "est_clicks": 6368.5970879999995, "average_organic_rank": 29.0, "price": 1.75, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_best_seller_badge": 0}, {"week_date": "2026-02", "brand_real": "Vitabiotics Ultra", "product_title": "Vitamin D Tablets 2000IU, Vitabiotics Ultra-96 Cou...", "is_yaba_asin": "N", "click_share": 13.99, "est_clicks": 17435.748192, "average_organic_rank": 7.0, "price": 3.61, "weekly_number_of_days_with_deal": 7, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_amazon_choice_badge": 1, "weekly_number_of_days_with_best_seller_badge": 0}, {"week_date": "2026-02", "brand_real": "Incite Nutrition", "product_title": "Vitamin D3 4000 IU - 400 High Strength Vitamin D T...", "is_yaba_asin": "Y", "click_share": 7.46, "est_clicks": 9297.403968, "average_organic_rank": 6.0, "price": 6.12, "weekly_number_of_days_with_deal": 6, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_best_seller_badge": 0}, {"week_date": "2026-02", "brand_real": "Nu U Nutrition", "product_title": "Vitamin D3 4000 IU - 400 Vegetarian Tablets - 13 M...", "is_yaba_asin": "N", "click_share": 1.59, "est_clicks": 1981.618272, "average_organic_rank": 18.0, "price": 3.41, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_best_seller_badge": 0}, {"week_date": "2026-02", "brand_real": "G R O U N D E D COFFEE SCRUB", "product_title": "Vitamin D3 4000 IU Micro Tablets - 365 Day Supply,...", "is_yaba_asin": "N", "click_share": 2.37, "est_clicks": 2953.732896, "average_organic_rank": 8.0, "price": 4.64, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 7, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_best_seller_badge": 0}, {"week_date": "2026-02", "brand_real": "Nutrition Geeks", "product_title": "Vitamin D3 4000 iu & Vitamin K2 MK7 100\u03bcg - 1 Year...", "is_yaba_asin": "N", "click_share": 16.21, "est_clicks": 20202.535968, "average_organic_rank": 3.0, "price": 6.61, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_best_seller_badge": 0}, {"week_date": "2026-02", "brand_real": "WeightWorld", "product_title": "Vitamin D3 4000IU - 1+ Year Supply - 400 Tablets -...", "is_yaba_asin": "N", "click_share": 16.91, "est_clicks": 21074.946528, "average_organic_rank": 1.0, "price": 5.27, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_amazon_choice_badge": 7, "weekly_number_of_days_with_best_seller_badge": 0}, {"week_date": "2026-03", "brand_real": "Nutrition Geeks", "product_title": "Vitamin D 1000iu - 1 Year Supply, 365 Easy-Swallow...", "is_yaba_asin": "N", "click_share": 5.08, "est_clicks": 6404.557168, "average_organic_rank": 8.0, "price": 5.13, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_best_seller_badge": 0}, {"week_date": "2026-03", "brand_real": "Vita Premium", "product_title": "Vitamin D 4,000 IU Softgels, Maximum Strength Vita...", "is_yaba_asin": "N", "click_share": 2.74, "est_clicks": 3454.426504, "average_organic_rank": 10.0, "price": 4.33, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_best_seller_badge": 0}, {"week_date": "2026-03", "brand_real": "Vita Premium", "product_title": "Vitamin D 4,000 IU Tablets, Maximum Strength Vitam...", "is_yaba_asin": "N", "click_share": 3.41, "est_clicks": 4299.122036, "average_organic_rank": 7.0, "price": 5.55, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_best_seller_badge": 0}, {"week_date": "2026-03", "brand_real": "Vitabiotics Ultra", "product_title": "Vitamin D Tablets 1000IU, Vitabiotics Ultra", "is_yaba_asin": "N", "click_share": 3.68, "est_clicks": 4639.521728, "average_organic_rank": 31.0, "price": 1.1, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_best_seller_badge": 0}, {"week_date": "2026-03", "brand_real": "Vitabiotics Ultra", "product_title": "Vitamin D Tablets 2000IU, Vitabiotics Ultra-96 Cou...", "is_yaba_asin": "N", "click_share": 10.49, "est_clicks": 13225.158404, "average_organic_rank": 10.0, "price": 2.78, "weekly_number_of_days_with_deal": 3, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_amazon_choice_badge": 1, "weekly_number_of_days_with_best_seller_badge": 0}, {"week_date": "2026-03", "brand_real": "Unknown", "product_title": "Vitamin D Tablets 400IU, Vitabiotics Ultra", "is_yaba_asin": "N", "click_share": 2.24, "est_clicks": 2824.056704, "average_organic_rank": 32.0, "price": 1.33, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_best_seller_badge": 0}, {"week_date": "2026-03", "brand_real": "Incite Nutrition", "product_title": "Vitamin D3 4000 IU - 400 High Strength Vitamin D T...", "is_yaba_asin": "Y", "click_share": 5.31, "est_clicks": 6694.527276, "average_organic_rank": 5.0, "price": 4.24, "weekly_number_of_days_with_deal": 7, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_best_seller_badge": 0}, {"week_date": "2026-03", "brand_real": "G R O U N D E D COFFEE SCRUB", "product_title": "Vitamin D3 4000 IU Micro Tablets - 365 Day Supply,...", "is_yaba_asin": "N", "click_share": 2.29, "est_clicks": 2887.093684, "average_organic_rank": 8.0, "price": 3.96, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 7, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_best_seller_badge": 0}, {"week_date": "2026-03", "brand_real": "Nutrition Geeks", "product_title": "Vitamin D3 4000 iu & Vitamin K2 MK7 100\u03bcg - 1 Year...", "is_yaba_asin": "N", "click_share": 18.0, "est_clicks": 22693.3128, "average_organic_rank": 2.0, "price": 6.71, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_best_seller_badge": 0}, {"week_date": "2026-03", "brand_real": "WeightWorld", "product_title": "Vitamin D3 4000IU - 1+ Year Supply - 400 Tablets -...", "is_yaba_asin": "N", "click_share": 18.9, "est_clicks": 23827.978440000002, "average_organic_rank": 1.0, "price": 5.41, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_amazon_choice_badge": 7, "weekly_number_of_days_with_best_seller_badge": 0}];
+    const OUR_BRAND_NAME = "Incite Nutrition";
+    const TOP_COMPETITORS = ["WeightWorld", "Nutrition Geeks", "Vitabiotics Ultra"];
+
+    // --- 2. CONFIGURACIÓN INICIAL ---
+    google.charts.load('current', {'packages':['corechart', 'table']});
+    google.charts.setOnLoadCallback(initDashboard);
+
+    function initDashboard() {
+        document.getElementById('our-brand-display').innerText = OUR_BRAND_NAME;
+        populateFilters();
+        drawStaticReports();
+        generateTextInsights();
+    }
+
+    // --- 3. FUNCIONES DE DIBUJO ---
+    
+    function drawStaticReports() {
+        // 1. Tendencia Global (Combo: Market Clicks Bar vs Our Share Line)
+        const weeklyData = {};
+        marketData.forEach(r => {
+            if(!weeklyData[r.week_date]) weeklyData[r.week_date] = {clicks: 0, our_share: 0, total_share: 0};
+            weeklyData[r.week_date].clicks += r.est_clicks;
+            if(r.brand_real === OUR_BRAND_NAME) weeklyData[r.week_date].our_share += r.click_share;
+        });
+
+        const trendArray = [['Semana', 'Volumen Mercado (Clicks)', 'Tu Share (%)']];
+        Object.keys(weeklyData).sort().forEach(w => {
+            trendArray.push([w, weeklyData[w].clicks, weeklyData[w].our_share]);
+        });
+
+        const trendTable = google.visualization.arrayToDataTable(trendArray);
+        const trendOptions = {
+            seriesType: 'bars',
+            series: {1: {type: 'line', targetAxisIndex: 1, color: '#0071e3', lineWidth: 3}},
+            colors: ['#e5e5ea'],
+            legend: {position: 'bottom'},
+            vAxes: {
+                0: {title: 'Clicks Estimados', gridlines: {count: 0}},
+                1: {title: 'Click Share %', format: '#\'%\''}
+            },
+            chartArea: {width: '85%', height: '70%'}
+        };
+        new google.visualization.ComboChart(document.getElementById('trend_chart')).draw(trendTable, trendOptions);
+
+        // Update Key Metrics
+        const weeks = Object.keys(weeklyData).sort();
+        const lastWeek = weeks[weeks.length-1];
+        const prevWeek = weeks[weeks.length-2];
+        const lastData = weeklyData[lastWeek];
+        const prevData = weeklyData[prevWeek];
+
+        document.getElementById('total-clicks-last').innerText = Math.round(lastData.clicks).toLocaleString();
+        document.getElementById('our-share-last').innerText = lastData.our_share.toFixed(2) + "%";
+        
+        const delta = lastData.our_share - prevData.our_share;
+        const trendEl = document.getElementById('share-trend-text');
+        trendEl.innerText = (delta > 0 ? "+" : "") + delta.toFixed(2) + "% vs semana anterior";
+        trendEl.className = delta > 0 ? "trend-up" : "trend-down";
+
+        // 2. Competitividad (Line Chart)
+        const compDataMap = {};
+        const allWeeks = [...new Set(marketData.map(d => d.week_date))].sort();
+        allWeeks.forEach(w => {
+            compDataMap[w] = {};
+            [OUR_BRAND_NAME, ...TOP_COMPETITORS].forEach(b => compDataMap[w][b] = 0);
+        });
+
+        marketData.forEach(r => {
+            if ([OUR_BRAND_NAME, ...TOP_COMPETITORS].includes(r.brand_real)) {
+                compDataMap[r.week_date][r.brand_real] += r.click_share;
+            }
+        });
+
+        const compArray = [['Semana', 'Nosotros', ...TOP_COMPETITORS]];
+        allWeeks.forEach(w => {
+            const row = [w, compDataMap[w][OUR_BRAND_NAME]];
+            TOP_COMPETITORS.forEach(c => row.push(compDataMap[w][c]));
+            compArray.push(row);
+        });
+
+        const compTable = google.visualization.arrayToDataTable(compArray);
+        const compOptions = {
+            curveType: 'function',
+            colors: ['#0071e3', '#ff2d55', '#5856d6', '#ff9500'], // Us, Comp1, Comp2, Comp3
+            lineWidth: 2.5,
+            legend: {position: 'bottom'},
+            vAxis: {title: 'Click Share (%)'},
+            chartArea: {width: '85%', height: '70%'}
+        };
+        new google.visualization.LineChart(document.getElementById('comp_chart')).draw(compTable, compOptions);
+
+        // 3. Eficiencia (Scatter)
+        // Solo última semana
+        const lastWeekData = marketData.filter(d => d.week_date === lastWeek);
+        const scatterArray = [['Rank', 'Click Share', {'type': 'string', 'role': 'style'}, {'type': 'string', 'role': 'tooltip'}]];
+        
+        lastWeekData.forEach(r => {
+            const isUs = r.brand_real === OUR_BRAND_NAME;
+            const color = isUs ? '#0071e3' : (TOP_COMPETITORS.includes(r.brand_real) ? '#ff3b30' : '#86868b');
+            const tooltip = `${r.brand_real}\nRank: ${r.average_organic_rank}\nShare: ${r.click_share}%`;
+            scatterArray.push([r.average_organic_rank, r.click_share, `point {fill-color: ${color}; size: ${isUs ? 10 : 5}}`, tooltip]);
+        });
+
+        const scatterTable = google.visualization.arrayToDataTable(scatterArray);
+        const scatterOptions = {
+            hAxis: {title: 'Organic Rank (Menos es mejor)', direction: -1}, // Invertir rank
+            vAxis: {title: 'Click Share (%)'},
+            legend: 'none',
+            chartArea: {width: '85%', height: '70%'}
+        };
+        new google.visualization.ScatterChart(document.getElementById('efficiency_chart')).draw(scatterTable, scatterOptions);
+
+        // 4. Precios (Bar Chart simple)
+        const priceMap = {};
+        [OUR_BRAND_NAME, ...TOP_COMPETITORS].forEach(b => priceMap[b] = []);
+        lastWeekData.forEach(r => {
+            if(priceMap[r.brand_real]) priceMap[r.brand_real].push(r.price);
+        });
+        
+        const priceArray = [['Marca', 'Precio Promedio', { role: 'style' }]];
+        [OUR_BRAND_NAME, ...TOP_COMPETITORS].forEach((b, i) => {
+            const prices = priceMap[b];
+            const avg = prices.length ? prices.reduce((a,b)=>a+b,0)/prices.length : 0;
+            const color = b === OUR_BRAND_NAME ? '#0071e3' : '#86868b';
+            priceArray.push([b, avg, color]);
+        });
+        
+        const priceTable = google.visualization.arrayToDataTable(priceArray);
+        new google.visualization.ColumnChart(document.getElementById('price_chart')).draw(priceTable, {
+            legend: 'none', 
+            vAxis: {title: 'Precio (£)'},
+            chartArea: {width: '80%', height: '70%'}
+        });
+        
+        // 5. Promo Chart
+        // Agrupar por Deal vs No Deal
+        let dealShare = 0, dealCount = 0;
+        let noDealShare = 0, noDealCount = 0;
+        marketData.forEach(r => {
+            if(r.weekly_number_of_days_with_deal > 0 || r.weekly_number_of_days_with_coupon > 0) {
+                dealShare += r.click_share; dealCount++;
+            } else {
+                noDealShare += r.click_share; noDealCount++;
+            }
+        });
+        const avgDeal = dealCount ? dealShare/dealCount : 0;
+        const avgNoDeal = noDealCount ? noDealShare/noDealCount : 0;
+        
+        const promoTable = google.visualization.arrayToDataTable([
+            ['Estado', 'Avg Share', {role: 'style'}],
+            ['Con Promo', avgDeal, '#34c759'],
+            ['Sin Promo', avgNoDeal, '#86868b']
+        ]);
+        new google.visualization.ColumnChart(document.getElementById('promo_chart')).draw(promoTable, {
+            legend: 'none',
+            vAxis: {title: 'Share Promedio (%)'},
+            chartArea: {width: '80%', height: '70%'}
+        });
+    }
+
+    // --- 4. GENERACIÓN DE INSIGHTS (TEXTO) ---
+    function generateTextInsights() {
+        const weeks = [...new Set(marketData.map(d => d.week_date))].sort();
+        const lastW = weeks[weeks.length-1];
+        const prevW = weeks[weeks.length-2];
+
+        // Calc Share Delta
+        const getShare = (w, b) => marketData.filter(r => r.week_date === w && r.brand_real === b).reduce((s, r) => s + r.click_share, 0);
+        const lastShare = getShare(lastW, OUR_BRAND_NAME);
+        const prevShare = getShare(prevW, OUR_BRAND_NAME);
+        const delta = lastShare - prevShare;
+        
+        // Find Leader
+        const compShares = TOP_COMPETITORS.map(c => ({name: c, share: getShare(lastW, c)}));
+        const leader = compShares.sort((a,b) => b.share - a.share)[0];
+
+        // Trend Text
+        document.getElementById('trend-analysis-text').innerHTML = `
+            Nuestra marca <strong>${OUR_BRAND_NAME}</strong> ha ${delta >= 0 ? 'ganado' : 'perdido'} tracción con una variación de <strong>${(delta).toFixed(2)}%</strong> respecto a la semana anterior.
+            El mercado está liderado actualmente por <strong>${leader.name}</strong> con un ${(leader.share).toFixed(1)}% de share.
+        `;
+
+        // Price Text
+        const myPrice = marketData.filter(r => r.week_date === lastW && r.brand_real === OUR_BRAND_NAME).reduce((s,r) => s+r.price, 0) / marketData.filter(r => r.week_date === lastW && r.brand_real === OUR_BRAND_NAME).length || 0;
+        document.getElementById('price-insight-text').innerText = `Nuestro precio actual es £${myPrice.toFixed(2)}.`;
+
+        // Insight List Population
+        const insights = [
+            `Tendencia: ${OUR_BRAND_NAME} cierra la semana con ${lastShare.toFixed(2)}% de share (${delta > 0 ? 'Subida' : 'Bajada'}).`,
+            `Liderazgo: ${leader.name} domina la categoría.`,
+            `Volumen: Se detectaron ${document.getElementById('total-clicks-last').innerText} clicks estimados en el parent esta semana.`,
+            `Ranking: La eficiencia orgánica es clave. Revisa el gráfico de dispersión para ver ASINs desaprovechados.`,
+            `Precios: Comparar nuestro precio de £${myPrice.toFixed(2)} con la competencia en la pestaña interactiva.`
+        ];
+        
+        const recs = [
+            `Defensiva: Proteger keywords donde ${leader.name} está ganando terreno.`,
+            `Promociones: Si el gráfico de palancas muestra alta eficiencia, activar cupones en ASINs de bajo share.`,
+            `Contenido: Optimizar títulos de variantes con buen rank pero bajo click share (Underperformers).`
+        ];
+
+        const iContainer = document.getElementById('insights-container');
+        insights.forEach(txt => {
+            const li = document.createElement('li');
+            li.className = 'insight-item';
+            li.innerHTML = `<span class="material-icons insight-icon">info</span><div>${txt}</div>`;
+            iContainer.appendChild(li);
+        });
+
+        const rContainer = document.getElementById('recommendations-container');
+        recs.forEach(txt => {
+            const li = document.createElement('li');
+            li.className = 'insight-item';
+            li.innerHTML = `<span class="material-icons insight-icon" style="color:#34c759">task_alt</span><div>${txt}</div>`;
+            rContainer.appendChild(li);
+        });
+    }
+
+    // --- 5. LÓGICA INTERACTIVA ---
+    function populateFilters() {
+        const weeks = [...new Set(marketData.map(d => d.week_date))].sort().reverse();
+        const wSel = document.getElementById('week-selector');
+        weeks.forEach(w => {
+            const opt = document.createElement('option');
+            opt.value = w;
+            opt.text = w;
+            wSel.appendChild(opt);
+        });
+
+        const cSel = document.getElementById('competitor-selector');
+        TOP_COMPETITORS.forEach(c => {
+            const opt = document.createElement('option');
+            opt.value = c;
+            opt.text = c;
+            cSel.appendChild(opt);
+        });
+    }
+
+    function updateInteractive() {
+        const week = document.getElementById('week-selector').value;
+        const comp = document.getElementById('competitor-selector').value;
+
+        // Filter Data
+        const myData = marketData.filter(r => r.week_date === week && r.brand_real === OUR_BRAND_NAME);
+        const compData = marketData.filter(r => r.week_date === week && r.brand_real === comp);
+
+        // Calculate Metrics
+        const avg = (arr, key) => arr.reduce((s,x)=>s+x[key],0)/(arr.length||1);
+        
+        const myPrice = avg(myData, 'price');
+        const compPrice = avg(compData, 'price');
+        const myShare = myData.reduce((s,x)=>s+x.click_share,0);
+        const compShare = compData.reduce((s,x)=>s+x.click_share,0);
+        const dealDays = avg(compData, 'weekly_number_of_days_with_deal');
+
+        // Update Cards
+        document.getElementById('int-price-diff').innerText = `£${(myPrice - compPrice).toFixed(2)}`;
+        document.getElementById('int-price-diff').style.color = myPrice > compPrice ? '#ff3b30' : '#34c759'; // Red if we are more expensive
+        
+        const shareDiff = myShare - compShare;
+        document.getElementById('int-share-diff').innerText = (shareDiff > 0 ? "+" : "") + shareDiff.toFixed(2) + "%";
+        document.getElementById('int-share-diff').style.color = shareDiff > 0 ? '#34c759' : '#ff3b30';
+
+        document.getElementById('int-deals').innerText = dealDays.toFixed(1);
+
+        // Draw Table
+        const tableData = [['ASIN', 'Producto', 'Precio', 'Share', 'Rank', 'Badges']];
+        [...myData, ...compData].forEach(r => {
+            const badges = [];
+            if(r.weekly_number_of_days_with_deal > 0) badges.push("DEAL");
+            if(r.weekly_number_of_days_with_amazon_choice_badge > 0) badges.push("AC");
+            if(r.weekly_number_of_days_with_best_seller_badge > 0) badges.push("BS");
+            
+            tableData.push([
+                r.brand_real === OUR_BRAND_NAME ? 'NOSOTROS' : 'COMPETENCIA',
+                r.product_title.substring(0, 40) + "...",
+                r.price,
+                r.click_share + "%",
+                r.average_organic_rank,
+                badges.join(" ")
+            ]);
+        });
+        
+        const dataTable = google.visualization.arrayToDataTable(tableData);
+        const table = new google.visualization.Table(document.getElementById('interactive_table'));
+        table.draw(dataTable, {showRowNumber: true, width: '100%', height: '100%'});
+    }
+
+    // --- UTILS ---
+    function switchTab(tab) {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        event.target.classList.add('active');
+        
+        if (tab === 'static') {
+            document.getElementById('static-tab').classList.remove('hidden');
+            document.getElementById('interactive-tab').classList.add('hidden');
+        } else {
+            document.getElementById('static-tab').classList.add('hidden');
+            document.getElementById('interactive-tab').classList.remove('hidden');
+            updateInteractive(); // Init first load
+        }
+    }
+</script>
+
+</body>
+</html>
