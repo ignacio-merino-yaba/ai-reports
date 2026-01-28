@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reporte de Inteligencia de Mercado: Análisis Parent ASIN</title>
+    <!-- Google Charts -->
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <!-- Google Material Icons -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary: #4285F4;
+            --secondary: #5f6368;
+            --bg-color: #f8f9fa;
+            --card-bg: #ffffff;
+            --text-main: #202124;
+            --text-light: #5f6368;
+            --success: #34A853;
+            --danger: #EA4335;
+            --warning: #FBBC05;
+            --border-radius: 16px;
+        }
+
+        body {
+            font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+            line-height: 1.5;
+        }
+
+        /* Layout */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            background: var(--card-bg);
+            padding: 24px;
+            border-radius: var(--border-radius);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+        }
+
+        h1 { margin: 0; font-size: 24px; color: var(--text-main); }
+        h2 { font-size: 18px; margin-bottom: 16px; color: var(--text-main); display: flex; align-items: center; gap: 8px; }
+        
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+        
+        .tab-btn {
+            background: transparent;
+            border: none;
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: 500;
+            color: var(--text-light);
+            cursor: pointer;
+            border-radius: 30px;
+            transition: all 0.2s;
+        }
+        
+        .tab-btn.active {
+            background: var(--primary);
+            color: white;
+            box-shadow: 0 2px 5px rgba(66, 133, 244, 0.3);
+        }
+
+        /* Cards */
+        .card {
+            background: var(--card-bg);
+            border-radius: var(--border-radius);
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+        .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 24px; }
+
+        /* Metrics */
+        .metric-box {
+            text-align: center;
+            padding: 16px;
+            background: #f1f3f4;
+            border-radius: 12px;
+        }
+        .metric-value { font-size: 24px; font-weight: bold; color: var(--primary); }
+        .metric-label { font-size: 14px; color: var(--text-light); }
+
+        /* Charts Containers */
+        .chart-container {
+            width: 100%;
+            min-height: 350px;
+        }
+
+        /* Insights Text */
+        .insights-box {
+            background: #e8f0fe;
+            border-left: 4px solid var(--primary);
+            padding: 16px;
+            border-radius: 4px;
+            margin-top: 16px;
+        }
+        .insight-item { display: flex; gap: 10px; margin-bottom: 8px; font-size: 14px; }
+        .insight-icon { color: var(--primary); }
+
+        /* Tables */
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; color: var(--text-light); font-weight: 500; padding: 12px; border-bottom: 1px solid #dadce0; }
+        td { padding: 12px; border-bottom: 1px solid #f1f3f4; }
+        
+        /* Interactive Controls */
+        .controls {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 20px;
+            padding: 16px;
+            background: #fff;
+            border-radius: 12px;
+            border: 1px solid #dadce0;
+        }
+        select {
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid #dadce0;
+            font-size: 14px;
+            min-width: 200px;
+        }
+
+        /* Utility */
+        .text-success { color: var(--success); }
+        .text-danger { color: var(--danger); }
+        .hidden { display: none; }
+        .badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .badge-bs { background: #FFF3E0; color: #E65100; border: 1px solid #FFE0B2; }
+        .badge-ac { background: #E3F2FD; color: #1565C0; border: 1px solid #BBDEFB; }
+
+        @media (max-width: 768px) {
+            .grid-2, .grid-3 { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div>
+                <h1>Análisis de Rendimiento: Parent ASIN</h1>
+                <div style="color: var(--text-light); font-size: 14px; margin-top: 4px;">
+                    Estrategia: <span id="our-brand-name" style="font-weight: bold; color: var(--primary);">Detectando...</span>
+                </div>
+            </div>
+            <div style="text-align: right;">
+                <span class="material-icons" style="color: var(--primary); font-size: 32px;">analytics</span>
+            </div>
+        </div>
+
+        <!-- Navigation -->
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('static')">Reporte Estratégico</button>
+            <button class="tab-btn" onclick="switchTab('interactive')">Comparador Interactivo</button>
+        </div>
+
+        <!-- TAB 1: STATIC REPORT -->
+        <div id="tab-static">
+            
+            <!-- Section 1: Tendencia Global -->
+            <div class="card">
+                <h2><span class="material-icons">trending_up</span> 1. Tendencia Global del Parent</h2>
+                <div class="grid-2">
+                    <div id="chart_trend" class="chart-container"></div>
+                    <div>
+                        <div class="grid-2" style="margin-bottom: 16px;">
+                            <div class="metric-box">
+                                <div class="metric-value" id="val-total-clicks">-</div>
+                                <div class="metric-label">Clicks Estimados (Semana Actual)</div>
+                            </div>
+                            <div class="metric-box">
+                                <div class="metric-value" id="val-our-share">-</div>
+                                <div class="metric-label">Nuestra Cuota de Clics</div>
+                            </div>
+                        </div>
+                        <div class="insights-box" id="insights-trend">
+                            <!-- JS Generated -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 2: Competitividad -->
+            <div class="card">
+                <h2><span class="material-icons">group_work</span> 2. Competitividad de Marca (Top 3)</h2>
+                <p style="color: var(--text-light); font-size: 14px; margin-bottom: 16px;">
+                    Evolución del Click Share: Nuestra Marca vs. Top 3 Competidores.
+                </p>
+                <div id="chart_brand_comp" class="chart-container"></div>
+                <div class="insights-box" id="insights-brand"></div>
+            </div>
+
+            <!-- Section 3 & 4: Palancas & Eficiencia -->
+            <div class="grid-2">
+                <!-- Palancas -->
+                <div class="card">
+                    <h2><span class="material-icons">tune</span> 3. Palancas & Precio</h2>
+                    <div id="chart_price_share" class="chart-container" style="min-height: 250px;"></div>
+                    <div class="insights-box" id="insights-levers"></div>
+                </div>
+
+                <!-- Eficiencia -->
+                <div class="card">
+                    <h2><span class="material-icons">gps_fixed</span> 4. Eficiencia (Rank vs Share)</h2>
+                    <p style="font-size: 12px; color: var(--text-light);">
+                        Eje X: Ranking Orgánico (Menor es mejor) | Eje Y: Click Share.
+                        <br>Burbujas Superiores Izquierda = Alta Eficiencia.
+                    </p>
+                    <div id="chart_efficiency" class="chart-container" style="min-height: 250px;"></div>
+                    <div class="insights-box" id="insights-efficiency"></div>
+                </div>
+            </div>
+
+            <!-- Section 5: Conclusiones -->
+            <div class="card" style="border-left: 6px solid var(--success);">
+                <h2><span class="material-icons">lightbulb</span> 5. Conclusiones y Recomendaciones</h2>
+                <div class="grid-2">
+                    <div>
+                        <h3 style="color: var(--text-main); font-size: 16px;">Diagnóstico Clave</h3>
+                        <ul id="list-diagnosis" style="padding-left: 20px; color: var(--text-main); font-size: 14px;"></ul>
+                    </div>
+                    <div>
+                        <h3 style="color: var(--primary); font-size: 16px;">Acciones Recomendadas</h3>
+                        <ul id="list-actions" style="padding-left: 20px; color: var(--text-main); font-size: 14px;"></ul>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- TAB 2: INTERACTIVE COMPARATOR -->
+        <div id="tab-interactive" class="hidden">
+            <div class="card">
+                <h2><span class="material-icons">compare_arrows</span> Comparador Cara a Cara</h2>
+                
+                <div class="controls">
+                    <div>
+                        <label style="display:block; font-size: 12px; margin-bottom: 4px;">Semana</label>
+                        <select id="sel-week" onchange="updateInteractive()"></select>
+                    </div>
+                    <div>
+                        <label style="display:block; font-size: 12px; margin-bottom: 4px;">Competidor</label>
+                        <select id="sel-competitor" onchange="updateInteractive()"></select>
+                    </div>
+                </div>
+
+                <div class="grid-3">
+                    <!-- Us -->
+                    <div style="text-align: center; padding: 20px; border: 1px solid #e0e0e0; border-radius: 12px; background: #f8fbfd;">
+                        <h3 style="color: var(--primary);" id="comp-us-name">Nosotros</h3>
+                        <div style="font-size: 32px; font-weight: bold;" id="comp-us-share">0%</div>
+                        <div style="color: var(--text-light);">Click Share</div>
+                        <hr style="border: 0; border-top: 1px solid #eee; margin: 16px 0;">
+                        <div style="font-size: 18px;" id="comp-us-price">£0.00</div>
+                        <div style="font-size: 14px; color: var(--text-light);">Precio Promedio</div>
+                        <div style="margin-top: 12px;" id="comp-us-badges"></div>
+                    </div>
+
+                    <!-- VS -->
+                    <div style="display: flex; align-items: center; justify-content: center;">
+                        <span style="font-size: 24px; color: var(--text-light); font-weight: bold;">VS</span>
+                    </div>
+
+                    <!-- Them -->
+                    <div style="text-align: center; padding: 20px; border: 1px solid #e0e0e0; border-radius: 12px;">
+                        <h3 style="color: var(--secondary);" id="comp-them-name">Competidor</h3>
+                        <div style="font-size: 32px; font-weight: bold;" id="comp-them-share">0%</div>
+                        <div style="color: var(--text-light);">Click Share</div>
+                        <hr style="border: 0; border-top: 1px solid #eee; margin: 16px 0;">
+                        <div style="font-size: 18px;" id="comp-them-price">£0.00</div>
+                        <div style="font-size: 14px; color: var(--text-light);">Precio Promedio</div>
+                        <div style="margin-top: 12px;" id="comp-them-badges"></div>
+                    </div>
+                </div>
+                
+                <div style="margin-top: 24px;">
+                    <h3>Detalle de ASINs (Semana Seleccionada)</h3>
+                    <div id="table_details"></div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // --- 1. DATA INJECTION ---
+        // Datos procesados desde Python (Aggregated & Cleaned)
+        const marketData = [{"week_date":"2025-52","parent_asin":"Psyllium","asin":"B08WM1VP8V","product_title":"Fibre Supplement 4000mg Psyllium Husk with Acidoph...","is_yaba_asin":"N","brand":"NEW LEAF PRODUCTS","click_share":13.35,"price":13.29,"average_organic_rank":3.0,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_coupon":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"estimated_clicks":198.43974,"weekly_search_volume":1486.44,"keywords_link":"https:\/\/www.amazon.co.uk\/s?k=psyllium+husk"},{"week_date":"2025-52","parent_asin":"Psyllium","asin":"B07BZ59D68","product_title":"NKD Living Psyllium Husk Powder (500g) | Tested fo...","is_yaba_asin":"N","brand":"NKD Living","click_share":9.17,"price":9.99,"average_organic_rank":3.0,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_coupon":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"estimated_clicks":136.306548,"weekly_search_volume":1486.44,"keywords_link":"https:\/\/www.amazon.co.uk\/s?k=psyllium+husk"},{"week_date":"2025-52","parent_asin":"Psyllium","asin":"B08FQYKS82","product_title":"NKD Living Whole Psyllium husks (500g)","is_yaba_asin":"N","brand":"NKD Living","click_share":3.65,"price":9.99,"average_organic_rank":4.0,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_coupon":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"estimated_clicks":54.25506,"weekly_search_volume":1486.44,"keywords_link":"https:\/\/www.amazon.co.uk\/s?k=psyllium+husk"},{"week_date":"2025-52","parent_asin":"Psyllium","asin":"B07PX2TYXN","product_title":"Natural Health 4 Life Vegetable Fibre Psyllium Hus...","is_yaba_asin":"N","brand":"Natural Health 4 Life","click_share":11.81,"price":17.49,"average_organic_rank":6.0,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_coupon":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"estimated_clicks":175.548564,"weekly_search_volume":1486.44,"keywords_link":"https:\/\/www.amazon.co.uk\/s?k=psyllium+husk"},{"week_date":"2025-52","parent_asin":"Psyllium","asin":"B0F227549B","product_title":"Psyllium Husk Fibre Supplement 4000mg with Probiot...","is_yaba_asin":"N","brand":"REBIRTH WELLNESS BE YOURSELF | ONLY BETTER","click_share":1.8,"price":9.95,"average_organic_rank":18.0,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_coupon":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"estimated_clicks":26.75592,"weekly_search_volume":1486.44,"keywords_link":"https:\/\/www.amazon.co.uk\/s?k=psyllium+husk"},{"week_date":"2025-52","parent_asin":"Psyllium","asin":"B005P0WGNE","product_title":"Solgar Psyllium Husks Fibre 500 Mg Vegetable Capsu...","is_yaba_asin":"N","brand":"Solgar","click_share":3.45,"price":14.261428571,"average_organic_rank":11.0,"weekly_number_of_days_with_deal":2,"weekly_number_of_days_with_coupon":4,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"estimated_clicks":51.28218,"weekly_search_volume":1486.44,"keywords_link":"https:\/\/www.amazon.co.uk\/s?k=psyllium+husk"},{"week_date":"2025-52","parent_asin":"Psyllium","asin":"B0F3JB86T3","product_title":"Psyllium Husk Powder 200g | 100% Pure & Natural | ...","is_yaba_asin":"N","brand":"The Worldwide Mint","click_share":4.33,"price":5.45,"average_organic_rank":17.0,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_coupon":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"estimated_clicks":64.362852,"weekly_search_volume":1486.44,"keywords_link":"https:\/\/www.amazon.co.uk\/s?k=psyllium+husk"},{"week_date":"2025-52","parent_asin":"Psyllium","asin":"B0B1QQNZ2S","product_title":"WeightWorld Organic Psyllium Husk Capsules | 1400m...","is_yaba_asin":"N","brand":"WeightWorld","click_share":9.21,"price":11.678571429,"average_organic_rank":7.0,"weekly_number_of_days_with_deal":1,"weekly_number_of_days_with_coupon":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"estimated_clicks":136.901124,"weekly_search_volume":1486.44,"keywords_link":"https:\/\/www.amazon.co.uk\/s?k=psyllium+husk"},{"week_date":"2025-52","parent_asin":"Psyllium","asin":"B07F88MZ4K","product_title":"Wholefood Earth Organic Psyllium Husk Powder 250g ...","is_yaba_asin":"N","brand":"Wholefood Earth","click_share":1.23,"price":8.881428571,"average_organic_rank":19.0,"weekly_number_of_days_with_deal":2,"weekly_number_of_days_with_coupon":5,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"estimated_clicks":18.283212,"weekly_search_volume":1486.44,"keywords_link":"https:\/\/www.amazon.co.uk\/s?k=psyllium+husk"},{"week_date":"2025-52","parent_asin":"Psyllium","asin":"B07L9WJ4P2","product_title":"NaturaleBio Organic Psyllium Husk - 99% Purity - 2...","is_yaba_asin":"Y","brand":"NaturaleBio","click_share":22.7,"price":8.89,"average_organic_rank":2.0,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_coupon":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":7,"estimated_clicks":337.42188,"weekly_search_volume":1486.44,"keywords_link":"https:\/\/www.amazon.co.uk\/s?k=psyllium+husk"},{"week_date":"2026-01","parent_asin":"Psyllium","asin":"B0FW6P4NKY","product_title":"Vinco Fibre Supplement 5000mg Psyllium Husk with A...","is_yaba_asin":"N","brand":"Vinco","click_share":1.8,"price":9.99,"average_organic_rank":21.0,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_coupon":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"estimated_clicks":122.18418,"weekly_search_volume":6788.01,"keywords_link":"https:\/\/www.amazon.co.uk\/s?k=psyllium+husk"},{"week_date":"2026-01","parent_asin":"Psyllium","asin":"B0CYQ1ZKV6","product_title":"Psyllium Husk Capsules 5000mg with Acidophilus | N...","is_yaba_asin":"N","brand":"Horb\u00e4ach","click_share":1.19,"price":7.99,"average_organic_rank":12.0,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_coupon":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"estimated_clicks":80.777319,"weekly_search_volume":6788.01,"keywords_link":"https:\/\/www.amazon.co.uk\/s?k=psyllium+husk"},{"week_date":"2026-01","parent_asin":"Psyllium","asin":"B08WM1VP8V","product_title":"Fibre Supplement 4000mg Psyllium Husk with Acidoph...","is_yaba_asin":"N","brand":"NEW LEAF PRODUCTS","click_share":9.71,"price":13.29,"average_organic_rank":3.0,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_coupon":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"estimated_clicks":659.115771,"weekly_search_volume":6788.01,"keywords_link":"https:\/\/www.amazon.co.uk\/s?k=psyllium+husk"},{"week_date":"2026-01","parent_asin":"Psyllium","asin":"B07BZ59D68","product_title":"NKD Living Psyllium Husk Powder (500g) | Tested fo...","is_yaba_asin":"N","brand":"NKD Living","click_share":5.88,"price":9.99,"average_organic_rank":5.0,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_coupon":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"estimated_clicks":399.134988,"weekly_search_volume":6788.01,"keywords_link":"https:\/\/www.amazon.co.uk\/s?k=psyllium+husk"},{"week_date":"2026-01","parent_asin":"Psyllium","asin":"B08FQYKS82","product_title":"NKD Living Whole Psyllium husks (500g)","is_yaba_asin":"N","brand":"NKD Living","click_share":5.8,"price":9.99,"average_organic_rank":3.0,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_coupon":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"estimated_clicks":393.70458,"weekly_search_volume":6788.01,"keywords_link":"https:\/\/www.amazon.co.uk\/s?k=psyllium+husk"},{"week_date":"2026-01","parent_asin":"Psyllium","asin":"B07PX2TYXN","product_title":"Natural Health 4 Life Vegetable Fibre Psyllium Hus...","is_yaba_asin":"N","brand":"Natural Health 4 Life","click_share":12.84,"price":17.62,"average_organic_rank":7.0,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_coupon":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"estimated_clicks":871.580484,"weekly_search_volume":6788.01,"keywords_link":"https:\/\/www.amazon.co.uk\/s?k=psyllium+husk"},{"week_date":"2026-01","parent_asin":"Psyllium","asin":"B005P0WGNE","product_title":"Solgar Psyllium Husks Fibre 500 Mg Vegetable Capsu...","is_yaba_asin":"N","brand":"Solgar","click_share":4.24,"price":12.29,"average_organic_rank":13.0,"weekly_number_of_days_with_deal":4,"weekly_number_of_days_with_coupon":2,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"estimated_clicks":287.811624,"weekly_search_volume":6788.01,"keywords_link":"https:\/\/www.amazon.co.uk\/s?k=psyllium+husk"},{"week_date":"2026-01","parent_asin":"Psyllium","asin":"B0F3JB86T3","product_title":"Psyllium Husk Powder 200g | 100% Pure & Natural | ...","is_yaba_asin":"N","brand":"The Worldwide Mint","click_share":7.06,"price":5.45,"average_organic_rank":9.0,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_coupon":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"estimated_clicks":479.233506,"weekly_search_volume":6788.01,"keywords_link":"https:\/\/www.amazon.co.uk\/s?k=psyllium+husk"},{"week_date":"2026-01","parent_asin":"Psyllium","asin":"B0B1QQNZ2S","product_title":"WeightWorld Organic Psyllium Husk Capsules | 1400m...","is_yaba_asin":"N","brand":"WeightWorld","click_share":8.81,"price":11.96,"average_organic_rank":5.0,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_coupon":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"estimated_clicks":598.023681,"weekly_search_volume":6788.01,"keywords_link":"https:\/\/www.amazon.co.uk\/s?k=psyllium+husk"},{"week_date":"2026-01","parent_asin":"Psyllium","asin":"B07L9WJ4P2","product_title":"NaturaleBio Organic Psyllium Husk - 99% Purity - 2...","is_yaba_asin":"Y","brand":"NaturaleBio","click_share":23.34,"price":8.89,"average_organic_rank":2.0,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_coupon":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":4,"estimated_clicks":1584.321534,"weekly_search_volume":6788.01,"keywords_link":"https:\/\/www.amazon.co.uk\/s?k=psyllium+husk"}];
+
+        // --- 2. CONFIG & LOGIC ---
+        
+        // Cargar Google Charts
+        google.charts.load('current', {'packages':['corechart', 'table']});
+        google.charts.setOnLoadCallback(initDashboard);
+
+        // Variables Globales Calculadas
+        let ourBrand = "";
+        let weeks = [];
+        let topCompetitors = [];
+
+        function initDashboard() {
+            processData();
+            setupControls();
+            
+            // Renderizar gráficos estáticos
+            drawTrendChart();
+            drawBrandCompetitiveness();
+            drawPriceLever();
+            drawEfficiency();
+            
+            // Generar insights de texto
+            generateInsights();
+        }
+
+        function processData() {
+            // Identificar "Nuestra Marca"
+            const ourAsinData = marketData.find(d => d.is_yaba_asin === 'Y');
+            ourBrand = ourAsinData ? ourAsinData.brand : "Unknown";
+            document.getElementById('our-brand-name').textContent = ourBrand;
+
+            // Obtener lista única de semanas ordenada
+            weeks = [...new Set(marketData.map(d => d.week_date))].sort();
+
+            // Identificar Top 3 Competidores (basado en Share promedio)
+            const brandShares = {};
+            marketData.forEach(d => {
+                if (d.brand === ourBrand) return;
+                if (!brandShares[d.brand]) brandShares[d.brand] = [];
+                brandShares[d.brand].push(d.click_share);
+            });
+            
+            const avgShares = Object.keys(brandShares).map(b => {
+                const sum = brandShares[b].reduce((a,c) => a+c, 0);
+                return { brand: b, avg: sum / brandShares[b].length };
+            });
+            
+            topCompetitors = avgShares.sort((a,b) => b.avg - a.avg).slice(0, 3).map(x => x.brand);
+        }
+
+        // --- 3. CHARTS DRAWING ---
+
+        function drawTrendChart() {
+            const data = new google.visualization.DataTable();
+            data.addColumn('string', 'Semana');
+            data.addColumn('number', 'Clicks Competencia');
+            data.addColumn('number', 'Clicks Nuestros');
+            data.addColumn('number', 'Nuestra Cuota (%)');
+
+            const trendData = weeks.map(week => {
+                const weekData = marketData.filter(d => d.week_date === week);
+                const ourClicks = weekData.filter(d => d.brand === ourBrand).reduce((sum, d) => sum + d.estimated_clicks, 0);
+                const compClicks = weekData.filter(d => d.brand !== ourBrand).reduce((sum, d) => sum + d.estimated_clicks, 0);
+                const totalClicks = ourClicks + compClicks;
+                const share = totalClicks > 0 ? (ourClicks / totalClicks) * 100 : 0;
+                return [week, compClicks, ourClicks, share];
+            });
+
+            data.addRows(trendData);
+
+            const options = {
+                seriesType: 'bars',
+                series: { 2: { type: 'line', targetAxisIndex: 1, color: '#4285F4', lineWidth: 3 } },
+                colors: ['#e0e0e0', '#4285F4'], // Comp (gris), Nosotros (azul)
+                isStacked: true,
+                vAxes: { 0: { title: 'Volumen de Clicks' }, 1: { title: '% Share', format: '#\'%\'' } },
+                legend: { position: 'bottom' },
+                chartArea: { width: '85%', height: '70%' },
+                bar: { groupWidth: '60%' }
+            };
+
+            const chart = new google.visualization.ComboChart(document.getElementById('chart_trend'));
+            chart.draw(data, options);
+        }
+
+        function drawBrandCompetitiveness() {
+            const data = new google.visualization.DataTable();
+            data.addColumn('string', 'Semana');
+            data.addColumn('number', ourBrand);
+            topCompetitors.forEach(comp => data.addColumn('number', comp));
+            data.addColumn('number', 'Otros');
+
+            const rows = weeks.map(week => {
+                const weekData = marketData.filter(d => d.week_date === week);
+                
+                // Helper para sumar share por marca en esa semana
+                const getShare = (brand) => {
+                    return weekData.filter(d => d.brand === brand).reduce((sum, d) => sum + d.click_share, 0);
+                };
+
+                const row = [week, getShare(ourBrand)];
+                topCompetitors.forEach(comp => row.push(getShare(comp)));
+                
+                // Calcular resto
+                const totalTracked = row.slice(1).reduce((a,c) => a+c, 0);
+                // Asumimos que el total del mercado capturado es la suma de todos los ASINs en el reporte
+                // Ojo: click_share reportado ya es % del total. Sumamos el resto de marcas no top.
+                const allShare = weekData.reduce((sum, d) => sum + d.click_share, 0);
+                row.push(Math.max(0, allShare - totalTracked));
+
+                return row;
+            });
+
+            data.addRows(rows);
+
+            const options = {
+                curveType: 'function',
+                legend: { position: 'bottom' },
+                colors: ['#4285F4', '#EA4335', '#FBBC05', '#34A853', '#9AA0A6'],
+                vAxis: { title: 'Click Share (%)' },
+                chartArea: { width: '85%', height: '70%' },
+                pointSize: 5
+            };
+
+            const chart = new google.visualization.LineChart(document.getElementById('chart_brand_comp'));
+            chart.draw(data, options);
+        }
+
+        function drawPriceLever() {
+             // Scatter: Precio vs Share (Última semana)
+             const lastWeek = weeks[weeks.length - 1];
+             const weekData = marketData.filter(d => d.week_date === lastWeek);
+
+             const data = new google.visualization.DataTable();
+             data.addColumn('string', 'ASIN');
+             data.addColumn('number', 'Precio');
+             data.addColumn('number', 'Click Share');
+             data.addColumn({type: 'string', role: 'style'}); // Color
+             data.addColumn({type: 'string', role: 'tooltip'});
+
+             const rows = weekData.map(d => {
+                 const isUs = d.brand === ourBrand;
+                 const color = isUs ? 'point { fill-color: #4285F4; size: 10; }' : 'point { fill-color: #EA4335; }';
+                 return [
+                     d.brand, 
+                     d.price, 
+                     d.click_share, 
+                     color,
+                     `${d.brand}\nPrecio: £${d.price}\nShare: ${d.click_share}%`
+                 ];
+             });
+
+             data.addRows(rows);
+
+             const options = {
+                 title: `Relación Precio vs Share (Semana ${lastWeek})`,
+                 hAxis: { title: 'Precio (£)' },
+                 vAxis: { title: 'Click Share (%)' },
+                 legend: 'none',
+                 chartArea: { width: '85%', height: '70%' }
+             };
+
+             const chart = new google.visualization.ScatterChart(document.getElementById('chart_price_share'));
+             chart.draw(data, options);
+        }
+
+        function drawEfficiency() {
+            // Scatter: Rank vs Share
+            const lastWeek = weeks[weeks.length - 1];
+            const weekData = marketData.filter(d => d.week_date === lastWeek);
+
+            const data = new google.visualization.DataTable();
+            data.addColumn('number', 'Rank Orgánico');
+            data.addColumn('number', 'Click Share');
+            data.addColumn({type: 'string', role: 'style'}); 
+            data.addColumn({type: 'string', role: 'tooltip'});
+
+            const rows = weekData.map(d => {
+                const isUs = d.brand === ourBrand;
+                const color = isUs ? 'point { fill-color: #4285F4; size: 12; }' : 'point { fill-color: #9AA0A6; }';
+                return [
+                    d.average_organic_rank, 
+                    d.click_share, 
+                    color,
+                    `${d.brand}\nRank: ${d.average_organic_rank}\nShare: ${d.click_share}%`
+                ];
+            });
+
+            data.addRows(rows);
+
+            const options = {
+                hAxis: { title: 'Ranking Orgánico (Invertido)', direction: -1 }, // Rank 1 is better
+                vAxis: { title: 'Click Share (%)' },
+                legend: 'none',
+                chartArea: { width: '85%', height: '70%' }
+            };
+
+            const chart = new google.visualization.ScatterChart(document.getElementById('chart_efficiency'));
+            chart.draw(data, options);
+        }
+
+        // --- 4. INSIGHTS GENERATION ---
+        
+        function generateInsights() {
+            const lastWeek = weeks[weeks.length - 1];
+            const prevWeek = weeks.length > 1 ? weeks[weeks.length - 2] : null;
+            
+            const currentData = marketData.filter(d => d.week_date === lastWeek);
+            const prevData = prevWeek ? marketData.filter(d => d.week_date === prevWeek) : [];
+
+            // 1. Metric Boxes
+            const myShareNow = currentData.filter(d => d.brand === ourBrand).reduce((s, d) => s + d.click_share, 0);
+            const totalClicksNow = currentData.reduce((s, d) => s + d.estimated_clicks, 0);
+            
+            document.getElementById('val-total-clicks').innerText = Math.round(totalClicksNow).toLocaleString();
+            document.getElementById('val-our-share').innerText = myShareNow.toFixed(2) + '%';
+            
+            // 2. Trend Insights
+            const trendDiv = document.getElementById('insights-trend');
+            let trendHTML = "";
+            if (prevWeek) {
+                 const totalClicksPrev = prevData.reduce((s, d) => s + d.estimated_clicks, 0);
+                 const growth = ((totalClicksNow - totalClicksPrev) / totalClicksPrev) * 100;
+                 const icon = growth >= 0 ? 'trending_up' : 'trending_down';
+                 const color = growth >= 0 ? 'text-success' : 'text-danger';
+                 
+                 trendHTML += `<div class="insight-item"><span class="material-icons ${color}">${icon}</span> <span>El volumen de búsqueda ha variado un <b>${growth.toFixed(1)}%</b> respecto a la semana anterior.</span></div>`;
+            }
+            trendDiv.innerHTML = trendHTML;
+
+            // 3. Competitiveness Insights
+            const brandDiv = document.getElementById('insights-brand');
+            // Check top competitor movement
+            const topComp = topCompetitors[0];
+            const compShareNow = currentData.filter(d => d.brand === topComp).reduce((s, d) => s + d.click_share, 0);
+            const gap = myShareNow - compShareNow;
+            const gapText = gap > 0 ? "lideras" : "estás por detrás";
+            
+            brandDiv.innerHTML = `<div class="insight-item"><span class="material-icons insight-icon">emoji_events</span> <span>Tu principal competidor es <b>${topComp}</b> (${compShareNow.toFixed(1)}% share). Actualmente ${gapText} por <b>${Math.abs(gap).toFixed(1)}%</b>.</span></div>`;
+
+            // 4. Levers & Recommendations
+            // Logic: Is our price higher?
+            const myPrice = currentData.find(d => d.brand === ourBrand)?.price || 0;
+            const avgMktPrice = currentData.filter(d => d.brand !== ourBrand).reduce((s,d) => s+d.price,0) / currentData.filter(d => d.brand !== ourBrand).length;
+            
+            const priceStatus = myPrice > avgMktPrice ? "superior" : "inferior";
+            
+            document.getElementById('insights-levers').innerHTML = `
+                <div class="insight-item"><span class="material-icons insight-icon">payments</span> <span>Tu precio (£${myPrice}) es ${priceStatus} al promedio del mercado (£${avgMktPrice.toFixed(2)}).</span></div>
+            `;
+
+            // 5. Conclusions Lists
+            const diagList = document.getElementById('list-diagnosis');
+            diagList.innerHTML += `<li><b>Dominio de Marca:</b> ${ourBrand} mantiene una cuota del ${myShareNow.toFixed(1)}%, posicionándose como líder/retador fuerte.</li>`;
+            diagList.innerHTML += `<li><b>Dinámica de Precios:</b> ${priceStatus === 'superior' ? 'Tu precio premium requiere justificación por valor (ranking/reviews).' : 'Tu precio competitivo impulsa volumen.'}</li>`;
+            
+            const actionList = document.getElementById('list-actions');
+            if (myPrice > avgMktPrice && gap < 0) {
+                 actionList.innerHTML += `<li>⚡ <b>Ajuste de Precio:</b> Considera promociones temporales (Cupones) para recuperar cuota frente a ${topComp}.</li>`;
+            } else {
+                 actionList.innerHTML += `<li>🛡️ <b>Defensa de Posición:</b> Mantén el ranking orgánico. Tu eficiencia es clave para sostener el margen.</li>`;
+            }
+             actionList.innerHTML += `<li>🎯 <b>Keywords:</b> Revisa las palabras clave donde ${topComp} tiene mejor ranking.</li>`;
+
+        }
+
+        // --- 5. INTERACTIVE LOGIC ---
+
+        function setupControls() {
+            const selWeek = document.getElementById('sel-week');
+            weeks.forEach(w => {
+                const opt = document.createElement('option');
+                opt.value = w;
+                opt.textContent = w;
+                selWeek.appendChild(opt);
+            });
+            // Select last week
+            selWeek.value = weeks[weeks.length-1];
+
+            const selComp = document.getElementById('sel-competitor');
+            topCompetitors.forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c;
+                opt.textContent = c;
+                selComp.appendChild(opt);
+            });
+            // Add others
+            const allBrands = [...new Set(marketData.map(d => d.brand))].filter(b => b !== ourBrand && !topCompetitors.includes(b));
+            allBrands.forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c;
+                opt.textContent = c;
+                selComp.appendChild(opt);
+            });
+
+            updateInteractive();
+        }
+
+        function updateInteractive() {
+            const week = document.getElementById('sel-week').value;
+            const comp = document.getElementById('sel-competitor').value;
+
+            const weekData = marketData.filter(d => d.week_date === week);
+            
+            // Get Aggregates
+            const getMetric = (brand, metric) => {
+                const brandItems = weekData.filter(d => d.brand === brand);
+                if (brandItems.length === 0) return 0;
+                if (metric === 'share') return brandItems.reduce((s,d) => s + d.click_share, 0);
+                if (metric === 'price') return brandItems.reduce((s,d) => s + d.price, 0) / brandItems.length; // avg
+                return 0;
+            };
+
+            // Update UI
+            document.getElementById('comp-us-share').textContent = getMetric(ourBrand, 'share').toFixed(2) + '%';
+            document.getElementById('comp-us-price').textContent = '£' + getMetric(ourBrand, 'price').toFixed(2);
+            
+            document.getElementById('comp-them-name').textContent = comp;
+            document.getElementById('comp-them-share').textContent = getMetric(comp, 'share').toFixed(2) + '%';
+            document.getElementById('comp-them-price').textContent = '£' + getMetric(comp, 'price').toFixed(2);
+
+            // Table Detail
+            const tableDiv = document.getElementById('table_details');
+            const relData = weekData.filter(d => d.brand === ourBrand || d.brand === comp);
+            
+            const dt = new google.visualization.DataTable();
+            dt.addColumn('string', 'Marca');
+            dt.addColumn('string', 'Producto');
+            dt.addColumn('number', 'Rank');
+            dt.addColumn('number', 'Share (%)');
+            dt.addColumn('number', 'Precio');
+            
+            const rows = relData.map(d => [d.brand, d.product_title.substring(0, 40) + '...', d.average_organic_rank, d.click_share, d.price]);
+            dt.addRows(rows);
+            
+            const table = new google.visualization.Table(tableDiv);
+            table.draw(dt, {showRowNumber: false, width: '100%', height: '100%'});
+        }
+
+        function switchTab(tab) {
+            if (tab === 'static') {
+                document.getElementById('tab-static').classList.remove('hidden');
+                document.getElementById('tab-interactive').classList.add('hidden');
+                document.querySelectorAll('.tab-btn')[0].classList.add('active');
+                document.querySelectorAll('.tab-btn')[1].classList.remove('active');
+            } else {
+                document.getElementById('tab-static').classList.add('hidden');
+                document.getElementById('tab-interactive').classList.remove('hidden');
+                document.querySelectorAll('.tab-btn')[0].classList.remove('active');
+                document.querySelectorAll('.tab-btn')[1].classList.add('active');
+                // Redraw table just in case
+                updateInteractive();
+            }
+        }
+
+    </script>
+</body>
+</html>
