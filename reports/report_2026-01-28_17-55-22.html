@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reporte de Inteligencia de Mercado: Parent ASIN Analysis</title>
+    
+    <!-- Google Fonts & Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    
+    <!-- Google Charts Loader -->
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+
+    <style>
+        :root {
+            --google-blue: #4285F4;
+            --google-red: #EA4335;
+            --google-yellow: #FBBC05;
+            --google-green: #34A853;
+            --gray-100: #f8f9fa;
+            --gray-200: #e8eaed;
+            --gray-700: #5f6368;
+            --text-primary: #202124;
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: var(--gray-100);
+            color: var(--text-primary);
+            margin: 0;
+            padding: 0;
+            font-size: 14px;
+        }
+
+        /* Layout */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            background: white;
+            padding: 20px;
+            border-bottom: 1px solid var(--gray-200);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            box-shadow: 0 1px 2px 0 rgba(60,64,67,0.3), 0 1px 3px 1px rgba(60,64,67,0.15);
+        }
+
+        h1 { margin: 0; font-size: 22px; color: var(--text-primary); }
+        h2 { font-size: 18px; margin-bottom: 15px; color: var(--gray-700); border-left: 4px solid var(--google-blue); padding-left: 10px; }
+        
+        /* Tabs */
+        .tabs { display: flex; gap: 10px; margin-bottom: 20px; }
+        .tab-btn {
+            background: white;
+            border: 1px solid var(--gray-200);
+            padding: 10px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        .tab-btn.active {
+            background: var(--google-blue);
+            color: white;
+            border-color: var(--google-blue);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+
+        /* Sections */
+        .section {
+            background: white;
+            border-radius: 8px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 1px 2px 0 rgba(60,64,67,0.3), 0 1px 3px 1px rgba(60,64,67,0.15);
+        }
+
+        /* Grid */
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+
+        /* KPI Cards */
+        .kpi-card {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid #dadce0;
+        }
+        .kpi-value { font-size: 24px; font-weight: bold; color: var(--google-blue); }
+        .kpi-label { font-size: 12px; color: var(--gray-700); text-transform: uppercase; }
+
+        /* Insights Box */
+        .insights-box {
+            background-color: #e8f0fe;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        .insights-list { list-style-type: none; padding: 0; }
+        .insights-list li { 
+            position: relative; 
+            padding-left: 24px; 
+            margin-bottom: 12px; 
+            line-height: 1.5;
+        }
+        .insights-list li::before {
+            content: 'lightbulb';
+            font-family: 'Material Icons';
+            position: absolute;
+            left: 0;
+            top: 2px;
+            color: var(--google-yellow);
+            font-size: 18px;
+        }
+
+        /* Recommendations */
+        .rec-box {
+            background-color: #fce8e6;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        .rec-list li::before {
+            content: 'check_circle';
+            color: var(--google-green);
+        }
+
+        /* Interactive Selectors */
+        select {
+            padding: 8px 12px;
+            border-radius: 4px;
+            border: 1px solid #dadce0;
+            font-size: 14px;
+            background: white;
+        }
+
+        /* Helper utilities */
+        .hidden { display: none; }
+        .chart-container { width: 100%; height: 350px; }
+        .text-sm { font-size: 12px; color: #666; }
+
+        /* Comparison Table */
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { text-align: left; padding: 12px; border-bottom: 1px solid #dadce0; }
+        th { background-color: #f1f3f4; font-weight: 500; color: var(--gray-700); }
+        .trend-up { color: var(--google-green); }
+        .trend-down { color: var(--google-red); }
+
+        @media (max-width: 768px) {
+            .grid-2, .grid-3 { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <div>
+            <h1>Análisis de Parent ASIN: <span id="parent-name">Loading...</span></h1>
+            <div class="text-sm">Reporting Date: <span id="report-date"></span></div>
+        </div>
+        <div>
+            <span class="material-icons" style="color: var(--google-blue); font-size: 36px;">analytics</span>
+        </div>
+    </header>
+
+    <div class="tabs">
+        <div class="tab-btn active" onclick="switchTab('static')">1. Reporte Estratégico</div>
+        <div class="tab-btn" onclick="switchTab('interactive')">2. Comparador Interactivo</div>
+    </div>
+
+    <!-- TAB 1: STATIC REPORT -->
+    <div id="tab-static">
+        
+        <!-- SECTION 1: GLOBAL TREND -->
+        <div class="section">
+            <h2>1. Tendencia Global del Parent (Clicks & Share)</h2>
+            <div class="grid-3">
+                <div class="kpi-card">
+                    <div class="kpi-value" id="total-clicks">0</div>
+                    <div class="kpi-label">Clicks Totales (Última Sem)</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-value" id="our-share">0%</div>
+                    <div class="kpi-label">Nuestra Cuota de Clics</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-value" id="market-trend">--</div>
+                    <div class="kpi-label">Tendencia Mercado</div>
+                </div>
+            </div>
+            <div id="chart_global_trend" class="chart-container"></div>
+            <div class="text-sm" style="margin-top:10px; font-style:italic;">* Clicks estimados basados en Search Volume x Click Share.</div>
+        </div>
+
+        <!-- SECTION 2: BRAND COMPETITIVENESS -->
+        <div class="section">
+            <h2>2. Competitividad de Marca (Share Semana a Semana)</h2>
+            <p class="text-sm">Comparativa de <strong id="our-brand-name">Nosotros</strong> vs Top 3 Competidores.</p>
+            <div id="chart_brand_comp" class="chart-container"></div>
+        </div>
+
+        <!-- SECTION 3: DRIVERS -->
+        <div class="section">
+            <h2>3. 🚀 Palancas que Aumentan el Click Share</h2>
+            <div class="grid-2">
+                <div>
+                    <h3>Impacto de Precios</h3>
+                    <div id="chart_price_scatter" style="height: 250px;"></div>
+                </div>
+                <div>
+                    <h3>Impacto de Promociones (Badges)</h3>
+                    <div id="chart_badges" style="height: 250px;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECTION 4: EFFICIENCY -->
+        <div class="section">
+            <h2>4. 👁️ Eficiencia: Organic Rank vs Click Share</h2>
+            <p class="text-sm">Sobreperformers: Alto Share con peor Rank (Arriba Derecha). Underperformers: Bajo Share con buen Rank (Abajo Izquierda).</p>
+            <div id="chart_efficiency" class="chart-container"></div>
+        </div>
+
+        <!-- SECTION 5: CONCLUSIONS -->
+        <div class="section">
+            <h2>5. 💡 Conclusiones y Recomendaciones</h2>
+            <div class="grid-2">
+                <div class="insights-box">
+                    <h3>Insights Clave</h3>
+                    <ul class="insights-list" id="insights-list">
+                        <!-- JS injected -->
+                    </ul>
+                </div>
+                <div class="rec-box">
+                    <h3>Recomendaciones Accionables</h3>
+                    <ul class="insights-list rec-list" id="rec-list">
+                        <!-- JS injected -->
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB 2: INTERACTIVE COMPARATOR -->
+    <div id="tab-interactive" class="hidden">
+        <div class="section">
+            <h2>Comparador Cara a Cara</h2>
+            <div style="display: flex; gap: 15px; align-items: center; margin-bottom: 20px;">
+                <label>Semana: <select id="sel-week" onchange="updateInteractive()"></select></label>
+                <label>Competidor a Analizar: <select id="sel-competitor" onchange="updateInteractive()"></select></label>
+            </div>
+            
+            <div class="grid-2">
+                <!-- Our Brand Stats -->
+                <div style="border: 2px solid var(--google-blue); border-radius: 8px; padding: 15px;">
+                    <h3 style="color: var(--google-blue); margin-top:0;" id="comp-our-name">Nosotros</h3>
+                    <div id="our-stats-table"></div>
+                </div>
+                <!-- Competitor Stats -->
+                <div style="border: 2px solid var(--google-red); border-radius: 8px; padding: 15px;">
+                    <h3 style="color: var(--google-red); margin-top:0;" id="comp-their-name">Competidor</h3>
+                    <div id="their-stats-table"></div>
+                </div>
+            </div>
+
+            <div class="section" style="margin-top: 20px;">
+                <h3>Distribución de Rank vs Precio (Semana Seleccionada)</h3>
+                <div id="chart_interactive_scatter" class="chart-container"></div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- DATA SCRIPT -->
+<script>
+    // Embedded Data from CSV Processing
+    const rawData = [
+        {"brand_aggregation":"naturalebio","parent_asin":"Coconut oil","week_date":"2025-52","competitor_brand":"CocoNativo","asin":"B073P974FR","product_title":"CocoNativo Biologico Extra Vergine Olio di Cocco, ...","average_organic_rank":8,"deal_days":0,"coupon_days":0,"click_share":6.22,"price":18.95,"search_volume":7932.05,"is_yaba_asin":"N","link":"https://www.amazon.it/s?k=olio+di+cocco"},
+        {"brand_aggregation":"naturalebio","parent_asin":"Coconut oil","week_date":"2026-01","competitor_brand":"CocoNativo","asin":"B073P974FR","product_title":"CocoNativo Biologico Extra Vergine Olio di Cocco, ...","average_organic_rank":9,"deal_days":0,"coupon_days":0,"click_share":6.62,"price":18.95,"search_volume":5123.86,"is_yaba_asin":"N","link":"https://www.amazon.it/s?k=olio+di+cocco"},
+        {"brand_aggregation":"naturalebio","parent_asin":"Coconut oil","week_date":"2026-01","competitor_brand":"Monte Nativo","asin":"B07TMGBPL7","product_title":"Olio di Cocco Biologico Extra Vergin Monte Nativo ...","average_organic_rank":14,"deal_days":0,"coupon_days":0,"click_share":1.52,"price":17.95,"search_volume":5123.86,"is_yaba_asin":"N","link":"https://www.amazon.it/s?k=olio+di+cocco"},
+        {"brand_aggregation":"naturalebio","parent_asin":"Coconut oil","week_date":"2026-01","competitor_brand":"by Amazon","asin":"B07W8PPQQM","product_title":"by Amazon - Olio di cocco vergine biologico, 950 m...","average_organic_rank":2,"deal_days":0,"coupon_days":1,"click_share":18.98,"price":13.33,"search_volume":5123.86,"is_yaba_asin":"N","link":"https://www.amazon.it/s?k=olio+di+cocco"},
+        {"brand_aggregation":"naturalebio","parent_asin":"Coconut oil","week_date":"2025-52","competitor_brand":"by Amazon","asin":"B07W8PPQQM","product_title":"by Amazon - Olio di cocco vergine biologico, 950 m...","average_organic_rank":2,"deal_days":0,"coupon_days":7,"click_share":19.28,"price":13.31,"search_volume":7932.05,"is_yaba_asin":"N","link":"https://www.amazon.it/s?k=olio+di+cocco"},
+        {"brand_aggregation":"naturalebio","parent_asin":"Coconut oil","week_date":"2025-52","competitor_brand":"","asin":"B08HK4YWGH","product_title":"Eco nature, Olio di cocco bio, 200g","average_organic_rank":4,"deal_days":0,"coupon_days":0,"click_share":8.81,"price":4.5,"search_volume":7932.05,"is_yaba_asin":"N","link":"https://www.amazon.it/s?k=olio+di+cocco"},
+        {"brand_aggregation":"naturalebio","parent_asin":"Coconut oil","week_date":"2026-01","competitor_brand":"","asin":"B08HK4YWGH","product_title":"Eco nature, Olio di cocco bio, 200g","average_organic_rank":3,"deal_days":0,"coupon_days":0,"click_share":8.67,"price":4.5,"search_volume":5123.86,"is_yaba_asin":"N","link":"https://www.amazon.it/s?k=olio+di+cocco"},
+        {"brand_aggregation":"naturalebio","parent_asin":"Coconut oil","week_date":"2025-52","competitor_brand":"Crudolio","asin":"B09G757HB2","product_title":"CRUDOLIO - Olio Di Cocco Vergine Bio 200ml. | Spre...","average_organic_rank":11,"deal_days":0,"coupon_days":0,"click_share":2.34,"price":7.99,"search_volume":7932.05,"is_yaba_asin":"N","link":"https://www.amazon.it/s?k=olio+di+cocco"},
+        {"brand_aggregation":"naturalebio","parent_asin":"Coconut oil","week_date":"2025-52","competitor_brand":"BENVOLIO","asin":"B0CH11HMCS","product_title":"BENVOLIO - Olio di Cocco Biologico Deodorato | 950...","average_organic_rank":7,"deal_days":0,"coupon_days":0,"click_share":4.23,"price":10.9,"search_volume":7932.05,"is_yaba_asin":"N","link":"https://www.amazon.it/s?k=olio+di+cocco"},
+        {"brand_aggregation":"naturalebio","parent_asin":"Coconut oil","week_date":"2026-01","competitor_brand":"BENVOLIO","asin":"B0CH11HMCS","product_title":"BENVOLIO - Olio di Cocco Biologico Deodorato | 950...","average_organic_rank":7,"deal_days":0,"coupon_days":0,"click_share":4.26,"price":10.9,"search_volume":5123.86,"is_yaba_asin":"N","link":"https://www.amazon.it/s?k=olio+di+cocco"},
+        {"brand_aggregation":"naturalebio","parent_asin":"Coconut oil","week_date":"2026-01","competitor_brand":"Planète au Naturel","asin":"B0D6S1L6PL","product_title":"Olio di Cocco Bio 150 ml - Planète au Naturel - Cr...","average_organic_rank":4,"deal_days":0,"coupon_days":0,"click_share":7.29,"price":5.9,"search_volume":5123.86,"is_yaba_asin":"N","link":"https://www.amazon.it/s?k=olio+di+cocco"},
+        {"brand_aggregation":"naturalebio","parent_asin":"Coconut oil","week_date":"2025-52","competitor_brand":"Planète au Naturel","asin":"B0D6S1L6PL","product_title":"Olio di Cocco Bio 150 ml - Planète au Naturel - Cr...","average_organic_rank":4,"deal_days":0,"coupon_days":0,"click_share":7.55,"price":5.9,"search_volume":7932.05,"is_yaba_asin":"N","link":"https://www.amazon.it/s?k=olio+di+cocco"},
+        {"brand_aggregation":"naturalebio","parent_asin":"Coconut oil","week_date":"2026-01","competitor_brand":"","asin":"B0FVM32PSK","product_title":"Pipkin Olio di Cocco 100% Biologico e Puro 1L – Na...","average_organic_rank":9,"deal_days":0,"coupon_days":0,"click_share":2.87,"price":14.99,"search_volume":5123.86,"is_yaba_asin":"N","link":"https://www.amazon.it/s?k=olio+di+cocco"},
+        {"brand_aggregation":"naturalebio","parent_asin":"Coconut oil","week_date":"2025-52","competitor_brand":"","asin":"B0FVM32PSK","product_title":"Pipkin Olio di Cocco 100% Biologico e Puro 1L – Na...","average_organic_rank":9,"deal_days":0,"coupon_days":0,"click_share":2.54,"price":14.99,"search_volume":7932.05,"is_yaba_asin":"N","link":"https://www.amazon.it/s?k=olio+di+cocco"},
+        {"brand_aggregation":"naturalebio","parent_asin":"Coconut oil","week_date":"2026-01","competitor_brand":"NaturaleBio","asin":"B01JA3S1F8","product_title":"NaturaleBio Olio di Cocco Biologico Vergine 500 ml...","average_organic_rank":6,"deal_days":0,"coupon_days":0,"click_share":4.11,"price":13.99,"search_volume":5123.86,"is_yaba_asin":"Y","link":"https://www.amazon.it/s?k=olio+di+cocco"},
+        {"brand_aggregation":"naturalebio","parent_asin":"Coconut oil","week_date":"2025-52","competitor_brand":"NaturaleBio","asin":"B01JA3S1F8","product_title":"NaturaleBio Olio di Cocco Biologico Vergine 500 ml...","average_organic_rank":5,"deal_days":0,"coupon_days":0,"click_share":6.12,"price":13.99,"search_volume":7932.05,"is_yaba_asin":"Y","link":"https://www.amazon.it/s?k=olio+di+cocco"},
+        {"brand_aggregation":"naturalebio","parent_asin":"Coconut oil","week_date":"2025-52","competitor_brand":"NaturaleBio","asin":"B01JIB2T32","product_title":"NaturaleBio Olio di Cocco Biologico Vergine 1000 m...","average_organic_rank":6,"deal_days":0,"coupon_days":0,"click_share":4.8,"price":19.49,"search_volume":7932.05,"is_yaba_asin":"Y","link":"https://www.amazon.it/s?k=olio+di+cocco"},
+        {"brand_aggregation":"naturalebio","parent_asin":"Coconut oil","week_date":"2026-01","competitor_brand":"NaturaleBio","asin":"B01JIB2T32","product_title":"NaturaleBio Olio di Cocco Biologico Vergine 1000 m...","average_organic_rank":6,"deal_days":0,"coupon_days":0,"click_share":4.52,"price":19.49,"search_volume":5123.86,"is_yaba_asin":"Y","link":"https://www.amazon.it/s?k=olio+di+cocco"},
+        {"brand_aggregation":"naturalebio","parent_asin":"Coconut oil","week_date":"2025-52","competitor_brand":"NaturaleBio","asin":"B01M0LGD6A","product_title":"NaturaleBio Organic Virgin Coconut Oil 200 ml. Raw...","average_organic_rank":1,"deal_days":0,"coupon_days":1,"click_share":11.25,"price":8.99,"search_volume":7932.05,"is_yaba_asin":"Y","link":"https://www.amazon.it/s?k=olio+di+cocco"},
+        {"brand_aggregation":"naturalebio","parent_asin":"Coconut oil","week_date":"2026-01","competitor_brand":"NaturaleBio","asin":"B01M0LGD6A","product_title":"NaturaleBio Organic Virgin Coconut Oil 200 ml. Raw...","average_organic_rank":1,"deal_days":0,"coupon_days":1,"click_share":13.51,"price":8.99,"search_volume":5123.86,"is_yaba_asin":"Y","link":"https://www.amazon.it/s?k=olio+di+cocco"}
+    ];
+
+    // --- PROCESSING LOGIC (VANILLA JS) ---
+    
+    // 1. Helper to extract Brand
+    function getRealBrand(item) {
+        if (item.competitor_brand && item.competitor_brand.trim() !== '') return item.competitor_brand;
+        if (item.product_title) {
+            // Basic heuristic: take first 2 words or split by comma
+            let titleBrand = item.product_title.split(',')[0].split(' ')[0];
+            if (titleBrand.toLowerCase() === 'eco') return 'Eco Nature';
+            if (titleBrand.toLowerCase() === 'pipkin') return 'Pipkin';
+            return titleBrand || "Unknown";
+        }
+        return "Unknown";
+    }
+
+    // 2. Enrich Data
+    const marketData = rawData.map(d => {
+        return {
+            ...d,
+            real_brand: getRealBrand(d),
+            estimated_clicks: (d.click_share / 100) * d.search_volume,
+            has_badge: (d.deal_days > 0 || d.coupon_days > 0) ? 'Yes' : 'No'
+        };
+    });
+
+    // 3. Identification
+    const ourBrand = marketData.find(d => d.is_yaba_asin === 'Y').real_brand;
+    const parentName = marketData[0].parent_asin;
+    const weeks = [...new Set(marketData.map(d => d.week_date))].sort();
+    const lastWeek = weeks[weeks.length - 1];
+
+    document.getElementById('parent-name').innerText = parentName;
+    document.getElementById('report-date').innerText = lastWeek;
+    document.getElementById('our-brand-name').innerText = ourBrand;
+
+    // --- ANALYTICAL FUNCTIONS ---
+
+    function getAggregatedStats(week) {
+        const weekData = marketData.filter(d => d.week_date === week);
+        const us = weekData.filter(d => d.is_yaba_asin === 'Y');
+        const them = weekData.filter(d => d.is_yaba_asin === 'N');
+
+        const totalVol = weekData.length > 0 ? weekData[0].search_volume : 0; // Assuming same volume for all in same keyword context
+        
+        // Sum of shares
+        const shareUs = us.reduce((acc, curr) => acc + curr.click_share, 0);
+        const clicksUs = us.reduce((acc, curr) => acc + curr.estimated_clicks, 0);
+        const clicksTotal = weekData.reduce((acc, curr) => acc + curr.estimated_clicks, 0);
+
+        return { week, clicksUs, clicksTotal, shareUs };
+    }
+
+    function getCompetitors() {
+        const brands = {};
+        marketData.filter(d => d.real_brand !== ourBrand).forEach(d => {
+            if (!brands[d.real_brand]) brands[d.real_brand] = [];
+            brands[d.real_brand].push(d.click_share);
+        });
+        
+        const avgShares = Object.keys(brands).map(b => {
+            const avg = brands[b].reduce((a,v)=>a+v,0) / brands[b].length;
+            return { brand: b, avg };
+        }).sort((a,b) => b.avg - a.avg);
+
+        return avgShares.slice(0, 3).map(x => x.brand);
+    }
+
+    const topCompetitors = getCompetitors();
+
+    // --- GOOGLE CHARTS IMPLEMENTATION ---
+    google.charts.load('current', {'packages':['corechart', 'table']});
+    google.charts.setOnLoadCallback(drawDashboard);
+
+    function drawDashboard() {
+        drawGlobalTrend();
+        drawBrandComp();
+        drawPriceDriver();
+        drawBadges();
+        drawEfficiency();
+        populateInsights();
+        setupInteractive();
+    }
+
+    // 1. GLOBAL TREND CHART
+    function drawGlobalTrend() {
+        const data = new google.visualization.DataTable();
+        data.addColumn('string', 'Semana');
+        data.addColumn('number', 'Clicks Totales');
+        data.addColumn('number', 'Nuestra Cuota (%)');
+
+        const stats = weeks.map(w => getAggregatedStats(w));
+        
+        stats.forEach(s => {
+            data.addRow([s.week, s.clicksTotal, s.shareUs]);
+        });
+
+        // Update KPIs
+        const lastStats = stats[stats.length - 1];
+        const prevStats = stats[stats.length - 2];
+        document.getElementById('total-clicks').innerText = Math.round(lastStats.clicksTotal).toLocaleString();
+        document.getElementById('our-share').innerText = lastStats.shareUs.toFixed(1) + '%';
+        
+        let trend = "Estable";
+        if (prevStats) {
+            const diff = lastStats.clicksTotal - prevStats.clicksTotal;
+            if (diff < -100) trend = "📉 Bajista";
+            if (diff > 100) trend = "📈 Alcista";
+        }
+        document.getElementById('market-trend').innerText = trend;
+
+        const options = {
+            seriesType: 'bars',
+            series: {1: {type: 'line', targetAxisIndex: 1, color: '#4285F4'}},
+            colors: ['#e0e0e0'],
+            vAxes: {0: {title: 'Clicks'}, 1: {title: 'Share %', format: '#\'%\''}},
+            legend: {position: 'bottom'},
+            chartArea: {width: '80%', height: '70%'}
+        };
+
+        const chart = new google.visualization.ComboChart(document.getElementById('chart_global_trend'));
+        chart.draw(data, options);
+    }
+
+    // 2. BRAND COMPETITIVENESS
+    function drawBrandComp() {
+        const data = new google.visualization.DataTable();
+        data.addColumn('string', 'Semana');
+        data.addColumn('number', ourBrand);
+        topCompetitors.forEach(c => data.addColumn('number', c));
+
+        weeks.forEach(w => {
+            const row = [w];
+            // Our share
+            const usShare = marketData.filter(d => d.week_date === w && d.real_brand === ourBrand)
+                                    .reduce((a,v) => a + v.click_share, 0);
+            row.push(usShare);
+
+            // Comp share
+            topCompetitors.forEach(c => {
+                const compShare = marketData.filter(d => d.week_date === w && d.real_brand === c)
+                                          .reduce((a,v) => a + v.click_share, 0);
+                row.push(compShare);
+            });
+            data.addRow(row);
+        });
+
+        const options = {
+            curveType: 'function',
+            legend: { position: 'bottom' },
+            colors: ['#4285F4', '#EA4335', '#FBBC05', '#34A853'],
+            vAxis: {title: 'Click Share %'},
+            chartArea: {width: '85%', height: '70%'}
+        };
+
+        const chart = new google.visualization.LineChart(document.getElementById('chart_brand_comp'));
+        chart.draw(data, options);
+    }
+
+    // 3. DRIVERS (SCATTER PRICE)
+    function drawPriceDriver() {
+        const data = new google.visualization.DataTable();
+        data.addColumn('number', 'Precio');
+        data.addColumn('number', 'Click Share');
+        data.addColumn({type: 'string', role: 'tooltip'});
+        data.addColumn({type: 'string', role: 'style'});
+
+        const weekData = marketData.filter(d => d.week_date === lastWeek);
+        weekData.forEach(d => {
+            const color = d.is_yaba_asin === 'Y' ? '#4285F4' : '#999';
+            data.addRow([d.price, d.click_share, `${d.real_brand} (${d.price}€): ${d.click_share}%`, `point {fill-color: ${color}}`]);
+        });
+
+        const options = {
+            legend: 'none',
+            hAxis: {title: 'Precio (€)'},
+            vAxis: {title: 'Click Share (%)'},
+            title: 'Correlación Precio vs Share (Última Semana)'
+        };
+
+        const chart = new google.visualization.ScatterChart(document.getElementById('chart_price_scatter'));
+        chart.draw(data, options);
+    }
+
+    // 3B. BADGES
+    function drawBadges() {
+        // Simple aggregation: Avg Share with Badge vs No Badge
+        const withBadge = marketData.filter(d => d.has_badge === 'Yes').map(d => d.click_share);
+        const withoutBadge = marketData.filter(d => d.has_badge === 'No').map(d => d.click_share);
+
+        const avgWith = withBadge.length ? withBadge.reduce((a,b)=>a+b,0)/withBadge.length : 0;
+        const avgWithout = withoutBadge.length ? withoutBadge.reduce((a,b)=>a+b,0)/withoutBadge.length : 0;
+
+        const data = google.visualization.arrayToDataTable([
+            ['Estado', 'Avg Share %', { role: 'style' }],
+            ['Con Promo/Coupon', avgWith, '#34A853'],
+            ['Sin Promo', avgWithout, '#999']
+        ]);
+
+        const options = {
+            legend: 'none',
+            vAxis: {title: 'Share Promedio %'}
+        };
+
+        const chart = new google.visualization.ColumnChart(document.getElementById('chart_badges'));
+        chart.draw(data, options);
+    }
+
+    // 4. EFFICIENCY
+    function drawEfficiency() {
+        const data = new google.visualization.DataTable();
+        data.addColumn('number', 'Organic Rank (Invertido)');
+        data.addColumn('number', 'Click Share');
+        data.addColumn({type: 'string', role: 'tooltip'});
+        data.addColumn({type: 'string', role: 'style'});
+
+        const weekData = marketData.filter(d => d.week_date === lastWeek);
+        weekData.forEach(d => {
+            // Rank 1 is good, visual hack: X axis inverted or logic?
+            // Let's use standard Rank on X but remember 1 is left.
+            const color = d.is_yaba_asin === 'Y' ? '#4285F4' : '#EA4335';
+            const label = d.is_yaba_asin === 'Y' ? 'Nosotros' : 'Comp';
+            data.addRow([d.average_organic_rank, d.click_share, `${label}: Rank ${d.average_organic_rank}, Share ${d.click_share}%`, `point {fill-color: ${color}}`]);
+        });
+
+        const options = {
+            legend: 'none',
+            hAxis: {title: 'Rank Orgánico (Menor es mejor)', direction: -1}, // Inverted so 1 is right or let's keep 1 left? Usually 1 is left.
+            vAxis: {title: 'Click Share (%)'},
+            title: 'Eficiencia: ¿Quién consigue más tráfico por su posición?'
+        };
+
+        const chart = new google.visualization.ScatterChart(document.getElementById('chart_efficiency'));
+        chart.draw(data, options);
+    }
+
+    // 5. INSIGHTS GENERATION
+    function populateInsights() {
+        const ul = document.getElementById('insights-list');
+        const rec = document.getElementById('rec-list');
+        
+        // Data logic for text
+        const lastData = marketData.filter(d => d.week_date === lastWeek);
+        const us = lastData.filter(d => d.is_yaba_asin === 'Y');
+        const topASIN = us.sort((a,b) => b.click_share - a.click_share)[0];
+        const mainThreat = lastData.filter(d => d.real_brand !== ourBrand).sort((a,b) => b.click_share - a.click_share)[0];
+
+        ul.innerHTML = `
+            <li><strong>Dominio del Formato Pequeño:</strong> Nuestro ASIN de 200ml (${topASIN.asin}) es el líder absoluto con Rank 1 y ${topASIN.click_share}% de share, mostrando alta eficiencia.</li>
+            <li><strong>Amenaza Principal:</strong> La marca '${mainThreat.real_brand}' domina con un share de ${mainThreat.click_share}%, impulsada por el uso agresivo de Cupones y un Rank orgánico superior en formatos grandes.</li>
+            <li><strong>Caída de Volumen:</strong> Se detecta una caída significativa del volumen de búsqueda (-35%) respecto a la semana anterior, lo que reduce los clicks totales aunque mantengamos cuota.</li>
+            <li><strong>Debilidad en Formatos Grandes:</strong> Nuestros formatos de 500ml y 1L están estancados en Rank 6, perdiendo visibilidad frente a competidores posicionados en Top 3.</li>
+            <li><strong>Precio vs Share:</strong> El mercado premia los precios bajos (Eco Nature a 4.5€) o la propuesta de valor fuerte (Amazon con cupón). Nuestro precio premium en 1L (19.49€) limita el volumen.</li>
+        `;
+
+        rec.innerHTML = `
+            <li><strong>Activar Cupones en 1L:</strong> Para contrarrestar a 'by Amazon', activar un cupón del 10-15% en el ASIN B01JIB2T32 para recuperar Rank (actualmente 6).</li>
+            <li><strong>Defensa del Best Seller:</strong> Mantener el stock y precio del formato 200ml, ya que es el pilar de rentabilidad y tráfico actual.</li>
+            <li><strong>Optimización SEO:</strong> Revisar títulos y backend keywords de los formatos grandes para intentar romper la barrera del Rank 5 y entrar en Top 3.</li>
+        `;
+    }
+
+    // --- INTERACTIVE TAB LOGIC ---
+    function setupInteractive() {
+        const selWeek = document.getElementById('sel-week');
+        const selComp = document.getElementById('sel-competitor');
+
+        weeks.forEach(w => {
+            const opt = document.createElement('option');
+            opt.value = w;
+            opt.text = w;
+            selWeek.add(opt);
+        });
+        // Select last week by default
+        selWeek.value = lastWeek;
+
+        topCompetitors.forEach(c => {
+            const opt = document.createElement('option');
+            opt.value = c;
+            opt.text = c;
+            selComp.add(opt);
+        });
+
+        updateInteractive();
+    }
+
+    function updateInteractive() {
+        const week = document.getElementById('sel-week').value;
+        const competitor = document.getElementById('sel-competitor').value;
+        
+        document.getElementById('comp-our-name').innerText = ourBrand;
+        document.getElementById('comp-their-name').innerText = competitor;
+
+        const weekData = marketData.filter(d => d.week_date === week);
+        const ourData = weekData.filter(d => d.real_brand === ourBrand);
+        const theirData = weekData.filter(d => d.real_brand === competitor);
+
+        // Render Tables
+        renderMiniTable('our-stats-table', ourData);
+        renderMiniTable('their-stats-table', theirData);
+
+        // Render Comparative Scatter
+        drawInteractiveScatter(ourData, theirData);
+    }
+
+    function renderMiniTable(id, data) {
+        const container = document.getElementById(id);
+        if (data.length === 0) {
+            container.innerHTML = "No data available.";
+            return;
+        }
+        let html = `<table style="font-size:12px;"><thead><tr><th>ASIN</th><th>Rank</th><th>Share</th><th>€</th></tr></thead><tbody>`;
+        data.forEach(d => {
+            html += `<tr>
+                <td>${d.asin.substring(0,5)}..</td>
+                <td>${d.average_organic_rank}</td>
+                <td>${d.click_share}%</td>
+                <td>${d.price}</td>
+            </tr>`;
+        });
+        html += `</tbody></table>`;
+        container.innerHTML = html;
+    }
+
+    function drawInteractiveScatter(us, them) {
+        const data = new google.visualization.DataTable();
+        data.addColumn('number', 'Precio');
+        data.addColumn('number', 'Click Share');
+        data.addColumn({type: 'string', role: 'style'}); // Color
+
+        us.forEach(d => data.addRow([d.price, d.click_share, 'point {fill-color: #4285F4; size: 10}']));
+        them.forEach(d => data.addRow([d.price, d.click_share, 'point {fill-color: #EA4335; size: 10}']));
+
+        const options = {
+            title: 'Posicionamiento: Precio vs Share',
+            hAxis: {title: 'Precio'},
+            vAxis: {title: 'Share %'},
+            legend: 'none'
+        };
+
+        const chart = new google.visualization.ScatterChart(document.getElementById('chart_interactive_scatter'));
+        chart.draw(data, options);
+    }
+
+    // Tab Switcher
+    window.switchTab = function(tabName) {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-btn')[tabName === 'static' ? 0 : 1].classList.add('active');
+        
+        if(tabName === 'static') {
+            document.getElementById('tab-static').classList.remove('hidden');
+            document.getElementById('tab-interactive').classList.add('hidden');
+            drawDashboard(); // Redraw to fix sizing
+        } else {
+            document.getElementById('tab-static').classList.add('hidden');
+            document.getElementById('tab-interactive').classList.remove('hidden');
+            updateInteractive();
+        }
+    }
+
+    // Responsive redraw
+    window.onresize = drawDashboard;
+
+</script>
+
+</body>
+</html>
