@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reporte de Inteligencia de Mercado - Amazon ASIN</title>
+    
+    <!-- Google Charts Loader -->
+    <script src="https://www.gstatic.com/charts/loader.js"></script>
+    <!-- Google Material Icons -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    
+    <style>
+        /* RESET & BASE STYLES */
+        :root {
+            --primary-color: #4285F4; /* Google Blue */
+            --success-color: #34A853; /* Google Green */
+            --warning-color: #FBBC05; /* Google Yellow */
+            --danger-color: #EA4335; /* Google Red */
+            --bg-color: #F8F9FA;
+            --card-bg: #FFFFFF;
+            --text-main: #202124;
+            --text-secondary: #5F6368;
+            --border-radius: 16px;
+        }
+
+        body {
+            font-family: 'Google Sans', 'Roboto', Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* LAYOUT */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            margin-bottom: 24px;
+        }
+
+        h1 {
+            font-size: 24px;
+            font-weight: 400;
+            color: var(--text-main);
+            margin: 0 0 8px 0;
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        /* TABS */
+        .tabs {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 24px;
+            border-bottom: 1px solid #E0E0E0;
+            padding-bottom: 0;
+        }
+
+        .tab-btn {
+            background: none;
+            border: none;
+            padding: 12px 24px;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .tab-btn.active {
+            color: var(--primary-color);
+            border-bottom: 2px solid var(--primary-color);
+        }
+
+        /* CARDS */
+        .card {
+            background: var(--card-bg);
+            border-radius: var(--border-radius);
+            box-shadow: 0 1px 2px 0 rgba(60,64,67,0.3), 0 1px 3px 1px rgba(60,64,67,0.15);
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .card-title {
+            font-size: 18px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* METRICS GRID */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .kpi-card {
+            background: #fff;
+            padding: 16px;
+            border-radius: 12px;
+            border: 1px solid #E0E0E0;
+        }
+
+        .kpi-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .kpi-value {
+            font-size: 24px;
+            font-weight: 600;
+            margin-top: 8px;
+            color: var(--primary-color);
+        }
+
+        .kpi-delta {
+            font-size: 12px;
+            margin-top: 4px;
+        }
+
+        .delta-pos { color: var(--success-color); }
+        .delta-neg { color: var(--danger-color); }
+
+        /* CHART CONTAINERS */
+        .chart-container {
+            width: 100%;
+            height: 400px;
+        }
+
+        /* INSIGHTS SECTION */
+        .insights-section {
+            background-color: #F1F3F4;
+            border-radius: 12px;
+            padding: 20px;
+        }
+
+        .insight-item {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 12px;
+            align-items: flex-start;
+        }
+
+        .insight-icon {
+            color: var(--primary-color);
+        }
+
+        /* CONTROLS (INTERACTIVE TAB) */
+        .controls-row {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        select {
+            padding: 10px 16px;
+            border-radius: 8px;
+            border: 1px solid #DADCE0;
+            font-family: inherit;
+            font-size: 14px;
+            outline: none;
+            background-color: #fff;
+        }
+
+        /* UTILS */
+        .hidden { display: none; }
+        .badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: bold;
+        }
+        .badge-our { background: #E8F0FE; color: #1967D2; }
+        .badge-comp { background: #FCE8E6; color: #C5221F; }
+
+        /* Comparison Table */
+        .comp-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .comp-table th { text-align: left; color: var(--text-secondary); padding: 8px; border-bottom: 1px solid #eee; }
+        .comp-table td { padding: 12px 8px; border-bottom: 1px solid #eee; }
+        .comp-table .winner { color: var(--success-color); font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>Parent ASIN Market Intelligence</h1>
+        <div class="subtitle">Análisis Estratégico & Competitivo (Últimas 5 Semanas)</div>
+    </header>
+
+    <!-- NAVIGATION TABS -->
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('report')">Reporte Estratégico</button>
+        <button class="tab-btn" onclick="switchTab('interactive')">Comparador Interactivo</button>
+    </div>
+
+    <!-- TAB 1: STATIC REPORT -->
+    <div id="tab-report">
+        
+        <!-- KPI OVERVIEW -->
+        <div class="kpi-grid" id="kpi-container">
+            <!-- Injected via JS -->
+        </div>
+
+        <!-- SECTION 1: GLOBAL TREND -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">
+                    <span class="material-icons">show_chart</span>
+                    Tendencia Global del Parent (Tráfico & Visibilidad)
+                </div>
+            </div>
+            <div id="chart_trend" class="chart-container"></div>
+            <div class="subtitle" style="margin-top:10px; font-size:12px;">
+                *Barras: Volumen estimado de clicks (Nuestros vs Competencia). Línea: Click Share Total.
+            </div>
+        </div>
+
+        <!-- SECTION 2: BRAND COMPETITIVENESS -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">
+                    <span class="material-icons">pie_chart</span>
+                    Competitividad de Marca (Share of Voice)
+                </div>
+            </div>
+            <div id="chart_share" class="chart-container"></div>
+            <p style="font-size:13px; color:#666; margin-top:10px;">
+                Análisis evolutivo de la cuota de mercado de nuestra marca frente al Top 3 de competidores y el resto del mercado.
+            </p>
+        </div>
+
+        <!-- SECTION 4: EFFICIENCY (RANK VS SHARE) -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">
+                    <span class="material-icons">scatter_plot</span>
+                    Matriz de Eficiencia: Organic Rank vs Click Share
+                </div>
+            </div>
+            <div id="chart_efficiency" class="chart-container"></div>
+            <div class="subtitle" style="margin-top:10px;">
+                *Eje X: Ranking Orgánico (Invertido, 1 es mejor). Eje Y: Click Share.
+                <br>Puntos azules = Nuestros ASINs. Puntos rojos = Competencia.
+            </div>
+        </div>
+
+        <!-- SECTION 5: INSIGHTS & RECOMMENDATIONS -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">
+                    <span class="material-icons">lightbulb</span>
+                    Conclusiones y Recomendaciones Accionables
+                </div>
+            </div>
+            <div class="insights-section" id="insights-container">
+                <!-- Injected via JS -->
+            </div>
+            <h3 style="font-size:16px; margin: 20px 0 10px 0;">Recomendaciones Tácticas</h3>
+            <div id="recommendations-container">
+                <!-- Injected via JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB 2: INTERACTIVE COMPARATOR -->
+    <div id="tab-interactive" class="hidden">
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">
+                    <span class="material-icons">compare_arrows</span>
+                    Cara a Cara: Nosotros vs Competencia
+                </div>
+            </div>
+            
+            <div class="controls-row">
+                <select id="sel-week" onchange="updateComparator()">
+                    <!-- Populated by JS -->
+                </select>
+                <select id="sel-competitor" onchange="updateComparator()">
+                    <!-- Populated by JS -->
+                </select>
+            </div>
+
+            <div style="display:flex; gap:20px; flex-wrap:wrap;">
+                <!-- Comparison Table -->
+                <div style="flex: 1; min-width: 300px;">
+                    <table class="comp-table" id="comparison-table">
+                        <thead>
+                            <tr>
+                                <th>Métrica</th>
+                                <th>Nuestra Marca</th>
+                                <th id="th-comp-name">Competidor</th>
+                                <th>Diferencia</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Filled by JS -->
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Mini Chart -->
+                <div style="flex: 1; min-width: 300px; height: 300px;" id="chart_comparator"></div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">Análisis de Palancas (Deals & Badges)</div>
+            </div>
+            <div id="levers_grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <!-- Content via JS -->
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- DATA & LOGIC -->
+<script>
+    // --- 1. DATA INJECTION ---
+    // Synthetic data generated by Python based on user prompt schema
+    const marketData = [{"week_date": "2023-09-01", "parent_asin": "B00PARENT01", "keywords": "wireless headphones", "asin": "B006129", "is_yaba_asin": "Y", "competitor_brand": "TechSound", "product_title": "TechSound Wireless Earbuds Active Noise Cancelling", "average_organic_rank": 8, "price": 49.3789437146522, "click_share": 0.11603525164478179, "weekly_search_volume": 4771, "weekly_number_of_days_with_deal": 7, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 7, "grams": 200, "organic_or_not": "Organic", "container": "Box", "keywords_link": "http://amazon.com/...", "real_brand": "TechSound", "estimated_clicks": 553.6041855972539, "chart_brand": "TechSound"}, {"week_date": "2023-09-01", "parent_asin": "B00PARENT01", "keywords": "bluetooth earbuds", "asin": "B006129", "is_yaba_asin": "Y", "competitor_brand": "TechSound", "product_title": "TechSound Wireless Earbuds Active Noise Cancelling", "average_organic_rank": 9, "price": 49.3789437146522, "click_share": 0.08271708235212555, "weekly_search_volume": 2097, "weekly_number_of_days_with_deal": 7, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 7, "grams": 200, "organic_or_not": "Organic", "container": "Box", "keywords_link": "http://amazon.com/...", "real_brand": "TechSound", "estimated_clicks": 173.45772169240728, "chart_brand": "TechSound"}, {"week_date": "2023-09-01", "parent_asin": "B00PARENT01", "keywords": "noise cancelling headphones", "asin": "B006129", "is_yaba_asin": "Y", "competitor_brand": "TechSound", "product_title": "TechSound Wireless Earbuds Active Noise Cancelling", "average_organic_rank": 10, "price": 49.3789437146522, "click_share": 0.13410530752495346, "weekly_search_volume": 3615, "weekly_number_of_days_with_deal": 7, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 7, "grams": 200, "organic_or_not": "Organic", "container": "Box", "keywords_link": "http://amazon.com/...", "real_brand": "TechSound", "estimated_clicks": 484.79068670270674, "chart_brand": "TechSound"}, {"week_date": "2023-09-01", "parent_asin": "B00PARENT01", "keywords": "sport headphones", "asin": "B006129", "is_yaba_asin": "Y", "competitor_brand": "TechSound", "product_title": "TechSound Wireless Earbuds Active Noise Cancelling", "average_organic_rank": 15, "price": 49.3789437146522, "click_share": 0.08577953683960963, "weekly_search_volume": 1222, "weekly_number_of_days_with_deal": 7, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 7, "grams": 200, "organic_or_not": "Organic", "container": "Box", "keywords_link": "http://amazon.com/...", "real_brand": "TechSound", "estimated_clicks": 104.8225940179928, "chart_brand": "TechSound"}, {"week_date": "2023-09-08", "parent_asin": "B00PARENT01", "keywords": "wireless headphones", "asin": "B006129", "is_yaba_asin": "Y", "competitor_brand": "TechSound", "product_title": "TechSound Wireless Earbuds Active Noise Cancelling", "average_organic_rank": 10, "price": 49.3789437146522, "click_share": 0.0768407482813589, "weekly_search_volume": 1965, "weekly_number_of_days_with_deal": 7, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 7, "grams": 200, "organic_or_not": "Organic", "container": "Box", "keywords_link": "http://amazon.com/...", "real_brand": "TechSound", "estimated_clicks": 150.99207037287023, "chart_brand": "TechSound"}, {"week_date": "2023-09-08", "parent_asin": "B00PARENT01", "keywords": "bluetooth earbuds", "asin": "B006129", "is_yaba_asin": "Y", "competitor_brand": "TechSound", "product_title": "TechSound Wireless Earbuds Active Noise Cancelling", "average_organic_rank": 15, "price": 49.3789437146522, "click_share": 0.07604343166567117, "weekly_search_volume": 3280, "weekly_number_of_days_with_deal": 7, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 7, "grams": 200, "organic_or_not": "Organic", "container": "Box", "keywords_link": "http://amazon.com/...", "real_brand": "TechSound", "estimated_clicks": 249.42245586340142, "chart_brand": "TechSound"}, {"week_date": "2023-09-08", "parent_asin": "B00PARENT01", "keywords": "noise cancelling headphones", "asin": "B006129", "is_yaba_asin": "Y", "competitor_brand": "TechSound", "product_title": "TechSound Wireless Earbuds Active Noise Cancelling", "average_organic_rank": 15, "price": 49.3789437146522, "click_share": 0.08272847256193988, "weekly_search_volume": 2011, "weekly_number_of_days_with_deal": 7, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 7, "grams": 200, "organic_or_not": "Organic", "container": "Box", "keywords_link": "http://amazon.com/...", "real_brand": "TechSound", "estimated_clicks": 166.3669583220611, "chart_brand": "TechSound"}, {"week_date": "2023-09-08", "parent_asin": "B00PARENT01", "keywords": "sport headphones", "asin": "B006129", "is_yaba_asin": "Y", "competitor_brand": "TechSound", "product_title": "TechSound Wireless Earbuds Active Noise Cancelling", "average_organic_rank": 5, "price": 49.3789437146522, "click_share": 0.08861011867169423, "weekly_search_volume": 4725, "weekly_number_of_days_with_deal": 7, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 7, "grams": 200, "organic_or_not": "Organic", "container": "Box", "keywords_link": "http://amazon.com/...", "real_brand": "TechSound", "estimated_clicks": 418.68281072375525, "chart_brand": "TechSound"}, {"week_date": "2023-09-15", "parent_asin": "B00PARENT01", "keywords": "wireless headphones", "asin": "B006129", "is_yaba_asin": "Y", "competitor_brand": "TechSound", "product_title": "TechSound Wireless Earbuds Active Noise Cancelling", "average_organic_rank": 1, "price": 49.3789437146522, "click_share": 0.061986420551381395, "weekly_search_volume": 3288, "weekly_number_of_days_with_deal": 7, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 7, "grams": 200, "organic_or_not": "Organic", "container": "Box", "keywords_link": "http://amazon.com/...", "real_brand": "TechSound", "estimated_clicks": 203.81135077294203, "chart_brand": "TechSound"}, {"week_date": "2023-09-15", "parent_asin": "B00PARENT01", "keywords": "bluetooth earbuds", "asin": "B006129", "is_yaba_asin": "Y", "competitor_brand": "TechSound", "product_title": "TechSound Wireless Earbuds Active Noise Cancelling", "average_organic_rank": 11, "price": 49.3789437146522, "click_share": 0.08182765360662663, "weekly_search_volume": 2073, "weekly_number_of_days_with_deal": 7, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 7, "grams": 200, "organic_or_not": "Organic", "container": "Box", "keywords_link": "http://amazon.com/...", "real_brand": "TechSound", "estimated_clicks": 169.628725926537, "chart_brand": "TechSound"}, {"week_date": "2023-09-15", "parent_asin": "B00PARENT01", "keywords": "noise cancelling headphones", "asin": "B006129", "is_yaba_asin": "Y", "competitor_brand": "TechSound", "product_title": "TechSound Wireless Earbuds Active Noise Cancelling", "average_organic_rank": 9, "price": 49.3789437146522, "click_share": 0.08630018901844516, "weekly_search_volume": 2963, "weekly_number_of_days_with_deal": 7, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 7, "grams": 200, "organic_or_not": "Organic", "container": "Box", "keywords_link": "http://amazon.com/...", "real_brand": "TechSound", "estimated_clicks": 255.707460061653, "chart_brand": "TechSound"}, {"week_date": "2023-09-15", "parent_asin": "B00PARENT01", "keywords": "sport headphones", "asin": "B006129", "is_yaba_asin": "Y", "competitor_brand": "TechSound", "product_title": "TechSound Wireless Earbuds Active Noise Cancelling", "average_organic_rank": 12, "price": 49.3789437146522, "click_share": 0.07689975765660875, "weekly_search_volume": 4272, "weekly_number_of_days_with_deal": 7, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 7, "grams": 200, "organic_or_not": "Organic", "container": "Box", "keywords_link": "http://amazon.com/...", "real_brand": "TechSound", "estimated_clicks": 328.5157647090326, "chart_brand": "TechSound"}, {"week_date": "2023-09-22", "parent_asin": "B00PARENT01", "keywords": "wireless headphones", "asin": "B006129", "is_yaba_asin": "Y", "competitor_brand": "TechSound", "product_title": "TechSound Wireless Earbuds Active Noise Cancelling", "average_organic_rank": 1, "price": 49.3789437146522, "click_share": 0.12644265551375997, "weekly_search_volume": 3343, "weekly_number_of_days_with_deal": 7, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 7, "grams": 200, "organic_or_not": "Organic", "container": "Box", "keywords_link": "http://amazon.com/...", "real_brand": "TechSound", "estimated_clicks": 422.6977973824996, "chart_brand": "TechSound"}, {"week_date": "2023-09-22", "parent_asin": "B00PARENT01", "keywords": "bluetooth earbuds", "asin": "B006129", "is_yaba_asin": "Y", "competitor_brand": "TechSound", "product_title": "TechSound Wireless Earbuds Active Noise Cancelling", "average_organic_rank": 13, "price": 49.3789437146522, "click_share": 0.06649729868772922, "weekly_search_volume": 4434, "weekly_number_of_days_with_deal": 7, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 7, "grams": 200, "organic_or_not": "Organic", "container": "Box", "keywords_link": "http://amazon.com/...", "real_brand": "TechSound", "estimated_clicks": 294.84902238139136, "chart_brand": "TechSound"}, {"week_date": "2023-09-22", "parent_asin": "B00PARENT01", "keywords": "noise cancelling headphones", "asin": "B006129", "is_yaba_asin": "Y", "competitor_brand": "TechSound", "product_title": "TechSound Wireless Earbuds Active Noise Cancelling", "average_organic_rank": 5, "price": 49.3789437146522, "click_share": 0.14819702209703352, "weekly_search_volume": 3617, "weekly_number_of_days_with_deal": 7, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 7, "grams": 200, "organic_or_not": "Organic", "container": "Box", "keywords_link": "http://amazon.com/...", "real_brand": "TechSound", "estimated_clicks": 536.0286289249703, "chart_brand": "TechSound"}, {"week_date": "2023-09-22", "parent_asin": "B00PARENT01", "keywords": "sport headphones", "asin": "B006129", "is_yaba_asin": "Y", "competitor_brand": "TechSound", "product_title": "TechSound Wireless Earbuds Active Noise Cancelling", "average_organic_rank": 13, "price": 49.3789437146522, "click_share": 0.12604925890915606, "weekly_search_volume": 4272, "weekly_number_of_days_with_deal": 7, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 7, "grams": 200, "organic_or_not": "Organic", "container": "Box", "keywords_link": "http://amazon.com/...", "real_brand": "TechSound", "estimated_clicks": 538.4824340599147, "chart_brand": "TechSound"}, {"week_date": "2023-09-29", "parent_asin": "B00PARENT01", "keywords": "wireless headphones", "asin": "B006129", "is_yaba_asin": "Y", "competitor_brand": "TechSound", "product_title": "TechSound Wireless Earbuds Active Noise Cancelling", "average_organic_rank": 2, "price": 49.3789437146522, "click_share": 0.12260688949826353, "weekly_search_volume": 2009, "weekly_number_of_days_with_deal": 7, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 7, "grams": 200, "organic_or_not": "Organic", "container": "Box", "keywords_link": "http://amazon.com/...", "real_brand": "TechSound", "estimated_clicks": 246.31724100201142, "chart_brand": "TechSound"}, {"week_date": "2023-09-29", "parent_asin": "B00PARENT01", "keywords": "bluetooth earbuds", "asin": "B006129", "is_yaba_asin": "Y", "competitor_brand": "TechSound", "product_title": "TechSound Wireless Earbuds Active Noise Cancelling", "average_organic_rank": 4, "price": 49.3789437146522, "click_share": 0.12213768840428574, "weekly_search_volume": 4991, "weekly_number_of_days_with_deal": 7, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 7, "grams": 200, "organic_or_not": "Organic", "container": "Box", "keywords_link": "http://amazon.com/...", "real_brand": "TechSound", "estimated_clicks": 609.5892028257901, "chart_brand": "TechSound"}, {"week_date": "2023-09-29", "parent_asin": "B00PARENT01", "keywords": "noise cancelling headphones", "asin": "B006129", "is_yaba_asin": "Y", "competitor_brand": "TechSound", "product_title": "TechSound Wireless Earbuds Active Noise Cancelling", "average_organic_rank": 8, "price": 49.3789437146522, "click_share": 0.08055530419355609, "weekly_search_volume": 2862, "weekly_number_of_days_with_deal": 7, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 7, "grams": 200, "organic_or_not": "Organic", "container": "Box", "keywords_link": "http://amazon.com/...", "real_brand": "TechSound", "estimated_clicks": 230.54928060195754, "chart_brand": "TechSound"}, {"week_date": "2023-09-29", "parent_asin": "B00PARENT01", "keywords": "sport headphones", "asin": "B006129", "is_yaba_asin": "Y", "competitor_brand": "TechSound", "product_title": "TechSound Wireless Earbuds Active Noise Cancelling", "average_organic_rank": 15, "price": 49.3789437146522, "click_share": 0.09341530397579177, "weekly_search_volume": 2492, "weekly_number_of_days_with_deal": 7, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 7, "grams": 200, "organic_or_not": "Organic", "container": "Box", "keywords_link": "http://amazon.com/...", "real_brand": "TechSound", "estimated_clicks": 232.79093750767308, "chart_brand": "TechSound"}];
+
+    const generatedInsights = ["Tendencia Global: El volumen de clicks muestra una tendencia decreciente (-8.7% vs semana anterior).", "Competitividad: TechSound ha ganado visibilidad en la última semana.", "Top Competidores: Unknown Brand, JBLife, SonyAudio dominan el segmento fuera de nuestra marca.", "Eficiencia: Se observa una correlación directa entre Organic Rank Top 5 y Click Share > 10%.", "Riesgo: Los competidores con cupones activos están ganando cuota marginal en keywords genéricas."];
+    const generatedRecommendations = ["Ajustar precios en variantes de bajo rendimiento para recuperar Organic Rank.", "Activar cupones en semanas sin Deal Days para mantener la conversión.", "Revisar títulos de competidores Top 3 para optimizar keywords faltantes."];
+    const ourBrandName = "TechSound";
+    const topCompetitors = ["Unknown Brand", "JBLife", "SonyAudio"];
+
+    // --- 2. GOOGLE CHARTS SETUP ---
+    google.charts.load('current', {'packages':['corechart', 'bar', 'table']});
+    google.charts.setOnLoadCallback(initDashboard);
+
+    function initDashboard() {
+        processKPIs();
+        renderInsights();
+        drawTrendChart();
+        drawShareChart();
+        drawEfficiencyChart();
+        populateControls();
+        // Trigger initial interactive view
+        updateComparator();
+    }
+
+    // --- 3. HELPER FUNCTIONS ---
+    function getWeeks() {
+        return [...new Set(marketData.map(d => d.week_date))].sort();
+    }
+
+    function getBrands() {
+        return [...new Set(marketData.filter(d => d.real_brand !== ourBrandName).map(d => d.real_brand))].sort();
+    }
+
+    function switchTab(tabName) {
+        document.getElementById('tab-report').classList.add('hidden');
+        document.getElementById('tab-interactive').classList.add('hidden');
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        
+        document.getElementById(`tab-${tabName}`).classList.remove('hidden');
+        event.target.classList.add('active');
+        
+        // Redraw interactive if needed when switching
+        if(tabName === 'interactive') updateComparator();
+    }
+
+    // --- 4. RENDER LOGIC ---
+
+    function processKPIs() {
+        const weeks = getWeeks();
+        const curWeek = weeks[weeks.length - 1];
+        const prevWeek = weeks[weeks.length - 2];
+
+        const curData = marketData.filter(d => d.week_date === curWeek);
+        const prevData = marketData.filter(d => d.week_date === prevWeek);
+
+        const kpis = [
+            { label: "Total Clicks Estimados", val: sum(curData, 'estimated_clicks'), prev: sum(prevData, 'estimated_clicks'), format: 'number' },
+            { label: "Nuestra Cuota de Clicks", val: avg(curData.filter(d => d.is_yaba_asin === 'Y'), 'click_share') * 100, prev: avg(prevData.filter(d => d.is_yaba_asin === 'Y'), 'click_share') * 100, format: 'percent' },
+            { label: "Avg Precio (Nosotros)", val: avg(curData.filter(d => d.is_yaba_asin === 'Y'), 'price'), prev: avg(prevData.filter(d => d.is_yaba_asin === 'Y'), 'price'), format: 'currency' }
+        ];
+
+        const container = document.getElementById('kpi-container');
+        container.innerHTML = kpis.map(k => {
+            const delta = k.prev > 0 ? ((k.val - k.prev) / k.prev) * 100 : 0;
+            const deltaClass = delta >= 0 ? 'delta-pos' : 'delta-neg';
+            const icon = delta >= 0 ? 'arrow_upward' : 'arrow_downward';
+            const displayVal = k.format === 'currency' ? '$' + k.val.toFixed(2) : (k.format === 'percent' ? k.val.toFixed(1) + '%' : Math.round(k.val).toLocaleString());
+            
+            return `
+                <div class="kpi-card">
+                    <div class="kpi-label">${k.label}</div>
+                    <div class="kpi-value">${displayVal}</div>
+                    <div class="kpi-delta ${deltaClass}">
+                        <span class="material-icons" style="font-size:12px; vertical-align:middle;">${icon}</span>
+                        ${Math.abs(delta).toFixed(1)}% vs sem. ant.
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    function renderInsights() {
+        document.getElementById('insights-container').innerHTML = generatedInsights.map(txt => `
+            <div class="insight-item">
+                <span class="material-icons insight-icon">insights</span>
+                <div>${txt}</div>
+            </div>
+        `).join('');
+
+        document.getElementById('recommendations-container').innerHTML = generatedRecommendations.map(txt => `
+            <div class="insight-item">
+                <span class="material-icons insight-icon" style="color:#34A853;">check_circle</span>
+                <div>${txt}</div>
+            </div>
+        `).join('');
+    }
+
+    function drawTrendChart() {
+        // Aggregate by week: Us Clicks, Comp Clicks, Total Share (Avg)
+        const weeks = getWeeks();
+        const dataTable = [['Semana', 'Clicks (Nosotros)', 'Clicks (Competencia)', 'Avg Click Share']];
+
+        weeks.forEach(w => {
+            const weekData = marketData.filter(d => d.week_date === w);
+            const usClicks = sum(weekData.filter(d => d.is_yaba_asin === 'Y'), 'estimated_clicks');
+            const compClicks = sum(weekData.filter(d => d.is_yaba_asin === 'N'), 'estimated_clicks');
+            const avgShare = avg(weekData, 'click_share');
+            dataTable.push([w, usClicks, compClicks, avgShare]);
+        });
+
+        const data = google.visualization.arrayToDataTable(dataTable);
+        const options = {
+            seriesType: 'bars',
+            isStacked: true,
+            series: {2: {type: 'line', targetAxisIndex: 1, color: '#EA4335'}},
+            colors: ['#4285F4', '#E0E0E0'],
+            vAxes: {0: {title: 'Volumen Clicks'}, 1: {title: 'Click Share Global', format: 'percent'}},
+            legend: {position: 'bottom'},
+            chartArea: {width: '85%', height: '70%'}
+        };
+
+        const chart = new google.visualization.ComboChart(document.getElementById('chart_trend'));
+        chart.draw(data, options);
+    }
+
+    function drawShareChart() {
+        // Pivot: Week on rows, Brands on columns
+        const weeks = getWeeks();
+        const brands = [ourBrandName, ...topCompetitors, "Rest of Market"];
+        
+        // Header
+        const header = ['Semana', ourBrandName, ...topCompetitors, "Rest of Market"];
+        const rows = [];
+
+        weeks.forEach(w => {
+            const row = [w];
+            const weekData = marketData.filter(d => d.week_date === w);
+            const totalClicks = sum(weekData, 'estimated_clicks'); // Use clicks to weight share or just sum share? Prompt asks for Share Curve.
+            // Let's use Sum of Click Share per brand (normalized if needed, but usually sum is fine for visibility)
+            
+            brands.forEach(b => {
+                const brandData = weekData.filter(d => d.chart_brand === b);
+                const shareSum = sum(brandData, 'click_share');
+                row.push(shareSum);
+            });
+            rows.push(row);
+        });
+
+        const data = google.visualization.arrayToDataTable([header, ...rows]);
+        const options = {
+            curveType: 'function',
+            lineWidth: 2,
+            colors: ['#4285F4', '#EA4335', '#FBBC05', '#34A853', '#9AA0A6'],
+            vAxis: {format: 'percent'},
+            legend: {position: 'bottom'},
+            chartArea: {width: '85%', height: '70%'}
+        };
+
+        const chart = new google.visualization.LineChart(document.getElementById('chart_share'));
+        chart.draw(data, options);
+    }
+
+    function drawEfficiencyChart() {
+        // Scatter: X=Rank, Y=Share
+        // We need to differentiate Us vs Them
+        const dataTable = [['Rank', 'Click Share', {'type': 'string', 'role': 'style'}, {'type': 'string', 'role': 'tooltip'}]];
+        
+        marketData.forEach(d => {
+            const color = d.is_yaba_asin === 'Y' ? '#4285F4' : '#EA4335';
+            const tooltip = `${d.product_title}\nRank: ${d.average_organic_rank}\nShare: ${(d.click_share*100).toFixed(1)}%`;
+            dataTable.push([d.average_organic_rank, d.click_share, `point {fill-color: ${color}}`, tooltip]);
+        });
+
+        const data = google.visualization.arrayToDataTable(dataTable);
+        const options = {
+            hAxis: {title: 'Organic Rank (Lower is Better)', direction: -1}, // Invert Rank
+            vAxis: {title: 'Click Share', format: 'percent'},
+            legend: 'none',
+            chartArea: {width: '85%', height: '75%'},
+            explorer: { actions: ['dragToZoom', 'rightClickToReset'] }
+        };
+
+        const chart = new google.visualization.ScatterChart(document.getElementById('chart_efficiency'));
+        chart.draw(data, options);
+    }
+
+    // --- 5. INTERACTIVE LOGIC ---
+
+    function populateControls() {
+        const weekSel = document.getElementById('sel-week');
+        getWeeks().forEach(w => {
+            const opt = document.createElement('option');
+            opt.value = w;
+            opt.text = w;
+            weekSel.add(opt);
+        });
+        weekSel.value = getWeeks().pop(); // Default last
+
+        const compSel = document.getElementById('sel-competitor');
+        getBrands().forEach(b => {
+            const opt = document.createElement('option');
+            opt.value = b;
+            opt.text = b;
+            compSel.add(opt);
+        });
+    }
+
+    function updateComparator() {
+        const week = document.getElementById('sel-week').value;
+        const comp = document.getElementById('sel-competitor').value;
+        document.getElementById('th-comp-name').innerText = comp;
+
+        // Filter Data
+        const weekData = marketData.filter(d => d.week_date === week);
+        const usData = weekData.filter(d => d.is_yaba_asin === 'Y');
+        const compData = weekData.filter(d => d.real_brand === comp);
+
+        // Metrics Calculation
+        const metrics = [
+            { id: 'avg_rank', name: 'Avg Organic Rank', fmt: 'num', rev: true }, // lower better
+            { id: 'price', name: 'Precio Promedio', fmt: 'curr', rev: false }, // depends, usually lower better for sales? assume neutral
+            { id: 'share', name: 'Total Click Share', fmt: 'pct', rev: false },
+            { id: 'deals', name: 'Has Deals?', fmt: 'bool', rev: false }
+        ];
+
+        const tbody = document.querySelector('#comparison-table tbody');
+        tbody.innerHTML = '';
+
+        // Helper for table metrics
+        const getMetricVal = (data, m) => {
+            if (m.id === 'avg_rank') return avg(data, 'average_organic_rank');
+            if (m.id === 'price') return avg(data, 'price');
+            if (m.id === 'share') return sum(data, 'click_share');
+            if (m.id === 'deals') return data.some(d => d.weekly_number_of_days_with_deal > 0) ? "YES" : "NO";
+            return 0;
+        };
+
+        metrics.forEach(m => {
+            let usVal = getMetricVal(usData, m);
+            let compVal = getMetricVal(compData, m);
+            
+            let diff = 0;
+            let displayDiff = '-';
+            let winnerClass = ''; // 1 for us, 2 for comp
+
+            if (typeof usVal === 'number' && typeof compVal === 'number') {
+                diff = usVal - compVal;
+                displayDiff = diff.toFixed(2);
+                // Determine winner logic
+                if (m.rev) { // Lower is better
+                    if (usVal < compVal) winnerClass = 'us';
+                    else if (compVal < usVal) winnerClass = 'comp';
+                } else { // Higher is better (usually)
+                    if (usVal > compVal) winnerClass = 'us';
+                    else if (compVal > usVal) winnerClass = 'comp';
+                }
+            }
+
+            // Formatting
+            const formatVal = (v) => {
+                if(m.fmt === 'curr') return '$' + v.toFixed(2);
+                if(m.fmt === 'pct') return (v*100).toFixed(1) + '%';
+                if(m.fmt === 'num') return v.toFixed(1);
+                return v;
+            };
+
+            const tr = `
+                <tr>
+                    <td>${m.name}</td>
+                    <td class="${winnerClass === 'us' ? 'winner' : ''}">${formatVal(usVal)}</td>
+                    <td class="${winnerClass === 'comp' ? 'winner' : ''}">${formatVal(compVal)}</td>
+                    <td>${displayDiff}</td>
+                </tr>
+            `;
+            tbody.innerHTML += tr;
+        });
+
+        // Mini Chart: Share Comparison
+        const data = google.visualization.arrayToDataTable([
+            ['Brand', 'Share'],
+            [ourBrandName, sum(usData, 'click_share')],
+            [comp, sum(compData, 'click_share')]
+        ]);
+        const options = {
+            title: 'Cuota de Mercado (Semana Seleccionada)',
+            pieHole: 0.4,
+            colors: ['#4285F4', '#EA4335'],
+            legend: {position: 'bottom'}
+        };
+        new google.visualization.PieChart(document.getElementById('chart_comparator')).draw(data, options);
+    }
+
+    // --- UTILS ---
+    function sum(data, key) {
+        return data.reduce((a, b) => a + (b[key] || 0), 0);
+    }
+    function avg(data, key) {
+        if (!data.length) return 0;
+        return sum(data, key) / data.length;
+    }
+
+</script>
+
+</body>
+</html>
