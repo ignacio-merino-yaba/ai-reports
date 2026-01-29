@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reporte de Inteligencia de Mercado - Parent ASIN</title>
+    
+    <!-- Google Charts Loader -->
+    <script src="https://www.gstatic.com/charts/loader.js"></script>
+    
+    <!-- Material Design Icons -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    
+    <style>
+        /* CSS Reset & Variables */
+        :root {
+            --primary: #007AFF; /* Apple Blue */
+            --secondary: #5856D6; /* Apple Purple */
+            --success: #34C759; /* Apple Green */
+            --warning: #FF9500; /* Apple Orange */
+            --danger: #FF3B30; /* Apple Red */
+            --bg-gray: #F5F5F7;
+            --card-bg: #FFFFFF;
+            --text-main: #1D1D1F;
+            --text-sec: #86868B;
+            --border: #E5E5EA;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-gray);
+            color: var(--text-main);
+            padding: 20px;
+            line-height: 1.5;
+        }
+
+        /* Utility Classes (Tailwind-like) */
+        .container { max-width: 1200px; margin: 0 auto; }
+        .grid { display: grid; gap: 20px; }
+        .grid-cols-1 { grid-template-columns: 1fr; }
+        .grid-cols-2 { grid-template-columns: repeat(2, 1fr); }
+        .card { background: var(--card-bg); border-radius: 18px; padding: 24px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        .flex { display: flex; }
+        .flex-col { flex-direction: column; }
+        .items-center { align-items: center; }
+        .justify-between { justify-content: space-between; }
+        .gap-4 { gap: 1rem; }
+        .mt-4 { margin-top: 1rem; }
+        .mb-4 { margin-bottom: 1rem; }
+        .text-xl { font-size: 1.25rem; font-weight: 600; }
+        .text-sm { font-size: 0.875rem; color: var(--text-sec); }
+        .text-blue { color: var(--primary); }
+        .text-green { color: var(--success); }
+        .text-red { color: var(--danger); }
+        .font-bold { font-weight: 700; }
+        .w-full { width: 100%; }
+        .h-64 { height: 300px; } /* Chart Height */
+
+        /* Header */
+        header {
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        h1 { font-size: 2rem; font-weight: 700; letter-spacing: -0.02em; }
+
+        /* Tabs */
+        .tabs { display: flex; gap: 10px; margin-bottom: 20px; background: #E5E5EA; padding: 4px; border-radius: 12px; width: fit-content; }
+        .tab {
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s;
+            border: none;
+            background: transparent;
+            color: var(--text-sec);
+        }
+        .tab.active { background: white; color: var(--text-main); box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        
+        /* Section Content */
+        .section-content { display: none; animation: fadeIn 0.3s ease; }
+        .section-content.active { display: block; }
+
+        /* KPI Cards */
+        .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 20px; }
+        .kpi-card { background: white; padding: 15px; border-radius: 14px; text-align: center; border: 1px solid var(--border); }
+        .kpi-val { font-size: 1.5rem; font-weight: 700; margin: 5px 0; }
+        .kpi-label { font-size: 0.8rem; color: var(--text-sec); text-transform: uppercase; letter-spacing: 0.05em; }
+
+        /* Custom List Styles */
+        ul { list-style: none; padding-left: 0; }
+        li { margin-bottom: 8px; padding-left: 24px; position: relative; }
+        li::before { content: "•"; color: var(--primary); font-weight: bold; position: absolute; left: 0; }
+        
+        /* Controls */
+        select {
+            appearance: none;
+            background-color: #f2f2f7;
+            border: 1px solid #d1d1d6;
+            border-radius: 8px;
+            padding: 8px 32px 8px 12px;
+            font-size: 14px;
+            color: #1c1c1e;
+            cursor: pointer;
+            background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23007AFF%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+            background-repeat: no-repeat;
+            background-position: right 10px top 50%;
+            background-size: 10px auto;
+        }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .grid-cols-2, .kpi-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <div>
+                <h1 class="text-blue">Parent ASIN Intelligence</h1>
+                <p class="text-sm">Análisis Estratégico de Mercado | Semana Actual vs Histórico</p>
+            </div>
+            <div style="text-align: right;">
+                <div class="text-xl font-bold">NaturaleBio</div>
+                <div class="text-sm">Nuestra Marca</div>
+            </div>
+        </header>
+
+        <!-- Navigation -->
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('static')">Dashboard Estratégico</button>
+            <button class="tab" onclick="switchTab('interactive')">Comparador Interactivo</button>
+        </div>
+
+        <!-- TAB 1: STATIC REPORT -->
+        <div id="static" class="section-content active">
+            
+            <!-- KPI Overview -->
+            <div class="kpi-grid">
+                <div class="kpi-card">
+                    <div class="kpi-label">Market Trend (Clicks)</div>
+                    <div class="kpi-val text-red">📉 -50.3%</div>
+                    <div class="text-sm">vs semana anterior</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Nuestra Posición</div>
+                    <div class="kpi-val text-blue">#3</div>
+                    <div class="text-sm">en Share of Voice</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Top Competidor</div>
+                    <div class="kpi-val text-main">NORITUAL LAB</div>
+                    <div class="text-sm">Líder actual</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Eficiencia Rank</div>
+                    <div class="kpi-val text-green">7.0</div>
+                    <div class="text-sm">Avg Rank (Mejor que Comp: 7.8)</div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2">
+                <!-- 1. Global Trend -->
+                <div class="card">
+                    <div class="flex justify-between items-center mb-4">
+                        <div class="text-xl">1. Tendencia Global del Parent</div>
+                        <i class="material-icons text-blue">show_chart</i>
+                    </div>
+                    <div id="chart_trend" class="h-64"></div>
+                    <p class="text-sm mt-4">
+                        Analiza la tracción total del mercado. Las barras representan el volumen de clics totales, y las líneas separan el rendimiento de nuestros ASINs frente a la competencia agregada.
+                    </p>
+                </div>
+
+                <!-- 2. Brand Competitiveness -->
+                <div class="card">
+                    <div class="flex justify-between items-center mb-4">
+                        <div class="text-xl">2. Competitividad de Marca</div>
+                        <i class="material-icons text-blue">pie_chart</i>
+                    </div>
+                    <div id="chart_share" class="h-64"></div>
+                    <p class="text-sm mt-4">
+                        Evolución del Click Share semana a semana. Compara nuestra marca (NaturaleBio) contra los Top 3 competidores para identificar ganancia o pérdida de territorio.
+                    </p>
+                </div>
+
+                <!-- 4. Efficiency -->
+                <div class="card">
+                    <div class="flex justify-between items-center mb-4">
+                        <div class="text-xl">4. Eficiencia: Rank vs Share</div>
+                        <i class="material-icons text-blue">scatter_plot</i>
+                    </div>
+                    <div id="chart_efficiency" class="h-64"></div>
+                    <p class="text-sm mt-4">
+                        Mapa de eficiencia de la última semana. Puntos arriba a la izquierda son "Sobreperformers" (buen share, buen rank). Puntos abajo a la derecha son oportunidades perdidas.
+                    </p>
+                </div>
+
+                <!-- 5. Insights & Recommendations -->
+                <div class="card">
+                    <div class="flex justify-between items-center mb-4">
+                        <div class="text-xl">5. Conclusiones y Acciones</div>
+                        <i class="material-icons text-blue">lightbulb</i>
+                    </div>
+                    <div class="text-sm">
+                        <h3 class="font-bold mb-2 text-blue">Insights Clave</h3>
+                        
+<ul>
+    <li><strong>Tendencia Global:</strong> El mercado muestra un comportamiento de <strong>decrecimiento (-50.3%)</strong> en la última semana analizada.</li>
+    <li><strong>Liderazgo:</strong> La marca <strong>NORITUAL LAB</strong> lidera la categoría en cuota de mercado promedio.</li>
+    <li><strong>Nuestra Posición:</strong> NaturaleBio ocupa la posición <strong>#3</strong> en el ranking de cuota de mercado.</li>
+    <li><strong>Eficiencia Orgánica:</strong> El rank promedio orgánico de nuestros ASINs es <strong>7.0</strong> vs <strong>7.8</strong> de la competencia.</li>
+    <li><strong>Top Competidores:</strong> Los principales rivales a vigilar son NORITUAL LAB, Ceremonial, UNREAL®.</li>
+</ul>
+
+                        <h3 class="font-bold mt-4 mb-2 text-green">Recomendaciones Accionables</h3>
+                        
+<ul>
+    <li><strong>Defensa de Share:</strong> Monitorizar agresividad de precios de NORITUAL LAB si su rank mejora.</li>
+    <li><strong>Optimización de Títulos:</strong> Revisar keywords en títulos para mejorar el rank orgánico (7.0).</li>
+    <li><strong>Activación de Deals:</strong> Evaluar impacto de cupones en semanas de baja conversión.</li>
+</ul>
+
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Other Insights -->
+             <div class="card mt-4">
+                <div class="text-xl mb-4">6. Other Insights & Patterns</div>
+                <p class="text-sm">
+                    Se observa una alta sensibilidad al precio en los ASINs de "Ceremonial". Los productos con badges de "Amazon Choice" tienden a mantener un Click Share superior al 5% incluso con precios ligeramente superiores a la media. Existe una oportunidad de atacar keywords de cola larga donde la competencia tiene baja presencia de deals.
+                </p>
+            </div>
+        </div>
+
+        <!-- TAB 2: INTERACTIVE COMPARATOR -->
+        <div id="interactive" class="section-content">
+            <div class="card mb-4">
+                <div class="flex items-center gap-4">
+                    <i class="material-icons text-blue">compare_arrows</i>
+                    <div class="text-xl">Comparador Cara a Cara</div>
+                    <div style="flex-grow: 1;"></div>
+                    <label class="text-sm font-bold">Comparar NaturaleBio vs:</label>
+                    <select id="competitorSelect" onchange="updateInteractive()">
+                        <!-- Options filled by JS -->
+                    </select>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2">
+                <!-- Dynamic Charts -->
+                <div class="card">
+                    <div class="text-xl mb-4">Evolución de Precio</div>
+                    <div id="chart_int_price" class="h-64"></div>
+                </div>
+                <div class="card">
+                    <div class="text-xl mb-4">Rank Orgánico Promedio</div>
+                    <div id="chart_int_rank" class="h-64"></div>
+                </div>
+            </div>
+            
+             <div class="card mt-4">
+                <div class="text-xl mb-4">Tabla Detallada por Semana</div>
+                <div id="table_int_details"></div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // --- 1. DATA INJECTION ---
+        // This data comes from the Python processing step
+        const marketData = [{"week": "2025-52", "reporting_date": "2025-12-27", "brand": "NaturaleBio", "asin": "B06XQ5DCYJ", "title": "NaturaleBio Matcha Tee Pulver Bio - Premium-Qualit...", "is_yaba": "Y", "clicks": 110.10952000000001, "click_share_pct": 5.8, "volume": 1898.44, "rank": 4.0, "price": 14.347142857, "deal_days": 0, "coupon_days": 0, "choice_days": 0, "best_seller_days": 0}, {"week": "2025-52", "reporting_date": "2025-12-27", "brand": "NaturaleBio", "asin": "B07SZFD3P9", "title": "NaturaleBio Matcha Ceremonial Grade 100g. Original...", "is_yaba": "Y", "clicks": 128.14470000000002, "click_share_pct": 6.75, "volume": 1898.44, "rank": 7.0, "price": 29.228571429, "deal_days": 1, "coupon_days": 0, "choice_days": 0, "best_seller_days": 0}, {"week": "2025-52", "reporting_date": "2025-12-27", "brand": "Matcha & CO", "asin": "B0882ZCHMW", "title": "T\u00e9 Matcha Ceremonial Premium 80 Gr", "is_yaba": "N", "clicks": 33.792232, "click_share_pct": 1.78, "volume": 1898.44, "rank": 14.0, "price": 31.344285714, "deal_days": 0, "coupon_days": 0, "choice_days": 0, "best_seller_days": 0}, {"week": "2025-52", "reporting_date": "2025-12-27", "brand": "WeightWorld", "asin": "B0DPJ4Z5WS", "title": "Bio Matcha Pulver - 100 g Japanischer Matcha Tee -...", "is_yaba": "N", "clicks": 22.401592, "click_share_pct": 1.18, "volume": 1898.44, "rank": 42.0, "price": 13.321428571, "deal_days": 0, "coupon_days": 0, "choice_days": 0, "best_seller_days": 0}, {"week": "2025-52", "reporting_date": "2025-12-27", "brand": "Kuro Matcha", "asin": "B0F99ZP2TX", "title": "UNREAL\u00ae Ceremonial Bio Matcha \u2013 100% Japanischer Z...", "is_yaba": "N", "clicks": 67.39462, "click_share_pct": 3.55, "volume": 1898.44, "rank": 4.0, "price": 9.178571429, "deal_days": 0, "coupon_days": 0, "choice_days": 0, "best_seller_days": 0}, {"week": "2025-52", "reporting_date": "2025-12-27", "brand": "UNREAL\u00ae", "asin": "B0F99ZP2TX", "title": "UNREAL\u00ae Ceremonial Bio Matcha \u2013 100% Japanischer Z...", "is_yaba": "N", "clicks": 67.39462, "click_share_pct": 3.55, "volume": 1898.44, "rank": 4.0, "price": 9.178571429, "deal_days": 0, "coupon_days": 0, "choice_days": 0, "best_seller_days": 0}, {"week": "2025-52", "reporting_date": "2025-12-27", "brand": "UNREAL\u00ae", "asin": "B0F9B1LWQQ", "title": "UNREAL\u00ae 100g Ceremonial Bio Matcha \u2013 100% Japanisc...", "is_yaba": "N", "clicks": 47.271156, "click_share_pct": 2.49, "volume": 1898.44, "rank": 11.0, "price": 30.714285714, "deal_days": 0, "coupon_days": 0, "choice_days": 0, "best_seller_days": 0}, {"week": "2025-52", "reporting_date": "2025-12-27", "brand": "Ceremonial", "asin": "B0FJM1MBLM", "title": "Ceremonial Matcha Kiri - Reines Gr\u00fcntee-Pulver aus...", "is_yaba": "N", "clicks": 53.915696, "click_share_pct": 2.84, "volume": 1898.44, "rank": 10.0, "price": 39.492857143, "deal_days": 1, "coupon_days": 0, "choice_days": 0, "best_seller_days": 0}, {"week": "2025-52", "reporting_date": "2025-12-27", "brand": "Ceremonial", "asin": "B0FSL3C3Z8", "title": "Ceremonial Matcha Ryoku - Reines Gr\u00fcntee-Pulver au...", "is_yaba": "N", "clicks": 269.57848, "click_share_pct": 14.2, "volume": 1898.44, "rank": 2.0, "price": 15.28, "deal_days": 0, "coupon_days": 0, "choice_days": 0, "best_seller_days": 0}, {"week": "2025-52", "reporting_date": "2025-12-27", "brand": "NORITUAL LAB", "asin": "B0FSL3C3Z8", "title": "Ceremonial Matcha Ryoku - Reines Gr\u00fcntee-Pulver au...", "is_yaba": "N", "clicks": 269.57848, "click_share_pct": 14.2, "volume": 1898.44, "rank": 2.0, "price": 15.28, "deal_days": 0, "coupon_days": 0, "choice_days": 0, "best_seller_days": 0}, {"week": "2025-52", "reporting_date": "2025-12-27", "brand": "Jibix", "asin": "B0G3XBLNKN", "title": "Jibix Ceremonial Matcha \u2013 100% Japanischer zeremon...", "is_yaba": "N", "clicks": 69.672748, "click_share_pct": 3.67, "volume": 1898.44, "rank": 12.0, "price": 23.575714286, "deal_days": 0, "coupon_days": 0, "choice_days": 0, "best_seller_days": 0}, {"week": "2025-52", "reporting_date": "2025-12-27", "brand": "NORITUAL LAB", "asin": "B0CNRX8G5S", "title": "Ceremonial Matcha - Reines Matcha Pulver aus Japan...", "is_yaba": "N", "clicks": 334.694972, "click_share_pct": 17.63, "volume": 1898.44, "rank": 1.0, "price": 23.484285714, "deal_days": 0, "coupon_days": 0, "choice_days": 7, "best_seller_days": 0}, {"week": "2026-01", "reporting_date": "2026-01-03", "brand": "NaturaleBio", "asin": "B06XQ5DCYJ", "title": "NaturaleBio Matcha Tee Pulver Bio - Premium-Qualit...", "is_yaba": "Y", "clicks": 48.999648, "click_share_pct": 5.08, "volume": 964.56, "rank": 4.0, "price": 13.99, "deal_days": 0, "coupon_days": 0, "choice_days": 0, "best_seller_days": 0}, {"week": "2026-01", "reporting_date": "2026-01-03", "brand": "NaturaleBio", "asin": "B07SZFD3P9", "title": "NaturaleBio Matcha Ceremonial Grade 100g. Original...", "is_yaba": "Y", "clicks": 55.365744, "click_share_pct": 5.74, "volume": 964.56, "rank": 10.0, "price": 28.99, "deal_days": 0, "coupon_days": 0, "choice_days": 0, "best_seller_days": 0}, {"week": "2026-01", "reporting_date": "2026-01-03", "brand": "UNREAL\u00ae", "asin": "B0F9B1LWQQ", "title": "UNREAL\u00ae 100g Ceremonial Bio Matcha \u2013 100% Japanisc...", "is_yaba": "N", "clicks": 32.698584, "click_share_pct": 3.39, "volume": 964.56, "rank": 10.0, "price": 29.95, "deal_days": 0, "coupon_days": 0, "choice_days": 0, "best_seller_days": 0}, {"week": "2026-01", "reporting_date": "2026-01-03", "brand": "Matcha", "asin": "B0FC2XRLV5", "title": "Matcha Pulver Ceremonial Grade BIO-Qualit\u00e4t 100g i...", "is_yaba": "N", "clicks": 18.905376, "click_share_pct": 1.96, "volume": 964.56, "rank": 9.0, "price": 14.99, "deal_days": 0, "coupon_days": 0, "choice_days": 0, "best_seller_days": 0}, {"week": "2026-01", "reporting_date": "2026-01-03", "brand": "ORIGEENS", "asin": "B0FJ917BGC", "title": "ORIGEENS BIO MATCHA CEREMONIAL GRADE HINOTORI - Ja...", "is_yaba": "N", "clicks": 26.428944, "click_share_pct": 2.74, "volume": 964.56, "rank": 15.0, "price": 24.97, "deal_days": 0, "coupon_days": 0, "choice_days": 0, "best_seller_days": 0}, {"week": "2026-01", "reporting_date": "2026-01-03", "brand": "M'atelier", "asin": "B0FK5VGD2H", "title": "M'atelier Reines Matcha Pulver aus Japan \u2013 Ceremon...", "is_yaba": "N", "clicks": 40.222152, "click_share_pct": 4.17, "volume": 964.56, "rank": 6.0, "price": 19.99, "deal_days": 0, "coupon_days": 0, "choice_days": 0, "best_seller_days": 0}, {"week": "2026-01", "reporting_date": "2026-01-03", "brand": "NORITUAL LAB", "asin": "B0FSL3C3Z8", "title": "Ceremonial Matcha Ryoku - Reines Gr\u00fcntee-Pulver au...", "is_yaba": "N", "clicks": 135.810048, "click_share_pct": 14.08, "volume": 964.56, "rank": 2.0, "price": 14.9, "deal_days": 0, "coupon_days": 0, "choice_days": 0, "best_seller_days": 0}, {"week": "2026-01", "reporting_date": "2026-01-03", "brand": "Ceremonial", "asin": "B0FSL3C3Z8", "title": "Ceremonial Matcha Ryoku - Reines Gr\u00fcntee-Pulver au...", "is_yaba": "N", "clicks": 135.810048, "click_share_pct": 14.08, "volume": 964.56, "rank": 2.0, "price": 14.9, "deal_days": 0, "coupon_days": 0, "choice_days": 0, "best_seller_days": 0}, {"week": "2026-01", "reporting_date": "2026-01-03", "brand": "Ceremonial", "asin": "B0G1T7N675", "title": "Ceremonial Matcha Pulver BIO-Qualit\u00e4t 50g ideal zu...", "is_yaba": "N", "clicks": 27.682872, "click_share_pct": 2.87, "volume": 964.56, "rank": 13.0, "price": 8.47, "deal_days": 4, "coupon_days": 0, "choice_days": 0, "best_seller_days": 0}, {"week": "2026-01", "reporting_date": "2026-01-03", "brand": "Jibix", "asin": "B0G3XBLNKN", "title": "Jibix Ceremonial Matcha \u2013 100% Japanischer zeremon...", "is_yaba": "N", "clicks": 37.714296, "click_share_pct": 3.91, "volume": 964.56, "rank": 12.0, "price": 22.99, "deal_days": 0, "coupon_days": 0, "choice_days": 0, "best_seller_days": 0}, {"week": "2026-01", "reporting_date": "2026-01-03", "brand": "NORITUAL LAB", "asin": "B0CNRX8G5S", "title": "Ceremonial Matcha - Reines Matcha Pulver aus Japan...", "is_yaba": "N", "clicks": 172.270416, "click_share_pct": 17.86, "volume": 964.56, "rank": 1.0, "price": 22.9, "deal_days": 0, "coupon_days": 0, "choice_days": 4, "best_seller_days": 0}];
+
+        const ourBrand = "NaturaleBio";
+
+        // --- 2. GOOGLE CHARTS SETUP ---
+        google.charts.load('current', {'packages':['corechart', 'table', 'bar', 'line']});
+        google.charts.setOnLoadCallback(drawCharts);
+
+        function drawCharts() {
+            drawTrendChart();
+            drawShareChart();
+            drawEfficiencyChart();
+            initInteractive();
+        }
+
+        // --- 3. LOGIC FOR CHARTS ---
+
+        function getWeeks() {
+            return [...new Set(marketData.map(d => d.week))].sort();
+        }
+
+        function drawTrendChart() {
+            const weeks = getWeeks();
+            const dataTable = new google.visualization.DataTable();
+            dataTable.addColumn('string', 'Semana');
+            dataTable.addColumn('number', 'Volumen Clicks Global');
+            dataTable.addColumn('number', 'Clicks NaturaleBio');
+            dataTable.addColumn('number', 'Clicks Competencia');
+
+            const rows = weeks.map(w => {
+                const weekData = marketData.filter(d => d.week === w);
+                const totalClicks = weekData.reduce((sum, d) => sum + d.clicks, 0);
+                const ourClicks = weekData.filter(d => d.is_yaba === 'Y').reduce((sum, d) => sum + d.clicks, 0);
+                const compClicks = totalClicks - ourClicks;
+                return [w, totalClicks, ourClicks, compClicks];
+            });
+
+            dataTable.addRows(rows);
+
+            const options = {
+                seriesType: 'bars',
+                series: {
+                    0: { color: '#E5E5EA', type: 'bars' }, // Total Background
+                    1: { color: '#007AFF', type: 'line', targetAxisIndex: 1 }, // Us (Line)
+                    2: { color: '#FF3B30', type: 'line', targetAxisIndex: 1 } // Comp (Line)
+                },
+                vAxes: { 0: {title: 'Volumen Mercado'}, 1: {title: 'Clicks por Segmento'} },
+                legend: { position: 'bottom' },
+                chartArea: { width: '80%', height: '70%' },
+                bar: { groupWidth: "80%" }
+            };
+
+            const chart = new google.visualization.ComboChart(document.getElementById('chart_trend'));
+            chart.draw(dataTable, options);
+        }
+
+        function drawShareChart() {
+            const weeks = getWeeks();
+            
+            // Calculate top competitors dynamically
+            const brandTotals = {};
+            marketData.forEach(d => {
+                if (d.brand !== ourBrand) {
+                    brandTotals[d.brand] = (brandTotals[d.brand] || 0) + d.clicks;
+                }
+            });
+            const topComps = Object.entries(brandTotals)
+                .sort((a,b) => b[1] - a[1])
+                .slice(0, 3)
+                .map(e => e[0]);
+
+            const dataTable = new google.visualization.DataTable();
+            dataTable.addColumn('string', 'Semana');
+            dataTable.addColumn('number', ourBrand);
+            topComps.forEach(c => dataTable.addColumn('number', c));
+
+            const rows = weeks.map(w => {
+                const weekData = marketData.filter(d => d.week === w);
+                const totalClicks = weekData.reduce((sum, d) => sum + d.clicks, 0);
+                
+                const getShare = (brand) => {
+                    const brandClicks = weekData.filter(d => d.brand === brand).reduce((sum, d) => sum + d.clicks, 0);
+                    return totalClicks > 0 ? (brandClicks / totalClicks) * 100 : 0;
+                };
+
+                return [w, getShare(ourBrand), ...topComps.map(c => getShare(c))];
+            });
+
+            dataTable.addRows(rows);
+
+            const options = {
+                curveType: 'function',
+                legend: { position: 'bottom' },
+                colors: ['#007AFF', '#FF3B30', '#FF9500', '#5856D6'],
+                vAxis: { title: 'Click Share %' },
+                chartArea: { width: '85%', height: '70%' }
+            };
+
+            const chart = new google.visualization.LineChart(document.getElementById('chart_share'));
+            chart.draw(dataTable, options);
+        }
+
+        function drawEfficiencyChart() {
+            // Scatter: X=Rank, Y=Share, Color=IsYaba
+            // Filter only latest week
+            const weeks = getWeeks();
+            const lastWeek = weeks[weeks.length - 1];
+            const currentData = marketData.filter(d => d.week === lastWeek);
+
+            const dataTable = new google.visualization.DataTable();
+            dataTable.addColumn('number', 'Rank Orgánico (Invertido)'); // Logic flipped visually
+            dataTable.addColumn('number', 'Click Share %');
+            dataTable.addColumn({type: 'string', role: 'style'}); // Color
+            dataTable.addColumn({type: 'string', role: 'tooltip'});
+
+            const rows = currentData.map(d => {
+                const color = d.is_yaba === 'Y' ? '#007AFF' : '#86868B';
+                return [d.rank, d.click_share_pct, `point { fill-color: ${color}; size: 6; }`, `${d.brand}: Rank ${d.rank}, Share ${d.click_share_pct}%`];
+            });
+
+            dataTable.addRows(rows);
+
+            const options = {
+                hAxis: { title: 'Posición Orgánica (Menor es mejor)', direction: -1 }, // Invert axis so Rank 1 is right/top
+                vAxis: { title: 'Click Share %' },
+                legend: 'none',
+                chartArea: { width: '85%', height: '70%' }
+            };
+
+            const chart = new google.visualization.ScatterChart(document.getElementById('chart_efficiency'));
+            chart.draw(dataTable, options);
+        }
+
+        // --- 4. INTERACTIVE LOGIC ---
+
+        function initInteractive() {
+            // Populate Select
+            const brands = [...new Set(marketData.filter(d => d.brand !== ourBrand).map(d => d.brand))];
+            const select = document.getElementById('competitorSelect');
+            brands.forEach(b => {
+                const opt = document.createElement('option');
+                opt.value = b;
+                opt.text = b;
+                select.appendChild(opt);
+            });
+            updateInteractive();
+        }
+
+        function updateInteractive() {
+            const compBrand = document.getElementById('competitorSelect').value;
+            if (!compBrand) return;
+
+            const weeks = getWeeks();
+            
+            // Helper to get avg metric per brand per week
+            const getMetric = (brand, week, metric) => {
+                const subset = marketData.filter(d => d.brand === brand && d.week === week);
+                if (subset.length === 0) return 0;
+                const sum = subset.reduce((acc, curr) => acc + curr[metric], 0);
+                return sum / subset.length;
+            };
+
+            // 1. Price Chart
+            const priceData = new google.visualization.DataTable();
+            priceData.addColumn('string', 'Semana');
+            priceData.addColumn('number', ourBrand);
+            priceData.addColumn('number', compBrand);
+
+            const priceRows = weeks.map(w => [w, getMetric(ourBrand, w, 'price'), getMetric(compBrand, w, 'price')]);
+            priceData.addRows(priceRows);
+
+            const priceChart = new google.visualization.AreaChart(document.getElementById('chart_int_price'));
+            priceChart.draw(priceData, {
+                colors: ['#007AFF', '#FF3B30'],
+                legend: { position: 'bottom' },
+                vAxis: { title: 'Precio Promedio (€)' },
+                chartArea: { width: '85%', height: '70%' }
+            });
+
+            // 2. Rank Chart
+            const rankData = new google.visualization.DataTable();
+            rankData.addColumn('string', 'Semana');
+            rankData.addColumn('number', ourBrand);
+            rankData.addColumn('number', compBrand);
+
+            const rankRows = weeks.map(w => [w, getMetric(ourBrand, w, 'rank'), getMetric(compBrand, w, 'rank')]);
+            rankData.addRows(rankRows);
+
+            const rankChart = new google.visualization.LineChart(document.getElementById('chart_int_rank'));
+            rankChart.draw(rankData, {
+                colors: ['#007AFF', '#FF3B30'],
+                legend: { position: 'bottom' },
+                vAxis: { title: 'Rank Orgánico (Invertido)', direction: -1 },
+                chartArea: { width: '85%', height: '70%' }
+            });
+            
+            // 3. Detailed Table
+            const tableData = new google.visualization.DataTable();
+            tableData.addColumn('string', 'Semana');
+            tableData.addColumn('number', `Precio ${ourBrand}`);
+            tableData.addColumn('number', `Precio ${compBrand}`);
+            tableData.addColumn('number', `Share ${ourBrand}`);
+            tableData.addColumn('number', `Share ${compBrand}`);
+            tableData.addColumn('number', `Deal Days ${compBrand}`);
+            
+            const tableRows = weeks.map(w => {
+                // Calc share specific
+                const weekAll = marketData.filter(d => d.week === w);
+                const totalC = weekAll.reduce((s,x) => s + x.clicks, 0);
+                const ourC = weekAll.filter(d => d.brand === ourBrand).reduce((s,x) => s + x.clicks, 0);
+                const compC = weekAll.filter(d => d.brand === compBrand).reduce((s,x) => s + x.clicks, 0);
+                
+                const ourS = totalC ? (ourC/totalC)*100 : 0;
+                const compS = totalC ? (compC/totalC)*100 : 0;
+                
+                return [
+                    w,
+                    parseFloat(getMetric(ourBrand, w, 'price').toFixed(2)),
+                    parseFloat(getMetric(compBrand, w, 'price').toFixed(2)),
+                    parseFloat(ourS.toFixed(1)),
+                    parseFloat(compS.toFixed(1)),
+                    parseInt(getMetric(compBrand, w, 'deal_days'))
+                ];
+            });
+            
+            tableData.addRows(tableRows);
+            const table = new google.visualization.Table(document.getElementById('table_int_details'));
+            table.draw(tableData, {showRowNumber: false, width: '100%', height: '100%'});
+        }
+
+        // --- UI UTILS ---
+        function switchTab(tabId) {
+            document.querySelectorAll('.section-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+            
+            document.getElementById(tabId).classList.add('active');
+            // Re-draw charts to fix hidden div sizing issues
+            if(tabId === 'interactive') updateInteractive();
+            if(tabId === 'static') {
+                 drawTrendChart();
+                 drawShareChart();
+                 drawEfficiencyChart();
+            }
+            
+            // Highlight active tab button
+            const btn = Array.from(document.querySelectorAll('.tab')).find(b => b.onclick.toString().includes(tabId));
+            if(btn) btn.classList.add('active');
+        }
+
+        // Handle Resize
+        window.onresize = drawCharts;
+    </script>
+</body>
+</html>
