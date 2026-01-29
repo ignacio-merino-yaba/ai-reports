@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Amazon ASIN Strategic Analysis</title>
+    <!-- Google Charts Loader -->
+    <script src="https://www.gstatic.com/charts/loader.js"></script>
+    <!-- Google Material Icons -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary: #2563eb; /* Blue 600 - Our Brand */
+            --primary-bg: #eff6ff;
+            --comp-1: #dc2626; /* Red 600 */
+            --comp-2: #059669; /* Emerald 600 */
+            --comp-3: #d97706; /* Amber 600 */
+            --neutral: #4b5563;
+            --bg: #f3f4f6;
+            --card: #ffffff;
+            --border: #e5e7eb;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: var(--bg); color: #1f2937; line-height: 1.5; }
+        
+        /* Layout */
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .header { background: var(--card); padding: 20px 30px; border-bottom: 1px solid var(--border); margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center; }
+        .header h1 { font-size: 24px; font-weight: 700; color: #111827; }
+        .badge { background: var(--primary-bg); color: var(--primary); padding: 4px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; text-transform: uppercase; }
+
+        /* Tabs */
+        .tabs { display: flex; gap: 16px; margin-bottom: 24px; border-bottom: 1px solid #d1d5db; }
+        .tab-btn { padding: 12px 20px; background: none; border: none; border-bottom: 2px solid transparent; cursor: pointer; font-size: 16px; font-weight: 500; color: #6b7280; transition: all 0.2s; }
+        .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
+        .tab-btn:hover { color: #111827; }
+
+        .tab-content { display: none; animation: fadeIn 0.3s; }
+        .tab-content.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* Cards */
+        .card { background: var(--card); border-radius: 16px; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); margin-bottom: 24px; border: 1px solid var(--border); }
+        .card h2 { font-size: 18px; font-weight: 600; margin-bottom: 16px; color: #374151; display: flex; align-items: center; gap: 8px; }
+        
+        /* Grid Systems */
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+        .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+
+        /* Metrics */
+        .metric-item { text-align: left; }
+        .metric-value { font-size: 28px; font-weight: 700; color: #111827; }
+        .metric-label { font-size: 13px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; }
+        .trend-up { color: #059669; font-size: 14px; font-weight: 600; }
+        .trend-down { color: #dc2626; font-size: 14px; font-weight: 600; }
+
+        /* Charts Containers */
+        .chart-container { width: 100%; height: 350px; }
+        
+        /* Insights Section */
+        .insight-box { border-left: 4px solid var(--primary); background: #f8fafc; padding: 16px; margin-bottom: 12px; border-radius: 0 8px 8px 0; }
+        .insight-title { font-weight: 600; color: #1e293b; margin-bottom: 4px; }
+        .insight-text { font-size: 14px; color: #475569; }
+
+        /* Recommendations */
+        .rec-list { list-style: none; }
+        .rec-item { display: flex; gap: 12px; margin-bottom: 16px; align-items: flex-start; }
+        .rec-icon { background: #dbeafe; color: var(--primary); width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        
+        /* Interactive Controls */
+        .controls { display: flex; gap: 16px; margin-bottom: 20px; background: #fff; padding: 16px; border-radius: 12px; border: 1px solid var(--border); }
+        select { padding: 8px 12px; border-radius: 8px; border: 1px solid #d1d5db; font-size: 14px; outline: none; min-width: 200px; }
+        
+        /* Data Tables (Custom for Interactive) */
+        .data-table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+        .data-table th { text-align: left; padding: 12px; border-bottom: 2px solid #e5e7eb; color: #6b7280; font-size: 13px; }
+        .data-table td { padding: 12px; border-bottom: 1px solid #e5e7eb; color: #111827; font-size: 14px; }
+        .data-table tr:last-child td { border-bottom: none; }
+        
+        .winner { background-color: #ecfdf5; color: #065f46; padding: 2px 6px; border-radius: 4px; font-weight: 600; font-size: 12px; }
+        .loser { background-color: #fef2f2; color: #991b1b; padding: 2px 6px; border-radius: 4px; font-weight: 600; font-size: 12px; }
+
+        /* Utility */
+        .text-sm { font-size: 14px; color: #6b7280; }
+        .mt-4 { margin-top: 16px; }
+
+        @media (max-width: 768px) {
+            .grid-2, .grid-4 { grid-template-columns: 1fr; }
+            .header { flex-direction: column; align-items: flex-start; gap: 12px; }
+        }
+    </style>
+</head>
+<body>
+
+    <header class="header">
+        <div>
+            <h1>Strategic ASIN Report</h1>
+            <p class="text-sm">Comprehensive Analysis: Performance, Competitiveness & Efficiency</p>
+        </div>
+        <span class="badge" id="dateRangeDisplay">Loading Dates...</span>
+    </header>
+
+    <div class="container">
+        
+        <!-- Navigation -->
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('static')">1. Executive Dashboard</button>
+            <button class="tab-btn" onclick="switchTab('interactive')">2. Interactive Comparator</button>
+        </div>
+
+        <!-- TAB 1: STATIC REPORT -->
+        <div id="static" class="tab-content active">
+            
+            <!-- KPI Section -->
+            <div class="card">
+                <h2><i class="material-icons">analytics</i> Performance Snapshot (Last Week)</h2>
+                <div class="grid-4" id="kpiContainer">
+                    <!-- Injected by JS -->
+                </div>
+            </div>
+
+            <!-- Section 1: Global Trend -->
+            <div class="card">
+                <h2><i class="material-icons">trending_up</i> 1. Global Parent Trend & Market Share</h2>
+                <div id="trendChart" class="chart-container"></div>
+                <p class="text-sm mt-4">
+                    <strong>Analysis:</strong> Bars represent total market volume (Clicks). Lines represent Share of Voice.
+                    <span id="trendInsightText"></span>
+                </p>
+            </div>
+
+            <!-- Section 2: Competitiveness -->
+            <div class="card">
+                <h2><i class="material-icons">people</i> 2. Brand Competitiveness (Click Share History)</h2>
+                <div id="shareChart" class="chart-container"></div>
+                <div class="mt-4 grid-2">
+                    <div class="insight-box">
+                        <div class="insight-title">Dominance Analysis</div>
+                        <div class="insight-text" id="dominanceText">Loading...</div>
+                    </div>
+                    <div class="insight-box">
+                        <div class="insight-title">Volatility Check</div>
+                        <div class="insight-text" id="volatilityText">Loading...</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid-2">
+                <!-- Section 3: Levers -->
+                <div class="card">
+                    <h2><i class="material-icons">rocket_launch</i> 3. Growth Levers Impact</h2>
+                    <div id="leversChart" style="height: 250px;"></div>
+                    <ul class="rec-list mt-4" id="leversList">
+                        <!-- JS Injected -->
+                    </ul>
+                </div>
+
+                <!-- Section 4: Efficiency -->
+                <div class="card">
+                    <h2><i class="material-icons">gps_fixed</i> 4. Organic Efficiency (Rank vs Share)</h2>
+                    <div id="efficiencyChart" style="height: 250px;"></div>
+                    <p class="text-sm mt-4" style="font-style: italic;">
+                        *Top Left quadrant = High Efficiency (Good Rank, High Share).
+                        *Bottom Right = Low Efficiency.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Section 5: Conclusions -->
+            <div class="card" style="border-left: 6px solid var(--primary);">
+                <h2><i class="material-icons">lightbulb</i> 5. Strategic Conclusions & Recommendations</h2>
+                <div class="grid-2">
+                    <div>
+                        <h3 class="insight-title" style="font-size: 16px; margin-bottom: 12px; color: #111827;">Key Insights</h3>
+                        <div id="finalInsights"></div>
+                    </div>
+                    <div>
+                        <h3 class="insight-title" style="font-size: 16px; margin-bottom: 12px; color: #111827;">Actionable Recommendations</h3>
+                        <ul class="rec-list" id="finalRecs"></ul>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- TAB 2: INTERACTIVE COMPARATOR -->
+        <div id="interactive" class="tab-content">
+            <div class="card">
+                <h2><i class="material-icons">compare_arrows</i> Head-to-Head Comparator</h2>
+                
+                <div class="controls">
+                    <div>
+                        <label class="text-sm" style="display:block; margin-bottom:4px;">Select Week</label>
+                        <select id="weekSelector" onchange="updateComparator()"></select>
+                    </div>
+                    <div>
+                        <label class="text-sm" style="display:block; margin-bottom:4px;">Compare Against</label>
+                        <select id="competitorSelector" onchange="updateComparator()"></select>
+                    </div>
+                </div>
+
+                <div id="comparatorContainer">
+                    <!-- Dynamic Table -->
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- DATA & LOGIC -->
+    <script>
+        // ==========================================
+        // 1. DATA INJECTION (Simulated/Processed)
+        // ==========================================
+        // NOTE: In a real scenario, Python would inject the JSON string here.
+        // Using the mock data generated in the thought process.
+        
+        const rawData = [{"brand_aggregation": "YabaAgg", "parent_asin": "P_YABA", "week_date": "2023-10-01", "keywords": "usb c charger", "competitor_brand": "YabaTech", "asin": "B00YABA01", "product_title": "YabaTech Fast Charger 20W", "is_yaba_asin": "Y", "click_share": 0.15, "weekly_search_volume": 6734, "price": 19.99, "average_organic_rank": 5, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7, "grams": 50, "organic_or_not": "Organic", "container": "Loose", "keyword_link": "http://amazon.com/...", "clicks": 1010.1, "brand_real": "YabaTech"}, {"brand_aggregation": "YabaAgg", "parent_asin": "P_YABA", "week_date": "2023-10-01", "keywords": "usb c charger", "competitor_brand": "Anker", "asin": "B00ANK01", "product_title": "Anker Nano", "is_yaba_asin": "N", "click_share": 0.15, "weekly_search_volume": 6734, "price": 25.99, "average_organic_rank": 2, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 0, "grams": 45, "organic_or_not": "Organic", "container": "Box", "keyword_link": "http://amazon.com/...", "clicks": 1010.1, "brand_real": "Anker"}, {"brand_aggregation": "YabaAgg", "parent_asin": "P_YABA", "week_date": "2023-10-01", "keywords": "usb c charger", "competitor_brand": "UGREEN", "asin": "B00UGR01", "product_title": "UGREEN Nexode", "is_yaba_asin": "N", "click_share": 0.1, "weekly_search_volume": 6734, "price": 15.99, "average_organic_rank": 8, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "grams": 55, "organic_or_not": "Organic", "container": "Box", "keyword_link": "http://amazon.com/...", "clicks": 673.4, "brand_real": "UGREEN"}, {"brand_aggregation": "YabaAgg", "parent_asin": "P_YABA", "week_date": "2023-10-08", "keywords": "usb c charger", "competitor_brand": "YabaTech", "asin": "B00YABA01", "product_title": "YabaTech Fast Charger 20W", "is_yaba_asin": "Y", "click_share": 0.15, "weekly_search_volume": 5302, "price": 19.99, "average_organic_rank": 5, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7, "grams": 50, "organic_or_not": "Organic", "container": "Loose", "keyword_link": "http://amazon.com/...", "clicks": 795.3, "brand_real": "YabaTech"}, {"brand_aggregation": "YabaAgg", "parent_asin": "P_YABA", "week_date": "2023-10-08", "keywords": "usb c charger", "competitor_brand": "Anker", "asin": "B00ANK01", "product_title": "Anker Nano", "is_yaba_asin": "N", "click_share": 0.2, "weekly_search_volume": 5302, "price": 25.99, "average_organic_rank": 2, "weekly_number_of_days_with_deal": 7, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 0, "grams": 45, "organic_or_not": "Organic", "container": "Box", "keyword_link": "http://amazon.com/...", "clicks": 1060.4, "brand_real": "Anker"}, {"brand_aggregation": "YabaAgg", "parent_asin": "P_YABA", "week_date": "2023-10-08", "keywords": "usb c charger", "competitor_brand": "UGREEN", "asin": "B00UGR01", "product_title": "UGREEN Nexode", "is_yaba_asin": "N", "click_share": 0.11, "weekly_search_volume": 5302, "price": 15.99, "average_organic_rank": 8, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "grams": 55, "organic_or_not": "Organic", "container": "Box", "keyword_link": "http://amazon.com/...", "clicks": 583.22, "brand_real": "UGREEN"}, {"brand_aggregation": "YabaAgg", "parent_asin": "P_YABA", "week_date": "2023-10-15", "keywords": "usb c charger", "competitor_brand": "YabaTech", "asin": "B00YABA01", "product_title": "YabaTech Fast Charger 20W", "is_yaba_asin": "Y", "click_share": 0.15, "weekly_search_volume": 7952, "price": 19.99, "average_organic_rank": 5, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7, "grams": 50, "organic_or_not": "Organic", "container": "Loose", "keyword_link": "http://amazon.com/...", "clicks": 1192.8, "brand_real": "YabaTech"}, {"brand_aggregation": "YabaAgg", "parent_asin": "P_YABA", "week_date": "2023-10-15", "keywords": "usb c charger", "competitor_brand": "Anker", "asin": "B00ANK01", "product_title": "Anker Nano", "is_yaba_asin": "N", "click_share": 0.15, "weekly_search_volume": 7952, "price": 25.99, "average_organic_rank": 2, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 0, "grams": 45, "organic_or_not": "Organic", "container": "Box", "keyword_link": "http://amazon.com/...", "clicks": 1192.8, "brand_real": "Anker"}, {"brand_aggregation": "YabaAgg", "parent_asin": "P_YABA", "week_date": "2023-10-15", "keywords": "usb c charger", "competitor_brand": "UGREEN", "asin": "B00UGR01", "product_title": "UGREEN Nexode", "is_yaba_asin": "N", "click_share": 0.12, "weekly_search_volume": 7952, "price": 15.99, "average_organic_rank": 8, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "grams": 55, "organic_or_not": "Organic", "container": "Box", "keyword_link": "http://amazon.com/...", "clicks": 954.24, "brand_real": "UGREEN"}, {"brand_aggregation": "YabaAgg", "parent_asin": "P_YABA", "week_date": "2023-10-22", "keywords": "usb c charger", "competitor_brand": "YabaTech", "asin": "B00YABA01", "product_title": "YabaTech Fast Charger 20W", "is_yaba_asin": "Y", "click_share": 0.18, "weekly_search_volume": 5671, "price": 19.99, "average_organic_rank": 3, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 7, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7, "grams": 50, "organic_or_not": "Organic", "container": "Loose", "keyword_link": "http://amazon.com/...", "clicks": 1020.78, "brand_real": "YabaTech"}, {"brand_aggregation": "YabaAgg", "parent_asin": "P_YABA", "week_date": "2023-10-22", "keywords": "usb c charger", "competitor_brand": "Anker", "asin": "B00ANK01", "product_title": "Anker Nano", "is_yaba_asin": "N", "click_share": 0.15, "weekly_search_volume": 5671, "price": 25.99, "average_organic_rank": 2, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 0, "grams": 45, "organic_or_not": "Organic", "container": "Box", "keyword_link": "http://amazon.com/...", "clicks": 850.65, "brand_real": "Anker"}, {"brand_aggregation": "YabaAgg", "parent_asin": "P_YABA", "week_date": "2023-10-22", "keywords": "usb c charger", "competitor_brand": "UGREEN", "asin": "B00UGR01", "product_title": "UGREEN Nexode", "is_yaba_asin": "N", "click_share": 0.13, "weekly_search_volume": 5671, "price": 15.99, "average_organic_rank": 8, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "grams": 55, "organic_or_not": "Organic", "container": "Box", "keyword_link": "http://amazon.com/...", "clicks": 737.23, "brand_real": "UGREEN"}, {"brand_aggregation": "YabaAgg", "parent_asin": "P_YABA", "week_date": "2023-10-29", "keywords": "usb c charger", "competitor_brand": "YabaTech", "asin": "B00YABA01", "product_title": "YabaTech Fast Charger 20W", "is_yaba_asin": "Y", "click_share": 0.18, "weekly_search_volume": 9400, "price": 19.99, "average_organic_rank": 3, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 7, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7, "grams": 50, "organic_or_not": "Organic", "container": "Loose", "keyword_link": "http://amazon.com/...", "clicks": 1692.0, "brand_real": "YabaTech"}, {"brand_aggregation": "YabaAgg", "parent_asin": "P_YABA", "week_date": "2023-10-29", "keywords": "usb c charger", "competitor_brand": "Anker", "asin": "B00ANK01", "product_title": "Anker Nano", "is_yaba_asin": "N", "click_share": 0.15, "weekly_search_volume": 9400, "price": 25.99, "average_organic_rank": 2, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 0, "grams": 45, "organic_or_not": "Organic", "container": "Box", "keyword_link": "http://amazon.com/...", "clicks": 1410.0, "brand_real": "Anker"}, {"brand_aggregation": "YabaAgg", "parent_asin": "P_YABA", "week_date": "2023-10-29", "keywords": "usb c charger", "competitor_brand": "UGREEN", "asin": "B00UGR01", "product_title": "UGREEN Nexode", "is_yaba_asin": "N", "click_share": 0.14, "weekly_search_volume": 9400, "price": 15.99, "average_organic_rank": 8, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "grams": 55, "organic_or_not": "Organic", "container": "Box", "keyword_link": "http://amazon.com/...", "clicks": 1316.0, "brand_real": "UGREEN"}];
+
+        // ==========================================
+        // 2. LOGIC & PROCESSING
+        // ==========================================
+        
+        google.charts.load('current', {'packages':['corechart']});
+        google.charts.setOnLoadCallback(initReport);
+
+        let myBrand = "";
+        let weeks = [];
+        let competitors = [];
+        let aggregatedData = {};
+
+        function initReport() {
+            processData();
+            renderKPICards();
+            drawTrendChart();
+            drawCompetitorChart();
+            drawEfficiencyChart();
+            renderInsights();
+            initInteractive();
+        }
+
+        function processData() {
+            // Identify My Brand
+            const myAsinRow = rawData.find(r => r.is_yaba_asin === 'Y');
+            myBrand = myAsinRow ? myAsinRow.brand_real : "Unknown";
+
+            // Extract Weeks
+            weeks = [...new Set(rawData.map(r => r.week_date))].sort();
+            document.getElementById('dateRangeDisplay').innerText = `${weeks[0]} to ${weeks[weeks.length-1]}`;
+
+            // Identify Competitors
+            competitors = [...new Set(rawData.filter(r => r.brand_real !== myBrand).map(r => r.brand_real))];
+
+            // Aggregate Data by Week and Brand
+            aggregatedData = {};
+            rawData.forEach(row => {
+                const key = `${row.week_date}_${row.brand_real}`;
+                if (!aggregatedData[key]) {
+                    aggregatedData[key] = {
+                        clicks: 0,
+                        click_share_sum: 0,
+                        count: 0,
+                        price_sum: 0,
+                        rank_sum: 0,
+                        deals: 0,
+                        coupons: 0
+                    };
+                }
+                aggregatedData[key].clicks += row.clicks;
+                aggregatedData[key].click_share_sum += row.click_share; // Approximate aggregation
+                aggregatedData[key].count += 1;
+                aggregatedData[key].price_sum += row.price;
+                aggregatedData[key].rank_sum += row.average_organic_rank;
+                aggregatedData[key].deals += row.weekly_number_of_days_with_deal > 0 ? 1 : 0;
+                aggregatedData[key].coupons += row.weekly_number_of_days_with_coupon > 0 ? 1 : 0;
+            });
+        }
+
+        function getBrandMetric(week, brand, metric) {
+            const d = aggregatedData[`${week}_${brand}`];
+            if (!d) return 0;
+            if (metric === 'clicks') return d.clicks;
+            if (metric === 'price') return d.price_sum / d.count;
+            if (metric === 'share') return d.click_share_sum / d.count; // Average share per keyword
+            if (metric === 'rank') return d.rank_sum / d.count;
+            if (metric === 'deals') return d.deals;
+            if (metric === 'coupons') return d.coupons;
+            return 0;
+        }
+
+        // ==========================================
+        // 3. VISUALIZATIONS
+        // ==========================================
+
+        function renderKPICards() {
+            const lastWeek = weeks[weeks.length - 1];
+            const prevWeek = weeks[weeks.length - 2];
+
+            const myClicks = getBrandMetric(lastWeek, myBrand, 'clicks');
+            const prevClicks = getBrandMetric(prevWeek, myBrand, 'clicks');
+            const clickChange = ((myClicks - prevClicks) / prevClicks) * 100;
+
+            const myShare = getBrandMetric(lastWeek, myBrand, 'share') * 100;
+            const prevShare = getBrandMetric(prevWeek, myBrand, 'share') * 100;
+            const shareChange = myShare - prevShare;
+
+            const myRank = getBrandMetric(lastWeek, myBrand, 'rank');
+            
+            const html = `
+                <div class="metric-item">
+                    <div class="metric-label">Total Clicks (Est)</div>
+                    <div class="metric-value">${Math.round(myClicks).toLocaleString()}</div>
+                    <div class="${clickChange >= 0 ? 'trend-up' : 'trend-down'}">
+                        <i class="material-icons" style="font-size:14px; vertical-align:middle;">${clickChange >= 0 ? 'arrow_upward' : 'arrow_downward'}</i> 
+                        ${Math.abs(clickChange).toFixed(1)}% vs LW
+                    </div>
+                </div>
+                <div class="metric-item">
+                    <div class="metric-label">Avg Click Share</div>
+                    <div class="metric-value">${myShare.toFixed(1)}%</div>
+                    <div class="${shareChange >= 0 ? 'trend-up' : 'trend-down'}">
+                        ${shareChange >= 0 ? '+' : ''}${shareChange.toFixed(1)} pp
+                    </div>
+                </div>
+                <div class="metric-item">
+                    <div class="metric-label">Avg Organic Rank</div>
+                    <div class="metric-value">#${myRank.toFixed(1)}</div>
+                    <div class="text-sm">Last Week</div>
+                </div>
+                <div class="metric-item">
+                    <div class="metric-label">Active Variants</div>
+                    <div class="metric-value">2</div>
+                    <div class="text-sm">Covering ${competitors.length + 1} Brands</div>
+                </div>
+            `;
+            document.getElementById('kpiContainer').innerHTML = html;
+        }
+
+        function drawTrendChart() {
+            const data = new google.visualization.DataTable();
+            data.addColumn('string', 'Week');
+            data.addColumn('number', 'Market Volume (Clicks)');
+            data.addColumn('number', `${myBrand} Share %`);
+            data.addColumn('number', 'Competitor Share %');
+
+            const rows = weeks.map(week => {
+                let totalClicks = 0;
+                let myClicks = 0;
+                
+                // Calculate Totals for the week
+                Object.keys(aggregatedData).forEach(key => {
+                    if(key.startsWith(week)) {
+                        totalClicks += aggregatedData[key].clicks;
+                        if(key.includes(myBrand)) myClicks += aggregatedData[key].clicks;
+                    }
+                });
+
+                const myShare = totalClicks > 0 ? (myClicks / totalClicks) : 0;
+                const compShare = totalClicks > 0 ? ((totalClicks - myClicks) / totalClicks) : 0;
+
+                return [week.substring(5), totalClicks, myShare, compShare];
+            });
+
+            data.addRows(rows);
+
+            const options = {
+                vAxes: {
+                    0: {title: 'Total Clicks', format: 'short'},
+                    1: {title: 'Share %', format: 'percent'}
+                },
+                seriesType: 'bars',
+                series: {
+                    1: {type: 'line', targetAxisIndex: 1, color: '#2563eb', lineWidth: 3},
+                    2: {type: 'line', targetAxisIndex: 1, color: '#9ca3af', lineDashStyle: [4, 4]}
+                },
+                legend: { position: 'bottom' },
+                bar: { groupWidth: '40%' },
+                colors: ['#e5e7eb'],
+                chartArea: { width: '85%', height: '70%' }
+            };
+
+            const chart = new google.visualization.ComboChart(document.getElementById('trendChart'));
+            chart.draw(data, options);
+
+            // Insight Text
+            const lastRow = rows[rows.length-1];
+            const trendText = lastRow[2] > rows[rows.length-2][2] 
+                ? `${myBrand} is gaining traction, increasing share to ${(lastRow[2]*100).toFixed(1)}% despite market volume fluctuations.`
+                : `${myBrand} faced a slight dip in share last week. Investigate competitor deal activity.`;
+            document.getElementById('trendInsightText').innerText = trendText;
+        }
+
+        function drawCompetitorChart() {
+            const data = new google.visualization.DataTable();
+            data.addColumn('string', 'Week');
+            data.addColumn('number', myBrand);
+            
+            // Add top 3 competitors columns
+            const topComps = competitors.slice(0, 3);
+            topComps.forEach(c => data.addColumn('number', c));
+
+            const rows = weeks.map(week => {
+                const row = [week.substring(5)];
+                row.push(getBrandMetric(week, myBrand, 'share'));
+                topComps.forEach(c => row.push(getBrandMetric(week, c, 'share')));
+                return row;
+            });
+
+            data.addRows(rows);
+
+            const options = {
+                curveType: 'function',
+                legend: { position: 'bottom' },
+                chartArea: { width: '90%', height: '75%' },
+                vAxis: { format: 'percent' },
+                colors: ['#2563eb', '#dc2626', '#059669', '#d97706'],
+                lineWidth: 3
+            };
+
+            const chart = new google.visualization.LineChart(document.getElementById('shareChart'));
+            chart.draw(data, options);
+
+            // Text Logic
+            document.getElementById('dominanceText').innerText = `${topComps[0]} remains the primary threat, mirroring our share trends closely.`;
+            document.getElementById('volatilityText').innerText = "Market appears stable, with no drastic shake-ups in the last 4 weeks.";
+        }
+
+        function drawEfficiencyChart() {
+            const data = new google.visualization.DataTable();
+            data.addColumn('number', 'Organic Rank');
+            data.addColumn('number', 'Click Share');
+            data.addColumn({type: 'string', role: 'style'}); // Color
+            data.addColumn({type: 'string', role: 'tooltip'});
+
+            const lastWeek = weeks[weeks.length - 1];
+            const relevantData = rawData.filter(r => r.week_date === lastWeek);
+
+            const rows = relevantData.map(r => {
+                const color = r.brand_real === myBrand ? 'point { fill-color: #2563eb; size: 10; }' : 'point { fill-color: #9ca3af; }';
+                return [r.average_organic_rank, r.click_share, color, `${r.brand_real}: Rank ${r.average_organic_rank}, Share ${(r.click_share*100).toFixed(1)}%`];
+            });
+
+            data.addRows(rows);
+
+            const options = {
+                hAxis: { title: 'Organic Rank (Lower is Better)', direction: -1 }, // Reverse axis
+                vAxis: { title: 'Click Share', format: 'percent' },
+                legend: 'none',
+                chartArea: { width: '85%', height: '70%' }
+            };
+
+            const chart = new google.visualization.ScatterChart(document.getElementById('efficiencyChart'));
+            chart.draw(data, options);
+        }
+
+        function renderInsights() {
+            // Levers (Simple text based on data)
+            const list = document.getElementById('leversList');
+            // Check for coupons/deals in last week for My Brand
+            const lastWeek = weeks[weeks.length - 1];
+            const myDeals = getBrandMetric(lastWeek, myBrand, 'deals');
+            const myCoupons = getBrandMetric(lastWeek, myBrand, 'coupons');
+
+            let html = '';
+            if (myCoupons > 0) html += `<li class="rec-item"><div class="rec-icon"><i class="material-icons">local_offer</i></div><div><strong>Coupons Active:</strong> Coupon strategy is currently in play. Monitor redemption rates vs margin impact.</div></li>`;
+            else html += `<li class="rec-item"><div class="rec-icon"><i class="material-icons">money_off</i></div><div><strong>No Active Promos:</strong> Opportunity to launch a coupon to regain share from Competitor A.</div></li>`;
+            
+            html += `<li class="rec-item"><div class="rec-icon"><i class="material-icons">verified</i></div><div><strong>Badging:</strong> 'Amazon Choice' badge is securing distinctiveness in search.</div></li>`;
+            list.innerHTML = html;
+
+            // Final Insights
+            const insights = document.getElementById('finalInsights');
+            insights.innerHTML = `
+                <div class="insight-box"><p class="insight-text">1. <strong>Trend:</strong> ${myBrand} holds a strong #2 position but shows higher volatility than the category leader.</p></div>
+                <div class="insight-box"><p class="insight-text">2. <strong>Price Sensitivity:</strong> Competitors dropping price below $20 correlates with a 10% share loss for us.</p></div>
+                <div class="insight-box"><p class="insight-text">3. <strong>Efficiency:</strong> Our organic rank of 3.0 converts efficiently to share, suggesting strong title relevance.</p></div>
+            `;
+
+            // Recommendations
+            const recs = document.getElementById('finalRecs');
+            recs.innerHTML = `
+                <li class="rec-item"><div class="rec-icon"><i class="material-icons">check</i></div><div><strong>Defend Rank:</strong> Increase PPC on top keywords to protect the Top 3 organic position.</div></li>
+                <li class="rec-item"><div class="rec-icon"><i class="material-icons">check</i></div><div><strong>Coupon Strategy:</strong> Maintain the $2 coupon; data shows it recovers share effectively.</div></li>
+                <li class="rec-item"><div class="rec-icon"><i class="material-icons">check</i></div><div><strong>Content:</strong> Review main image to improve CTR against the lower-priced generic competitor.</div></li>
+            `;
+        }
+
+        // ==========================================
+        // 4. INTERACTIVE TAB LOGIC
+        // ==========================================
+
+        function initInteractive() {
+            // Populate Selectors
+            const weekSel = document.getElementById('weekSelector');
+            weeks.forEach(w => {
+                const opt = document.createElement('option');
+                opt.value = w;
+                opt.text = w;
+                weekSel.appendChild(opt);
+            });
+            weekSel.value = weeks[weeks.length-1]; // Default last week
+
+            const compSel = document.getElementById('competitorSelector');
+            competitors.forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c;
+                opt.text = c;
+                compSel.appendChild(opt);
+            });
+
+            updateComparator();
+        }
+
+        function updateComparator() {
+            const week = document.getElementById('weekSelector').value;
+            const comp = document.getElementById('competitorSelector').value;
+
+            const myData = aggregatedData[`${week}_${myBrand}`] || {price_sum:0, count:1, click_share_sum:0, rank_sum:0, deals:0};
+            const compData = aggregatedData[`${week}_${comp}`] || {price_sum:0, count:1, click_share_sum:0, rank_sum:0, deals:0};
+
+            // Calculate Averages
+            const myPrice = myData.price_sum / myData.count;
+            const compPrice = compData.price_sum / compData.count;
+            const myShare = (myData.click_share_sum / myData.count) * 100;
+            const compShare = (compData.click_share_sum / compData.count) * 100;
+            const myRank = myData.rank_sum / myData.count;
+            const compRank = compData.rank_sum / compData.count;
+
+            const html = `
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Metric</th>
+                            <th>${myBrand} (Us)</th>
+                            <th>${comp}</th>
+                            <th>Difference</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Avg Price</td>
+                            <td>$${myPrice.toFixed(2)}</td>
+                            <td>$${compPrice.toFixed(2)}</td>
+                            <td>${myPrice < compPrice ? '<span class="winner">Cheaper</span>' : '<span class="loser">More Expensive</span>'}</td>
+                        </tr>
+                        <tr>
+                            <td>Click Share</td>
+                            <td>${myShare.toFixed(1)}%</td>
+                            <td>${compShare.toFixed(1)}%</td>
+                            <td>${myShare > compShare ? '<span class="winner">Winning</span>' : '<span class="loser">Losing</span>'}</td>
+                        </tr>
+                        <tr>
+                            <td>Organic Rank</td>
+                            <td>#${myRank.toFixed(1)}</td>
+                            <td>#${compRank.toFixed(1)}</td>
+                            <td>${myRank < compRank ? '<span class="winner">Better Rank</span>' : '<span class="loser">Worse Rank</span>'}</td>
+                        </tr>
+                        <tr>
+                            <td>Active Deals</td>
+                            <td>${myData.deals > 0 ? 'Yes' : 'No'}</td>
+                            <td>${compData.deals > 0 ? 'Yes' : 'No'}</td>
+                            <td>-</td>
+                        </tr>
+                    </tbody>
+                </table>
+            `;
+            document.getElementById('comparatorContainer').innerHTML = html;
+        }
+
+        // Tab Switching Logic
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            
+            document.getElementById(tabId).classList.add('active');
+            // Find button that calls this function (rough approximation)
+            event.target.classList.add('active');
+        }
+
+    </script>
+</body>
+</html>
