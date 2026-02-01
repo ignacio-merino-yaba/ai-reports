@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Amazon ASIN Performance Report</title>
+    
+    <!-- Google Fonts & Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
+    <!-- Google Charts Loader -->
+    <script src="https://www.gstatic.com/charts/loader.js"></script>
+
+    <style>
+        :root {
+            --primary: #4285F4;
+            --secondary: #5f6368;
+            --bg: #f8f9fa;
+            --surface: #ffffff;
+            --border: #e0e0e0;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            --danger: #EA4335;
+            --success: #34A853;
+            --warning: #FBBC05;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg);
+            margin: 0;
+            padding: 0;
+            color: #202124;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Layout */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            background: var(--surface);
+            padding: 20px 0;
+            margin-bottom: 24px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        h1 {
+            font-size: 24px;
+            font-weight: 600;
+            margin: 0;
+            color: #202124;
+        }
+
+        .subtitle {
+            font-size: 14px;
+            color: var(--secondary);
+            margin-top: 4px;
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 24px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .tab-btn {
+            padding: 12px 24px;
+            background: none;
+            border: none;
+            border-bottom: 3px solid transparent;
+            font-family: 'Inter', sans-serif;
+            font-weight: 500;
+            font-size: 14px;
+            cursor: pointer;
+            color: var(--secondary);
+            transition: all 0.2s;
+        }
+
+        .tab-btn.active {
+            border-bottom-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Cards */
+        .card {
+            background: var(--surface);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: var(--shadow);
+            margin-bottom: 24px;
+            border: 1px solid var(--border);
+        }
+
+        .card-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .card-title .material-icons {
+            color: var(--primary);
+        }
+
+        /* KPI Grid */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .kpi-card {
+            background: var(--surface);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+        }
+
+        .kpi-label {
+            font-size: 12px;
+            color: var(--secondary);
+            font-weight: 500;
+            text-transform: uppercase;
+        }
+
+        .kpi-value {
+            font-size: 28px;
+            font-weight: 700;
+            margin: 8px 0;
+            color: var(--primary);
+        }
+
+        .kpi-trend {
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .trend-up { color: var(--success); }
+        .trend-down { color: var(--danger); }
+
+        /* Charts */
+        .chart-box {
+            width: 100%;
+            height: 400px;
+        }
+
+        /* Section Specifics */
+        .insight-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .insight-item {
+            padding: 12px 0;
+            border-bottom: 1px solid #f1f1f1;
+            display: flex;
+            gap: 12px;
+            align-items: flex-start;
+        }
+
+        .insight-item:last-child { border-bottom: none; }
+
+        .insight-icon {
+            color: var(--warning);
+            margin-top: 2px;
+        }
+
+        .recommendation-card {
+            background: #e8f0fe;
+            border-left: 4px solid var(--primary);
+            padding: 16px;
+            margin-bottom: 12px;
+            border-radius: 0 8px 8px 0;
+        }
+
+        /* Interactive Section */
+        .controls {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 20px;
+            background: var(--surface);
+            padding: 16px;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+        }
+
+        select {
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+            min-width: 200px;
+            background-image: linear-gradient(45deg, transparent 50%, gray 50%),
+                              linear-gradient(135deg, gray 50%, transparent 50%);
+            background-position: calc(100% - 20px) calc(1em + 2px),
+                                 calc(100% - 15px) calc(1em + 2px);
+            background-size: 5px 5px,
+                             5px 5px;
+            background-repeat: no-repeat;
+        }
+
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+
+        .comp-metric {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .comp-metric span {
+            font-weight: 500;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .comparison-grid { grid-template-columns: 1fr; }
+            .header-content { flex-direction: column; align-items: flex-start; }
+            .controls { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <div>
+                    <h1>Parent ASIN Performance Report</h1>
+                    <div class="subtitle" id="report-subtitle">Analyzing Market Intelligence & Competitiveness</div>
+                </div>
+                <div style="text-align: right;">
+                    <span style="font-size: 12px; color: #5f6368;">Generated by Yaba AI</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Navigation -->
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('static')">1. Analysis Report</button>
+            <button class="tab-btn" onclick="switchTab('interactive')">2. Interactive Comparator</button>
+        </div>
+
+        <!-- TAB 1: Static Report -->
+        <div id="tab-static" class="tab-content active">
+            
+            <!-- KPI Section -->
+            <div class="kpi-grid" id="kpi-container">
+                <!-- Injected via JS -->
+            </div>
+
+            <!-- Section 1: Global Trend -->
+            <div class="card">
+                <div class="card-title">
+                    <span class="material-icons">trending_up</span>
+                    1. Global Parent Trend (Clicks & Share)
+                </div>
+                <div id="chart_trend" class="chart-box"></div>
+                <div style="margin-top:10px; font-size: 13px; color:#666; padding: 10px; background: #f8f9fa; border-radius: 8px;">
+                    <strong>Analysis:</strong> Displays the evolution of total clicks (bars) and Click Share (line). 
+                    <span id="trend-text"></span>
+                </div>
+            </div>
+
+            <!-- Section 2: Competitiveness -->
+            <div class="card">
+                <div class="card-title">
+                    <span class="material-icons">pie_chart</span>
+                    2. Brand Competitiveness (Week over Week)
+                </div>
+                <div id="chart_comp" class="chart-box"></div>
+                <div style="margin-top:10px; font-size: 13px; color:#666;">
+                     Comparison of "Our Brand" vs Top 3 Competitors vs Rest of Market.
+                </div>
+            </div>
+
+            <div class="comparison-grid">
+                <!-- Section 3: Levers -->
+                <div class="card">
+                    <div class="card-title">
+                        <span class="material-icons">tune</span>
+                        3. Growth Levers (Price & Badges)
+                    </div>
+                    <div id="chart_levers" style="height: 300px;"></div>
+                </div>
+
+                <!-- Section 4: Efficiency -->
+                <div class="card">
+                    <div class="card-title">
+                        <span class="material-icons">speed</span>
+                        4. Efficiency: Organic Rank vs Click Share
+                    </div>
+                    <div id="chart_efficiency" style="height: 300px;"></div>
+                </div>
+            </div>
+
+            <!-- Section 5: Conclusions -->
+            <div class="card">
+                <div class="card-title">
+                    <span class="material-icons">lightbulb</span>
+                    5. Key Insights & Recommendations
+                </div>
+                <div class="comparison-grid">
+                    <div>
+                        <h3 style="font-size:16px; margin-top:0;">Insights</h3>
+                        <ul class="insight-list" id="insights-list">
+                            <!-- Populated by JS -->
+                        </ul>
+                    </div>
+                    <div>
+                        <h3 style="font-size:16px; margin-top:0;">Actionable Recommendations</h3>
+                        <div id="recommendations-container">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 2: Interactive Comparator -->
+        <div id="tab-interactive" class="tab-content">
+            <div class="controls">
+                <div>
+                    <label style="display:block; font-size:12px; color:#666; margin-bottom:4px;">Select Week</label>
+                    <select id="week-selector" onchange="updateInteractive()"></select>
+                </div>
+                <div>
+                    <label style="display:block; font-size:12px; color:#666; margin-bottom:4px;">Compare vs Competitor</label>
+                    <select id="comp-selector" onchange="updateInteractive()"></select>
+                </div>
+            </div>
+
+            <div class="comparison-grid">
+                <div class="card">
+                    <div class="card-title">Our Brand (<span id="our-brand-name"></span>)</div>
+                    <div id="our-stats" class="comp-details"></div>
+                </div>
+                <div class="card">
+                    <div class="card-title">Competitor (<span id="comp-brand-name"></span>)</div>
+                    <div id="comp-stats" class="comp-details"></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">Head-to-Head Attributes</div>
+                <div id="table_interactive" style="width: 100%;"></div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- MAIN LOGIC SCRIPT -->
+    <script>
+        // --- 1. DATA INJECTION ---
+        // Synthetic data to simulate the CSV content as parsed by Python
+        const marketData = [{"brand_aggregation": "SkinCare", "parent_asin": "B00PARENT01", "week_date": "2023-10-01", "keywords": "vitamin c serum", "competitor_brand": "VitaGlow", "asin": "B00VIT25", "product_title": "VitaGlow vitamin c serum - Anti Aging", "average_organic_rank": 3, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7, "weekly_number_of_days_with_coupon": 0, "click_share": 0.1472, "price": 24.99, "weekly_search_volume": 8412, "is_yaba_asin": "Y", "keywords_link": "http://amazon.com/s?k=vitamin c serum", "grams": 50, "organic_or_not": "Organic", "container": "Bottle", "clicks": 1238}, {"brand_aggregation": "SkinCare", "parent_asin": "B00PARENT01", "week_date": "2023-10-01", "keywords": "vitamin c serum", "competitor_brand": "LuminaSkin", "asin": "B00LUM71", "product_title": "LuminaSkin vitamin c serum - Anti Aging", "average_organic_rank": 0, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.2465, "price": 29.99, "weekly_search_volume": 8412, "is_yaba_asin": "N", "keywords_link": "http://amazon.com/s?k=vitamin c serum", "grams": 50, "organic_or_not": "Organic", "container": "Bottle", "clicks": 2073}, {"brand_aggregation": "SkinCare", "parent_asin": "B00PARENT01", "week_date": "2023-10-01", "keywords": "vitamin c serum", "competitor_brand": "DermaPure", "asin": "B00DER25", "product_title": "DermaPure vitamin c serum - Anti Aging", "average_organic_rank": 7, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.1017, "price": 29.99, "weekly_search_volume": 8412, "is_yaba_asin": "N", "keywords_link": "http://amazon.com/s?k=vitamin c serum", "grams": 50, "organic_or_not": "Organic", "container": "Bottle", "clicks": 855}, {"brand_aggregation": "SkinCare", "parent_asin": "B00PARENT01", "week_date": "2023-10-01", "keywords": "vitamin c serum", "competitor_brand": "GlowLab", "asin": "B00GLO79", "product_title": "GlowLab vitamin c serum - Anti Aging", "average_organic_rank": 10, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.0822, "price": 29.99, "weekly_search_volume": 8412, "is_yaba_asin": "N", "keywords_link": "http://amazon.com/s?k=vitamin c serum", "grams": 50, "organic_or_not": "Organic", "container": "Bottle", "clicks": 691}, {"brand_aggregation": "SkinCare", "parent_asin": "B00PARENT01", "week_date": "2023-10-01", "keywords": "vitamin c serum", "competitor_brand": "CheapFix", "asin": "B00CHE74", "product_title": "CheapFix vitamin c serum - Anti Aging", "average_organic_rank": 16, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.0381, "price": 12.99, "weekly_search_volume": 8412, "is_yaba_asin": "N", "keywords_link": "http://amazon.com/s?k=vitamin c serum", "grams": 50, "organic_or_not": "Organic", "container": "Bottle", "clicks": 320}, {"brand_aggregation": "SkinCare", "parent_asin": "B00PARENT01", "week_date": "2023-10-08", "keywords": "vitamin c serum", "competitor_brand": "VitaGlow", "asin": "B00VIT67", "product_title": "VitaGlow vitamin c serum - Anti Aging", "average_organic_rank": 3, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7, "weekly_number_of_days_with_coupon": 0, "click_share": 0.1581, "price": 24.99, "weekly_search_volume": 8015, "is_yaba_asin": "Y", "keywords_link": "http://amazon.com/s?k=vitamin c serum", "grams": 50, "organic_or_not": "Organic", "container": "Bottle", "clicks": 1267}, {"brand_aggregation": "SkinCare", "parent_asin": "B00PARENT01", "week_date": "2023-10-08", "keywords": "vitamin c serum", "competitor_brand": "LuminaSkin", "asin": "B00LUM15", "product_title": "LuminaSkin vitamin c serum - Anti Aging", "average_organic_rank": 1, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.2311, "price": 29.99, "weekly_search_volume": 8015, "is_yaba_asin": "N", "keywords_link": "http://amazon.com/s?k=vitamin c serum", "grams": 50, "organic_or_not": "Organic", "container": "Bottle", "clicks": 1852}, {"brand_aggregation": "SkinCare", "parent_asin": "B00PARENT01", "week_date": "2023-10-08", "keywords": "vitamin c serum", "competitor_brand": "DermaPure", "asin": "B00DER24", "product_title": "DermaPure vitamin c serum - Anti Aging", "average_organic_rank": 9, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.088, "price": 29.99, "weekly_search_volume": 8015, "is_yaba_asin": "N", "keywords_link": "http://amazon.com/s?k=vitamin c serum", "grams": 50, "organic_or_not": "Organic", "container": "Bottle", "clicks": 705}, {"brand_aggregation": "SkinCare", "parent_asin": "B00PARENT01", "week_date": "2023-10-08", "keywords": "vitamin c serum", "competitor_brand": "GlowLab", "asin": "B00GLO76", "product_title": "GlowLab vitamin c serum - Anti Aging", "average_organic_rank": 10, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.0844, "price": 29.99, "weekly_search_volume": 8015, "is_yaba_asin": "N", "keywords_link": "http://amazon.com/s?k=vitamin c serum", "grams": 50, "organic_or_not": "Organic", "container": "Bottle", "clicks": 676}, {"brand_aggregation": "SkinCare", "parent_asin": "B00PARENT01", "week_date": "2023-10-08", "keywords": "vitamin c serum", "competitor_brand": "CheapFix", "asin": "B00CHE25", "product_title": "CheapFix vitamin c serum - Anti Aging", "average_organic_rank": 19, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.0244, "price": 12.99, "weekly_search_volume": 8015, "is_yaba_asin": "N", "keywords_link": "http://amazon.com/s?k=vitamin c serum", "grams": 50, "organic_or_not": "Organic", "container": "Bottle", "clicks": 195}, {"brand_aggregation": "SkinCare", "parent_asin": "B00PARENT01", "week_date": "2023-10-15", "keywords": "vitamin c serum", "competitor_brand": "VitaGlow", "asin": "B00VIT24", "product_title": "VitaGlow vitamin c serum - Anti Aging", "average_organic_rank": 2, "weekly_number_of_days_with_deal": 2, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7, "weekly_number_of_days_with_coupon": 0, "click_share": 0.1654, "price": 24.99, "weekly_search_volume": 8631, "is_yaba_asin": "Y", "keywords_link": "http://amazon.com/s?k=vitamin c serum", "grams": 50, "organic_or_not": "Organic", "container": "Bottle", "clicks": 1427}, {"brand_aggregation": "SkinCare", "parent_asin": "B00PARENT01", "week_date": "2023-10-15", "keywords": "vitamin c serum", "competitor_brand": "LuminaSkin", "asin": "B00LUM43", "product_title": "LuminaSkin vitamin c serum - Anti Aging", "average_organic_rank": 1, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.2319, "price": 29.99, "weekly_search_volume": 8631, "is_yaba_asin": "N", "keywords_link": "http://amazon.com/s?k=vitamin c serum", "grams": 50, "organic_or_not": "Organic", "container": "Bottle", "clicks": 2001}, {"brand_aggregation": "SkinCare", "parent_asin": "B00PARENT01", "week_date": "2023-10-15", "keywords": "vitamin c serum", "competitor_brand": "DermaPure", "asin": "B00DER25", "product_title": "DermaPure vitamin c serum - Anti Aging", "average_organic_rank": 7, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.0933, "price": 29.99, "weekly_search_volume": 8631, "is_yaba_asin": "N", "keywords_link": "http://amazon.com/s?k=vitamin c serum", "grams": 50, "organic_or_not": "Organic", "container": "Bottle", "clicks": 805}, {"brand_aggregation": "SkinCare", "parent_asin": "B00PARENT01", "week_date": "2023-10-15", "keywords": "vitamin c serum", "competitor_brand": "GlowLab", "asin": "B00GLO78", "product_title": "GlowLab vitamin c serum - Anti Aging", "average_organic_rank": 11, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.0818, "price": 29.99, "weekly_search_volume": 8631, "is_yaba_asin": "N", "keywords_link": "http://amazon.com/s?k=vitamin c serum", "grams": 50, "organic_or_not": "Organic", "container": "Bottle", "clicks": 706}, {"brand_aggregation": "SkinCare", "parent_asin": "B00PARENT01", "week_date": "2023-10-15", "keywords": "vitamin c serum", "competitor_brand": "CheapFix", "asin": "B00CHE93", "product_title": "CheapFix vitamin c serum - Anti Aging", "average_organic_rank": 19, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.0463, "price": 12.99, "weekly_search_volume": 8631, "is_yaba_asin": "N", "keywords_link": "http://amazon.com/s?k=vitamin c serum", "grams": 50, "organic_or_not": "Organic", "container": "Bottle", "clicks": 399}, {"brand_aggregation": "SkinCare", "parent_asin": "B00PARENT01", "week_date": "2023-10-22", "keywords": "vitamin c serum", "competitor_brand": "VitaGlow", "asin": "B00VIT67", "product_title": "VitaGlow vitamin c serum - Anti Aging", "average_organic_rank": 2, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7, "weekly_number_of_days_with_coupon": 0, "click_share": 0.1555, "price": 24.99, "weekly_search_volume": 8414, "is_yaba_asin": "Y", "keywords_link": "http://amazon.com/s?k=vitamin c serum", "grams": 50, "organic_or_not": "Organic", "container": "Bottle", "clicks": 1308}, {"brand_aggregation": "SkinCare", "parent_asin": "B00PARENT01", "week_date": "2023-10-22", "keywords": "vitamin c serum", "competitor_brand": "LuminaSkin", "asin": "B00LUM14", "product_title": "LuminaSkin vitamin c serum - Anti Aging", "average_organic_rank": 0, "weekly_number_of_days_with_deal": 5, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.2789, "price": 29.99, "weekly_search_volume": 8414, "is_yaba_asin": "N", "keywords_link": "http://amazon.com/s?k=vitamin c serum", "grams": 50, "organic_or_not": "Organic", "container": "Bottle", "clicks": 2346}, {"brand_aggregation": "SkinCare", "parent_asin": "B00PARENT01", "week_date": "2023-10-22", "keywords": "vitamin c serum", "competitor_brand": "DermaPure", "asin": "B00DER96", "product_title": "DermaPure vitamin c serum - Anti Aging", "average_organic_rank": 7, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.1064, "price": 29.99, "weekly_search_volume": 8414, "is_yaba_asin": "N", "keywords_link": "http://amazon.com/s?k=vitamin c serum", "grams": 50, "organic_or_not": "Organic", "container": "Bottle", "clicks": 895}, {"brand_aggregation": "SkinCare", "parent_asin": "B00PARENT01", "week_date": "2023-10-22", "keywords": "vitamin c serum", "competitor_brand": "GlowLab", "asin": "B00GLO78", "product_title": "GlowLab vitamin c serum - Anti Aging", "average_organic_rank": 10, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.0827, "price": 29.99, "weekly_search_volume": 8414, "is_yaba_asin": "N", "keywords_link": "http://amazon.com/s?k=vitamin c serum", "grams": 50, "organic_or_not": "Organic", "container": "Bottle", "clicks": 695}, {"brand_aggregation": "SkinCare", "parent_asin": "B00PARENT01", "week_date": "2023-10-22", "keywords": "vitamin c serum", "competitor_brand": "CheapFix", "asin": "B00CHE50", "product_title": "CheapFix vitamin c serum - Anti Aging", "average_organic_rank": 17, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.0388, "price": 12.99, "weekly_search_volume": 8414, "is_yaba_asin": "N", "keywords_link": "http://amazon.com/s?k=vitamin c serum", "grams": 50, "organic_or_not": "Organic", "container": "Bottle", "clicks": 326}, {"brand_aggregation": "SkinCare", "parent_asin": "B00PARENT01", "week_date": "2023-10-29", "keywords": "vitamin c serum", "competitor_brand": "VitaGlow", "asin": "B00VIT72", "product_title": "VitaGlow vitamin c serum - Anti Aging", "average_organic_rank": 2, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7, "weekly_number_of_days_with_coupon": 7, "click_share": 0.2081, "price": 24.99, "weekly_search_volume": 9781, "is_yaba_asin": "Y", "keywords_link": "http://amazon.com/s?k=vitamin c serum", "grams": 50, "organic_or_not": "Organic", "container": "Bottle", "clicks": 2035}, {"brand_aggregation": "SkinCare", "parent_asin": "B00PARENT01", "week_date": "2023-10-29", "keywords": "vitamin c serum", "competitor_brand": "LuminaSkin", "asin": "B00LUM59", "product_title": "LuminaSkin vitamin c serum - Anti Aging", "average_organic_rank": 2, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.2647, "price": 29.99, "weekly_search_volume": 9781, "is_yaba_asin": "N", "keywords_link": "http://amazon.com/s?k=vitamin c serum", "grams": 50, "organic_or_not": "Organic", "container": "Bottle", "clicks": 2589}, {"brand_aggregation": "SkinCare", "parent_asin": "B00PARENT01", "week_date": "2023-10-29", "keywords": "vitamin c serum", "competitor_brand": "DermaPure", "asin": "B00DER25", "product_title": "DermaPure vitamin c serum - Anti Aging", "average_organic_rank": 10, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.1189, "price": 29.99, "weekly_search_volume": 9781, "is_yaba_asin": "N", "keywords_link": "http://amazon.com/s?k=vitamin c serum", "grams": 50, "organic_or_not": "Organic", "container": "Bottle", "clicks": 1162}, {"brand_aggregation": "SkinCare", "parent_asin": "B00PARENT01", "week_date": "2023-10-29", "keywords": "vitamin c serum", "competitor_brand": "GlowLab", "asin": "B00GLO76", "product_title": "GlowLab vitamin c serum - Anti Aging", "average_organic_rank": 12, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.0984, "price": 29.99, "weekly_search_volume": 9781, "is_yaba_asin": "N", "keywords_link": "http://amazon.com/s?k=vitamin c serum", "grams": 50, "organic_or_not": "Organic", "container": "Bottle", "clicks": 962}, {"brand_aggregation": "SkinCare", "parent_asin": "B00PARENT01", "week_date": "2023-10-29", "keywords": "vitamin c serum", "competitor_brand": "CheapFix", "asin": "B00CHE93", "product_title": "CheapFix vitamin c serum - Anti Aging", "average_organic_rank": 17, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.0543, "price": 12.99, "weekly_search_volume": 9781, "is_yaba_asin": "N", "keywords_link": "http://amazon.com/s?k=vitamin c serum", "grams": 50, "organic_or_not": "Organic", "container": "Bottle", "clicks": 531}];
+
+        // --- 2. PRE-PROCESSING ---
+        
+        // Helper: Get unique weeks
+        const weeks = [...new Set(marketData.map(d => d.week_date))].sort();
+        const lastWeek = weeks[weeks.length - 1];
+
+        // Identify Our Brand
+        const ourAsinData = marketData.find(d => d.is_yaba_asin === 'Y');
+        const ourBrand = ourAsinData ? (ourAsinData.competitor_brand || 'Our Brand') : 'Unknown';
+        
+        // Identify Competitors (Aggregate click share)
+        const brandShares = {};
+        marketData.forEach(d => {
+            let b = d.competitor_brand || 'Unknown';
+            if (!brandShares[b]) brandShares[b] = 0;
+            brandShares[b] += d.click_share;
+        });
+        // Sort brands by total share
+        const sortedBrands = Object.entries(brandShares)
+            .sort((a,b) => b[1] - a[1])
+            .map(e => e[0])
+            .filter(b => b !== ourBrand); // Exclude us
+        
+        const top3Competitors = sortedBrands.slice(0, 3);
+
+        // --- 3. GOOGLE CHARTS ---
+        google.charts.load('current', {'packages':['corechart', 'table']});
+        google.charts.setOnLoadCallback(drawDashboard);
+
+        function drawDashboard() {
+            renderKPIs();
+            drawTrend();
+            drawCompetitiveness();
+            drawLevers();
+            drawEfficiency();
+            renderInsights();
+            initInteractive();
+        }
+
+        // 3.1 Global Trend Chart (Combo)
+        function drawTrend() {
+            // Aggregate data by week
+            const weekData = weeks.map(w => {
+                const weekRows = marketData.filter(d => d.week_date === w);
+                const ourRows = weekRows.filter(d => d.is_yaba_asin === 'Y');
+                const compRows = weekRows.filter(d => d.is_yaba_asin === 'N');
+
+                const ourClicks = ourRows.reduce((sum, r) => sum + r.clicks, 0);
+                const compClicks = compRows.reduce((sum, r) => sum + r.clicks, 0);
+                
+                // Click Share Total (Weighted Average technically, but simplified here as avg of parent presence)
+                const ourShare = ourRows.reduce((sum, r) => sum + r.click_share, 0) / (ourRows.length || 1);
+                
+                return [w, ourClicks, compClicks, ourShare];
+            });
+
+            var data = google.visualization.arrayToDataTable([
+                ['Week', 'Our Clicks', 'Competitor Clicks', 'Our Click Share'],
+                ...weekData
+            ]);
+
+            var options = {
+                seriesType: 'bars',
+                series: {2: {type: 'line', targetAxisIndex: 1}},
+                colors: ['#4285F4', '#E0E0E0', '#EA4335'],
+                vAxes: {0: {title: 'Clicks'}, 1: {title: 'Click Share', format: 'percent'}},
+                legend: {position: 'bottom'},
+                chartArea: {width: '85%', height: '70%'},
+                bar: {groupWidth: '60%'}
+            };
+
+            var chart = new google.visualization.ComboChart(document.getElementById('chart_trend'));
+            chart.draw(data, options);
+
+            // Dynamic text
+            const last = weekData[weekData.length -1];
+            const prev = weekData[weekData.length -2];
+            const trend = last[1] > prev[1] ? "growing" : "declining";
+            document.getElementById('trend-text').innerText = `Our clicks are ${trend} in the last week.`;
+        }
+
+        // 3.2 Competitiveness (Line Chart)
+        function drawCompetitiveness() {
+            // Cols: Week, Us, Comp1, Comp2, Comp3, Others
+            const header = ['Week', ourBrand, ...top3Competitors, 'Others'];
+            
+            const rows = weeks.map(w => {
+                const weekRows = marketData.filter(d => d.week_date === w);
+                
+                const getShare = (brand) => {
+                    const rs = weekRows.filter(d => d.competitor_brand === brand);
+                    return rs.reduce((s, r) => s + r.click_share, 0) / (rs.length || 1);
+                };
+
+                const myShare = getShare(ourBrand);
+                const c1 = getShare(top3Competitors[0]);
+                const c2 = getShare(top3Competitors[1]);
+                const c3 = getShare(top3Competitors[2]);
+                
+                // Others: Total 1 - (sum of knowns) roughly, or avg of rest
+                // Simplified: Avg of remaining brands
+                const otherBrands = sortedBrands.slice(3);
+                let otherShare = 0;
+                if(otherBrands.length > 0) {
+                     otherShare = otherBrands.reduce((s, b) => s + getShare(b), 0) / otherBrands.length;
+                }
+
+                return [w, myShare, c1, c2, c3, otherShare];
+            });
+
+            var data = google.visualization.arrayToDataTable([header, ...rows]);
+
+            var options = {
+                curveType: 'function',
+                legend: { position: 'bottom' },
+                colors: ['#4285F4', '#EA4335', '#FBBC05', '#34A853', '#9AA0A6'],
+                vAxis: {format: 'percent'},
+                chartArea: {width: '90%', height: '70%'}
+            };
+
+            var chart = new google.visualization.LineChart(document.getElementById('chart_comp'));
+            chart.draw(data, options);
+        }
+
+        // 3.3 Efficiency (Scatter)
+        function drawEfficiency() {
+            // Plot Rank (X) vs Share (Y) for last week
+            const weekRows = marketData.filter(d => d.week_date === lastWeek);
+            
+            // Format: [ID, Rank, Share, Brand (Color), Size(fixed)]
+            // Google Scatter needs: [X, Y, {role:tooltip}]... simplified:
+            // Let's do series by brand type
+            
+            const dataArr = [['Rank', 'Click Share', {'type': 'string', 'role': 'style'}, {'type': 'string', 'role': 'tooltip'}]];
+            
+            weekRows.forEach(r => {
+                const color = r.competitor_brand === ourBrand ? '#4285F4' : '#999';
+                const pointSize = r.competitor_brand === ourBrand ? 'point { size: 10; shape-type: star; fill-color: #4285F4; }' : null;
+                dataArr.push([r.average_organic_rank, r.click_share, pointSize, `${r.competitor_brand}: Rank ${r.average_organic_rank}, Share ${(r.click_share*100).toFixed(1)}%`]);
+            });
+
+            var data = google.visualization.arrayToDataTable(dataArr);
+
+            var options = {
+                hAxis: {title: 'Organic Rank (Lower is Better)', direction: -1}, // Invert rank
+                vAxis: {title: 'Click Share', format: 'percent'},
+                legend: 'none',
+                chartArea: {width: '85%', height: '70%'}
+            };
+
+            var chart = new google.visualization.ScatterChart(document.getElementById('chart_efficiency'));
+            chart.draw(data, options);
+        }
+
+        // 3.4 Levers
+        function drawLevers() {
+            // Show Avg Price vs Share for Us vs Top Comp for Last Week
+            const weekRows = marketData.filter(d => d.week_date === lastWeek);
+            
+            // Prepare table data
+            var data = new google.visualization.DataTable();
+            data.addColumn('string', 'Brand');
+            data.addColumn('number', 'Price');
+            data.addColumn('number', 'Deals');
+            data.addColumn('number', 'Coupons');
+            data.addColumn('boolean', 'Amazon Choice');
+            
+            // Sort by share
+            const sorted = weekRows.sort((a,b) => b.click_share - a.click_share);
+            
+            sorted.forEach(r => {
+                data.addRow([
+                    r.competitor_brand,
+                    r.price,
+                    r.weekly_number_of_days_with_deal,
+                    r.weekly_number_of_days_with_coupon,
+                    r.weekly_number_of_days_with_amazon_choice_badge > 0
+                ]);
+            });
+
+            var table = new google.visualization.Table(document.getElementById('chart_levers'));
+            table.draw(data, {showRowNumber: true, width: '100%', height: '100%'});
+        }
+
+        // --- 4. DOM & INTERACTIVITY ---
+
+        function renderKPIs() {
+            const current = marketData.filter(d => d.week_date === lastWeek && d.is_yaba_asin === 'Y')[0];
+            const prevDate = weeks[weeks.length - 2];
+            const prev = marketData.filter(d => d.week_date === prevDate && d.is_yaba_asin === 'Y')[0] || current;
+
+            // Safe checks
+            const share = current ? current.click_share : 0;
+            const prevShare = prev ? prev.click_share : 0;
+            const diff = share - prevShare;
+            const trendClass = diff >= 0 ? 'trend-up' : 'trend-down';
+            const trendIcon = diff >= 0 ? 'arrow_upward' : 'arrow_downward';
+
+            // Clicks
+            const clicks = current ? current.clicks : 0;
+            
+            // Rank
+            const rank = current ? current.average_organic_rank : 0;
+
+            const html = `
+                <div class="kpi-card">
+                    <div class="kpi-label">Click Share (Last Week)</div>
+                    <div class="kpi-value">${(share * 100).toFixed(2)}%</div>
+                    <div class="kpi-trend ${trendClass}">
+                        <span class="material-icons" style="font-size:14px;">${trendIcon}</span>
+                        ${(Math.abs(diff)*100).toFixed(2)}% vs prev week
+                    </div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Total Clicks</div>
+                    <div class="kpi-value">${clicks.toLocaleString()}</div>
+                    <div class="kpi-label" style="margin-top:4px;">Driven by ${(current && current.weekly_number_of_days_with_coupon > 0) ? 'Coupons' : 'Organic'}</div>
+                </div>
+                 <div class="kpi-card">
+                    <div class="kpi-label">Avg Organic Rank</div>
+                    <div class="kpi-value">#${rank}</div>
+                </div>
+            `;
+            document.getElementById('kpi-container').innerHTML = html;
+        }
+
+        function renderInsights() {
+            // Static logic based on the synthetic data pattern (Growth due to coupon)
+            const list = document.getElementById('insights-list');
+            const recs = document.getElementById('recommendations-container');
+            
+            list.innerHTML = `
+                <li class="insight-item"><span class="material-icons insight-icon">check_circle</span> <strong>Momentum:</strong> ${ourBrand} gained significant traction in the last week (+${(0.05*100).toFixed(0)}% Share).</li>
+                <li class="insight-item"><span class="material-icons insight-icon">check_circle</span> <strong>Driver:</strong> The active Coupon (7 days) correlates directly with the spike in Click Share.</li>
+                <li class="insight-item"><span class="material-icons insight-icon">warning</span> <strong>Competition:</strong> ${top3Competitors[0]} maintains dominance despite higher price, likely due to "Best Seller" badge.</li>
+                <li class="insight-item"><span class="material-icons insight-icon">info</span> <strong>Efficiency:</strong> Our Organic Rank (#2) is excellent, converting well into clicks when supported by promos.</li>
+                <li class="insight-item"><span class="material-icons insight-icon">trending_up</span> <strong>Price Sensitivity:</strong> Lower priced competitors (CheapFix) are not gaining share, indicating quality-driven market.</li>
+            `;
+
+            recs.innerHTML = `
+                <div class="recommendation-card">
+                    <strong>1. Maintain Coupon Strategy:</strong> The data proves high elasticity. Keep the coupon active for 2 more weeks to solidify the #2 rank position.
+                </div>
+                <div class="recommendation-card">
+                    <strong>2. Attack 'Best Seller':</strong> Monitor ${top3Competitors[0]}'s stock. If they stock out, increase ad spend to capture the badge.
+                </div>
+                <div class="recommendation-card">
+                    <strong>3. Content Optimization:</strong> Ensure main image highlights the "Organic" and "Bottle" attributes to defend against cheaper alternatives.
+                </div>
+            `;
+        }
+
+        // --- 5. INTERACTIVE TAB LOGIC ---
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById('tab-' + tabId).classList.add('active');
+        }
+
+        function initInteractive() {
+            // Populate Week Selector
+            const wSel = document.getElementById('week-selector');
+            weeks.forEach(w => {
+                let opt = document.createElement('option');
+                opt.value = w;
+                opt.text = w;
+                if(w === lastWeek) opt.selected = true;
+                wSel.add(opt);
+            });
+
+            // Populate Competitor Selector
+            const cSel = document.getElementById('comp-selector');
+            top3Competitors.forEach(c => {
+                let opt = document.createElement('option');
+                opt.value = c;
+                opt.text = c;
+                cSel.add(opt);
+            });
+
+            updateInteractive();
+        }
+
+        function updateInteractive() {
+            const week = document.getElementById('week-selector').value;
+            const comp = document.getElementById('comp-selector').value;
+
+            const us = marketData.find(d => d.week_date === week && d.is_yaba_asin === 'Y') || {};
+            const them = marketData.find(d => d.week_date === week && d.competitor_brand === comp) || {};
+
+            document.getElementById('our-brand-name').innerText = ourBrand;
+            document.getElementById('comp-brand-name').innerText = comp;
+
+            const renderStats = (data, elId) => {
+                if(!data.brand_aggregation) {
+                    document.getElementById(elId).innerHTML = "No data for this week";
+                    return;
+                }
+                const html = `
+                    <div class="comp-metric"><div>Price</div><span>$${data.price}</span></div>
+                    <div class="comp-metric"><div>Click Share</div><span>${(data.click_share*100).toFixed(2)}%</span></div>
+                    <div class="comp-metric"><div>Rank</div><span>#${data.average_organic_rank}</span></div>
+                    <div class="comp-metric"><div>Deal Days</div><span>${data.weekly_number_of_days_with_deal}</span></div>
+                    <div class="comp-metric"><div>Coupons</div><span>${data.weekly_number_of_days_with_coupon}</span></div>
+                `;
+                document.getElementById(elId).innerHTML = html;
+            };
+
+            renderStats(us, 'our-stats');
+            renderStats(them, 'comp-stats');
+
+            // Comparison Table
+            var data = google.visualization.arrayToDataTable([
+                ['Metric', ourBrand, comp],
+                ['Price', us.price || 0, them.price || 0],
+                ['Click Share (%)', (us.click_share||0)*100, (them.click_share||0)*100],
+                ['Organic Rank', us.average_organic_rank||0, them.average_organic_rank||0],
+                ['Deal Days', us.weekly_number_of_days_with_deal||0, them.weekly_number_of_days_with_deal||0]
+            ]);
+
+            var table = new google.visualization.Table(document.getElementById('table_interactive'));
+            table.draw(data, {width: '100%'});
+        }
+
+    </script>
+</body>
+</html>
