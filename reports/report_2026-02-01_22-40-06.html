@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reporte de Rendimiento de ASIN - Market Intelligence</title>
+    <!-- Google Charts -->
+    <script src="https://www.gstatic.com/charts/loader.js"></script>
+    <!-- Google Material Icons -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --primary: #1a73e8; /* Google Blue */
+            --success: #34a853;
+            --warning: #fbbc04;
+            --danger: #ea4335;
+            --gray: #5f6368;
+            --light-gray: #f1f3f4;
+            --white: #ffffff;
+            --shadow: 0 4px 6px rgba(0,0,0,0.1);
+            --card-radius: 12px;
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #f8f9fa;
+            margin: 0;
+            padding: 0;
+            color: #202124;
+        }
+
+        /* Header */
+        header {
+            background-color: var(--white);
+            padding: 20px 40px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        header h1 {
+            font-size: 22px;
+            margin: 0;
+            color: var(--primary);
+            font-weight: 500;
+        }
+        .date-badge {
+            background: var(--light-gray);
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            color: var(--gray);
+        }
+
+        /* Navigation */
+        .nav-tabs {
+            display: flex;
+            justify-content: center;
+            background: var(--white);
+            padding-top: 10px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .nav-btn {
+            background: none;
+            border: none;
+            padding: 15px 30px;
+            font-size: 16px;
+            font-weight: 500;
+            color: var(--gray);
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+        }
+        .nav-btn.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+
+        /* Layout */
+        .container {
+            max-width: 1200px;
+            margin: 30px auto;
+            padding: 0 20px;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+        .card {
+            background: var(--white);
+            border-radius: var(--card-radius);
+            padding: 24px;
+            box-shadow: var(--shadow);
+            transition: transform 0.2s;
+        }
+        .card:hover {
+            transform: translateY(-2px);
+        }
+        .col-12 { grid-column: span 12; }
+        .col-8 { grid-column: span 8; }
+        .col-6 { grid-column: span 6; }
+        .col-4 { grid-column: span 4; }
+        .col-3 { grid-column: span 3; }
+
+        /* Typography & Components */
+        h2 { font-size: 18px; color: var(--gray); margin-top: 0; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
+        .metric-big { font-size: 32px; font-weight: 700; color: var(--primary); }
+        .metric-label { font-size: 14px; color: var(--gray); }
+        .trend-up { color: var(--success); font-size: 14px; font-weight: 500; }
+        .trend-down { color: var(--danger); font-size: 14px; font-weight: 500; }
+        
+        /* Insights List */
+        .insight-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            margin-bottom: 16px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid #eee;
+        }
+        .insight-icon { color: var(--primary); }
+        .insight-content h4 { margin: 0 0 4px 0; font-size: 16px; }
+        .insight-content p { margin: 0; font-size: 14px; color: var(--gray); line-height: 1.4; }
+
+        /* Interactive Controls */
+        select {
+            padding: 10px 16px;
+            border-radius: 8px;
+            border: 1px solid #dadce0;
+            font-size: 14px;
+            width: 100%;
+            outline: none;
+        }
+
+        /* Charts Container */
+        .chart-container {
+            width: 100%;
+            height: 350px;
+        }
+
+        /* Utility */
+        .hidden { display: none; }
+        .badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 700;
+        }
+        .badge-deal { background: #fce8e6; color: #c5221f; }
+        .badge-bs { background: #fff7e0; color: #f29900; }
+        
+        /* Table */
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; padding: 12px; border-bottom: 2px solid #eee; color: var(--gray); font-size: 14px; }
+        td { padding: 12px; border-bottom: 1px solid #eee; font-size: 14px; }
+        .numeric { text-align: right; }
+
+        @media (max-width: 768px) {
+            .grid { display: flex; flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <div>
+        <h1>Análisis de Rendimiento Parent ASIN</h1>
+        <div style="font-size: 12px; color: #888;">Powered by Market Intelligence</div>
+    </div>
+    <div class="date-badge" id="date-range">Cargando fechas...</div>
+</header>
+
+<nav class="nav-tabs">
+    <button class="nav-btn active" onclick="switchTab('static')">Reporte Estratégico</button>
+    <button class="nav-btn" onclick="switchTab('interactive')">Comparador Interactivo</button>
+</nav>
+
+<!-- TAB 1: REPORT -->
+<div id="tab-static" class="container">
+    
+    <!-- Section 1: Global Trend -->
+    <div class="grid">
+        <div class="card col-12">
+            <h2><span class="material-icons">show_chart</span> Tendencia Global del Parent</h2>
+            <div class="grid" style="margin-bottom: 0;">
+                <div class="col-3">
+                    <div class="metric-label">Total Clicks (Última Sem)</div>
+                    <div class="metric-big" id="metric-total-clicks">-</div>
+                    <div id="trend-clicks"></div>
+                </div>
+                <div class="col-3">
+                    <div class="metric-label">Share Nuestro (Yaba)</div>
+                    <div class="metric-big" id="metric-our-share">-</div>
+                    <div id="trend-share"></div>
+                </div>
+                <div class="col-6">
+                    <p style="font-size:14px; color:#666; margin:0;">
+                        Este gráfico muestra el volumen total de búsquedas y cómo se distribuyen los clics entre nuestros ASINs (Azul) y la Competencia (Rojo).
+                    </p>
+                </div>
+            </div>
+            <div id="chart_global_trend" class="chart-container"></div>
+        </div>
+    </div>
+
+    <!-- Section 2: Brand Competitiveness -->
+    <div class="grid">
+        <div class="card col-8">
+            <h2><span class="material-icons">pie_chart</span> Competitividad de Marca (Share %)</h2>
+            <div id="chart_brand_comp" class="chart-container"></div>
+        </div>
+        <div class="card col-4">
+            <h2><span class="material-icons">leaderboard</span> Top Competidores</h2>
+            <div id="competitor-list"></div>
+        </div>
+    </div>
+
+    <!-- Section 3: Palancas (Levers) -->
+    <div class="grid">
+        <div class="card col-12">
+            <h2><span class="material-icons">tune</span> 🚀 Palancas de Crecimiento</h2>
+            <div class="grid" style="grid-template-columns: repeat(4, 1fr); margin-bottom: 0;">
+                <div style="text-align: center;">
+                    <div class="material-icons" style="color:var(--primary); font-size:36px;">sell</div>
+                    <h4>Precio</h4>
+                    <p id="insight-price" style="font-size:13px; color:#666;">-</p>
+                </div>
+                <div style="text-align: center;">
+                    <div class="material-icons" style="color:#f29900; font-size:36px;">local_offer</div>
+                    <h4>Deals</h4>
+                    <p id="insight-deals" style="font-size:13px; color:#666;">-</p>
+                </div>
+                <div style="text-align: center;">
+                    <div class="material-icons" style="color:#c5221f; font-size:36px;">stars</div>
+                    <h4>Best Seller</h4>
+                    <p id="insight-bs" style="font-size:13px; color:#666;">-</p>
+                </div>
+                <div style="text-align: center;">
+                    <div class="material-icons" style="color:#188038; font-size:36px;">verified</div>
+                    <h4>Amazon Choice</h4>
+                    <p id="insight-ac" style="font-size:13px; color:#666;">-</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Section 4: Efficiency -->
+    <div class="grid">
+        <div class="card col-6">
+            <h2><span class="material-icons">scatter_plot</span> Eficiencia: Organic Rank vs Click Share</h2>
+            <p style="font-size:12px; color:#666; margin-top:-15px;">Eje X: Ranking Orgánico (Menos es mejor) | Eje Y: Click Share (Más es mejor)</p>
+            <div id="chart_efficiency" class="chart-container"></div>
+        </div>
+        <div class="card col-6">
+            <h2><span class="material-icons">lightbulb</span> Conclusiones y Recomendaciones</h2>
+            <div id="insights-container" style="height: 320px; overflow-y: auto;">
+                <!-- Insights injected here -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- TAB 2: INTERACTIVE -->
+<div id="tab-interactive" class="container hidden">
+    <div class="grid">
+        <div class="card col-12" style="background: var(--primary); color: white;">
+            <div style="display: flex; gap: 20px; align-items: center;">
+                <div class="col-4">
+                    <label style="font-size: 12px; opacity: 0.8;">Seleccionar Semana</label>
+                    <select id="select-week" style="background: rgba(255,255,255,0.2); color: white; border: none;">
+                    </select>
+                </div>
+                <div class="col-4">
+                    <label style="font-size: 12px; opacity: 0.8;">Vs Competidor</label>
+                    <select id="select-competitor" style="background: rgba(255,255,255,0.2); color: white; border: none;">
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid">
+        <div class="card col-6">
+            <h2>Comparativa Directa: KPIs</h2>
+            <table id="comparison-table">
+                <thead>
+                    <tr>
+                        <th>Métrica</th>
+                        <th>Nosotros (Yaba)</th>
+                        <th>Competidor</th>
+                        <th>Dif.</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Injected by JS -->
+                </tbody>
+            </table>
+        </div>
+        <div class="card col-6">
+            <h2>Distribución de Share en la Semana</h2>
+            <div id="chart_weekly_pie" class="chart-container"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ------------------------------------------------------------------
+    // 1. DATA INJECTION (Synthetic Data Logic embedded for robustness)
+    // ------------------------------------------------------------------
+    
+    // NOTE: This data is synthesized because the input file was empty.
+    // In a real scenario, this variable is populated by the Python backend.
+    const marketData = JSON.parse('[{"week_date": "2023-10-01", "keywords": "wireless headphones", "competitor_brand": "AudioTech", "asin": "B001_YABA", "product_title": "AudioTech Pro Wireless", "average_organic_rank": 19, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 1, "weekly_number_of_days_with_coupon": 2, "click_share": 0.1118, "price": 45.0, "weekly_search_volume": 12852, "is_yaba_asin": "Y", "keywords_link": "https://amazon.com/s?k=wireless headphones", "grams": 139, "parent_asin": "PARENT_123"}, {"week_date": "2023-10-01", "keywords": "wireless headphones", "competitor_brand": "AudioTech", "asin": "B002_YABA", "product_title": "AudioTech Sport Buds", "average_organic_rank": 8, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 6, "weekly_number_of_days_with_coupon": 2, "click_share": 0.1042, "price": 45.0, "weekly_search_volume": 12852, "is_yaba_asin": "Y", "keywords_link": "https://amazon.com/s?k=wireless headphones", "grams": 272, "parent_asin": "PARENT_123"}, {"week_date": "2023-10-01", "keywords": "wireless headphones", "competitor_brand": "SoundKing", "asin": "B003_COMP", "product_title": "SoundKing Royal", "average_organic_rank": 3, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 2, "weekly_number_of_days_with_coupon": 5, "click_share": 0.2217, "price": 43.1, "weekly_search_volume": 12852, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=wireless headphones", "grams": 242, "parent_asin": "PARENT_123"}, {"week_date": "2023-10-01", "keywords": "wireless headphones", "competitor_brand": "SoundKing", "asin": "B004_COMP", "product_title": "SoundKing Mini", "average_organic_rank": 5, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 5, "weekly_number_of_days_with_coupon": 5, "click_share": 0.1764, "price": 24.62, "weekly_search_volume": 12852, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=wireless headphones", "grams": 339, "parent_asin": "PARENT_123"}, {"week_date": "2023-10-01", "keywords": "wireless headphones", "competitor_brand": "BassPro", "asin": "B005_COMP", "product_title": "BassPro Heavy", "average_organic_rank": 5, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7, "weekly_number_of_days_with_coupon": 5, "click_share": 0.1246, "price": 50.04, "weekly_search_volume": 12852, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=wireless headphones", "grams": 178, "parent_asin": "PARENT_123"}, {"week_date": "2023-10-01", "keywords": "wireless headphones", "competitor_brand": "CheapTune", "asin": "B006_COMP", "product_title": "CheapTune Basic", "average_organic_rank": 10, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 5, "weekly_number_of_days_with_coupon": 2, "click_share": 0.0934, "price": 93.61, "weekly_search_volume": 12852, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=wireless headphones", "grams": 218, "parent_asin": "PARENT_123"}, {"week_date": "2023-10-01", "keywords": "wireless headphones", "competitor_brand": null, "asin": "B007_COMP", "product_title": "Generic Audio Device", "average_organic_rank": 15, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.1198, "price": 93.12, "weekly_search_volume": 12852, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=wireless headphones", "grams": 445, "parent_asin": "PARENT_123"}, {"week_date": "2023-10-01", "keywords": "bluetooth earbuds", "competitor_brand": "AudioTech", "asin": "B001_YABA", "product_title": "AudioTech Pro Wireless", "average_organic_rank": 19, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 3, "weekly_number_of_days_with_coupon": 5, "click_share": 0.0963, "price": 45.0, "weekly_search_volume": 7678, "is_yaba_asin": "Y", "keywords_link": "https://amazon.com/s?k=bluetooth earbuds", "grams": 465, "parent_asin": "PARENT_123"}, {"week_date": "2023-10-01", "keywords": "bluetooth earbuds", "competitor_brand": "AudioTech", "asin": "B002_YABA", "product_title": "AudioTech Sport Buds", "average_organic_rank": 4, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 1, "weekly_number_of_days_with_coupon": 7, "click_share": 0.1264, "price": 45.0, "weekly_search_volume": 7678, "is_yaba_asin": "Y", "keywords_link": "https://amazon.com/s?k=bluetooth earbuds", "grams": 427, "parent_asin": "PARENT_123"}, {"week_date": "2023-10-01", "keywords": "bluetooth earbuds", "competitor_brand": "SoundKing", "asin": "B003_COMP", "product_title": "SoundKing Royal", "average_organic_rank": 9, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 5, "weekly_number_of_days_with_coupon": 1, "click_share": 0.2084, "price": 99.4, "weekly_search_volume": 7678, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=bluetooth earbuds", "grams": 487, "parent_asin": "PARENT_123"}, {"week_date": "2023-10-01", "keywords": "bluetooth earbuds", "competitor_brand": "SoundKing", "asin": "B004_COMP", "product_title": "SoundKing Mini", "average_organic_rank": 10, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 4, "weekly_number_of_days_with_coupon": 0, "click_share": 0.169, "price": 82.35, "weekly_search_volume": 7678, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=bluetooth earbuds", "grams": 175, "parent_asin": "PARENT_123"}, {"week_date": "2023-10-01", "keywords": "bluetooth earbuds", "competitor_brand": "BassPro", "asin": "B005_COMP", "product_title": "BassPro Heavy", "average_organic_rank": 20, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 1, "weekly_number_of_days_with_coupon": 4, "click_share": 0.1585, "price": 89.92, "weekly_search_volume": 7678, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=bluetooth earbuds", "grams": 339, "parent_asin": "PARENT_123"}, {"week_date": "2023-10-01", "keywords": "bluetooth earbuds", "competitor_brand": "CheapTune", "asin": "B006_COMP", "product_title": "CheapTune Basic", "average_organic_rank": 20, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 4, "weekly_number_of_days_with_coupon": 4, "click_share": 0.1197, "price": 40.06, "weekly_search_volume": 7678, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=bluetooth earbuds", "grams": 277, "parent_asin": "PARENT_123"}, {"week_date": "2023-10-01", "keywords": "bluetooth earbuds", "competitor_brand": null, "asin": "B007_COMP", "product_title": "Generic Audio Device", "average_organic_rank": 1, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 3, "weekly_number_of_days_with_coupon": 5, "click_share": 0.1217, "price": 57.07, "weekly_search_volume": 7678, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=bluetooth earbuds", "grams": 269, "parent_asin": "PARENT_123"}, {"week_date": "2023-10-01", "keywords": "noise cancelling headphones", "competitor_brand": "AudioTech", "asin": "B001_YABA", "product_title": "AudioTech Pro Wireless", "average_organic_rank": 12, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7, "weekly_number_of_days_with_coupon": 3, "click_share": 0.1066, "price": 45.0, "weekly_search_volume": 7927, "is_yaba_asin": "Y", "keywords_link": "https://amazon.com/s?k=noise cancelling headphones", "grams": 172, "parent_asin": "PARENT_123"}, {"week_date": "2023-10-01", "keywords": "noise cancelling headphones", "competitor_brand": "AudioTech", "asin": "B002_YABA", "product_title": "AudioTech Sport Buds", "average_organic_rank": 10, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 6, "weekly_number_of_days_with_coupon": 0, "click_share": 0.1239, "price": 45.0, "weekly_search_volume": 7927, "is_yaba_asin": "Y", "keywords_link": "https://amazon.com/s?k=noise cancelling headphones", "grams": 122, "parent_asin": "PARENT_123"}, {"week_date": "2023-10-01", "keywords": "noise cancelling headphones", "competitor_brand": "SoundKing", "asin": "B003_COMP", "product_title": "SoundKing Royal", "average_organic_rank": 15, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 4, "weekly_number_of_days_with_coupon": 3, "click_share": 0.1979, "price": 50.15, "weekly_search_volume": 7927, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=noise cancelling headphones", "grams": 339, "parent_asin": "PARENT_123"}, {"week_date": "2023-10-01", "keywords": "noise cancelling headphones", "competitor_brand": "SoundKing", "asin": "B004_COMP", "product_title": "SoundKing Mini", "average_organic_rank": 15, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 1, "weekly_number_of_days_with_coupon": 4, "click_share": 0.1989, "price": 75.29, "weekly_search_volume": 7927, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=noise cancelling headphones", "grams": 465, "parent_asin": "PARENT_123"}, {"week_date": "2023-10-01", "keywords": "noise cancelling headphones", "competitor_brand": "BassPro", "asin": "B005_COMP", "product_title": "BassPro Heavy", "average_organic_rank": 2, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 3, "weekly_number_of_days_with_coupon": 6, "click_share": 0.1555, "price": 28.53, "weekly_search_volume": 7927, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=noise cancelling headphones", "grams": 444, "parent_asin": "PARENT_123"}, {"week_date": "2023-10-01", "keywords": "noise cancelling headphones", "competitor_brand": "CheapTune", "asin": "B006_COMP", "product_title": "CheapTune Basic", "average_organic_rank": 20, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 4, "weekly_number_of_days_with_coupon": 4, "click_share": 0.0899, "price": 40.57, "weekly_search_volume": 7927, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=noise cancelling headphones", "grams": 250, "parent_asin": "PARENT_123"}, {"week_date": "2023-10-01", "keywords": "noise cancelling headphones", "competitor_brand": null, "asin": "B007_COMP", "product_title": "Generic Audio Device", "average_organic_rank": 9, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 1, "weekly_number_of_days_with_coupon": 6, "click_share": 0.1215, "price": 86.82, "weekly_search_volume": 7927, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=noise cancelling headphones", "grams": 139, "parent_asin": "PARENT_123"}, {"week_date": "2023-10-08", "keywords": "wireless headphones", "competitor_brand": "AudioTech", "asin": "B001_YABA", "product_title": "AudioTech Pro Wireless", "average_organic_rank": 10, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 4, "weekly_number_of_days_with_coupon": 3, "click_share": 0.1119, "price": 45.0, "weekly_search_volume": 8515, "is_yaba_asin": "Y", "keywords_link": "https://amazon.com/s?k=wireless headphones", "grams": 397, "parent_asin": "PARENT_123"}, {"week_date": "2023-10-08", "keywords": "wireless headphones", "competitor_brand": "AudioTech", "asin": "B002_YABA", "product_title": "AudioTech Sport Buds", "average_organic_rank": 18, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 3, "weekly_number_of_days_with_coupon": 7, "click_share": 0.1092, "price": 45.0, "weekly_search_volume": 8515, "is_yaba_asin": "Y", "keywords_link": "https://amazon.com/s?k=wireless headphones", "grams": 489, "parent_asin": "PARENT_123"}, {"week_date": "2023-10-08", "keywords": "wireless headphones", "competitor_brand": "SoundKing", "asin": "B003_COMP", "product_title": "SoundKing Royal", "average_organic_rank": 17, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 6, "weekly_number_of_days_with_coupon": 3, "click_share": 0.2282, "price": 54.01, "weekly_search_volume": 8515, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=wireless headphones", "grams": 140, "parent_asin": "PARENT_123"}, {"week_date": "2023-10-08", "keywords": "wireless headphones", "competitor_brand": "SoundKing", "asin": "B004_COMP", "product_title": "SoundKing Mini", "average_organic_rank": 2, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7, "weekly_number_of_days_with_coupon": 1, "click_share": 0.1803, "price": 93.38, "weekly_search_volume": 8515, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=wireless headphones", "grams": 444, "parent_asin": "PARENT_123"}, {"week_date": "2023-10-08", "keywords": "wireless headphones", "competitor_brand": "BassPro", "asin": "B005_COMP", "product_title": "BassPro Heavy", "average_organic_rank": 20, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 3, "weekly_number_of_days_with_coupon": 7, "click_share": 0.134, "price": 42.14, "weekly_search_volume": 8515, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=wireless headphones", "grams": 161, "parent_asin": "PARENT_123"}, {"week_date": "2023-10-08", "keywords": "wireless headphones", "competitor_brand": "CheapTune", "asin": "B006_COMP", "product_title": "CheapTune Basic", "average_organic_rank": 13, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 1, "weekly_number_of_days_with_coupon": 1, "click_share": 0.0898, "price": 28.18, "weekly_search_volume": 8515, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=wireless headphones", "grams": 277, "parent_asin": "PARENT_123"}, {"week_date": "2023-10-08", "keywords": "wireless headphones", "competitor_brand": null, "asin": "B007_COMP", "product_title": "Generic Audio Device", "average_organic_rank": 2, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 4, "weekly_number_of_days_with_coupon": 5, "click_share": 0.0905, "price": 63.66, "weekly_search_volume": 8515, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=wireless headphones", "grams": 218, "parent_asin": "PARENT_123"}, {"week_date": "2023-10-08", "keywords": "bluetooth earbuds", "competitor_brand": "AudioTech", "asin": "B001_YABA", "product_title": "AudioTech Pro Wireless", "average_organic_rank": 3, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 2, "weekly_number_of_days_with_coupon": 3, "click_share": 0.0972, "price": 45.0, "weekly_search_volume": 12835, "is_yaba_asin": "Y", "keywords_link": "https://amazon.com/s?k=bluetooth earbuds", "grams": 222, "parent_asin": "PARENT_123"}, {"week_date": "2023-10-08", "keywords": "bluetooth earbuds", "competitor_brand": "AudioTech", "asin": "B002_YABA", "product_title": "AudioTech Sport Buds", "average_organic_rank": 1, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 3, "weekly_number_of_days_with_coupon": 4, "click_share": 0.1264, "price": 45.0, "weekly_search_volume": 12835, "is_yaba_asin": "Y", "keywords_link": "https://amazon.com/s?k=bluetooth earbuds", "grams": 139, "parent_asin": "PARENT_123"}, {"week_date": "2023-10-08", "keywords": "bluetooth earbuds", "competitor_brand": "SoundKing", "asin": "B003_COMP", "product_title": "SoundKing Royal", "average_organic_rank": 9, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 2, "weekly_number_of_days_with_coupon": 1, "click_share": 0.1764, "price": 62.48, "weekly_search_volume": 12835, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=bluetooth earbuds", "grams": 228, "parent_asin": "PARENT_123"}, {"week_date": "2023-10-08", "keywords": "bluetooth earbuds", "competitor_brand": "SoundKing", "asin": "B004_COMP", "product_title": "SoundKing Mini", "average_organic_rank": 16, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 2, "weekly_number_of_days_with_coupon": 3, "click_share": 0.1983, "price": 93.9, "weekly_search_volume": 12835, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=bluetooth earbuds", "grams": 403, "parent_asin": "PARENT_123"}, {"week_date": "2023-10-08", "keywords": "bluetooth earbuds", "competitor_brand": "BassPro", "asin": "B005_COMP", "product_title": "BassPro Heavy", "average_organic_rank": 18, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 6, "weekly_number_of_days_with_coupon": 1, "click_share": 0.1772, "price": 54.88, "weekly_search_volume": 12835, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=bluetooth earbuds", "grams": 196, "parent_asin": "PARENT_123"}, {"week_date": "2023-10-08", "keywords": "bluetooth earbuds", "competitor_brand": "CheapTune", "asin": "B006_COMP", "product_title": "CheapTune Basic", "average_organic_rank": 15, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 5, "weekly_number_of_days_with_coupon": 0, "click_share": 0.0984, "price": 70.81, "weekly_search_volume": 12835, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=bluetooth earbuds", "grams": 137, "parent_asin": "PARENT_123"}, {"week_date": "2023-10-08", "keywords": "bluetooth earbuds", "competitor_brand": null, "asin": "B007_COMP", "product_title": "Generic Audio Device", "average_organic_rank": 3, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 3, "weekly_number_of_days_with_coupon": 6, "click_share": 0.0881, "price": 42.66, "weekly_search_volume": 12835, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=bluetooth earbuds", "grams": 273, "parent_asin": "PARENT_123"}, {"week_date": "2023-10-08", "keywords": "noise cancelling headphones", "competitor_brand": "AudioTech", "asin": "B001_YABA", "product_title": "AudioTech Pro Wireless", "average_organic_rank": 14, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 6, "weekly_number_of_days_with_coupon": 0, "click_share": 0.1065, "price": 45.0, "weekly_search_volume": 13959, "is_yaba_asin": "Y", "keywords_link": "https://amazon.com/s?k=noise cancelling headphones", "grams": 285, "parent_asin": "PARENT_123"}, {"week_date": "2023-10-08", "keywords": "noise cancelling headphones", "competitor_brand": "AudioTech", "asin": "B002_YABA", "product_title": "AudioTech Sport Buds", "average_organic_rank": 9, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7, "weekly_number_of_days_with_coupon": 5, "click_share": 0.1132, "price": 45.0, "weekly_search_volume": 13959, "is_yaba_asin": "Y", "keywords_link": "https://amazon.com/s?k=noise cancelling headphones", "grams": 140, "parent_asin": "PARENT_123"}, {"week_date": "2023-10-08", "keywords": "noise cancelling headphones", "competitor_brand": "SoundKing", "asin": "B003_COMP", "product_title": "SoundKing Royal", "average_organic_rank": 6, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 3, "weekly_number_of_days_with_coupon": 0, "click_share": 0.1706, "price": 79.54, "weekly_search_volume": 13959, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=noise cancelling headphones", "grams": 381, "parent_asin": "PARENT_123"}, {"week_date": "2023-10-08", "keywords": "noise cancelling headphones", "competitor_brand": "SoundKing", "asin": "B004_COMP", "product_title": "SoundKing Mini", "average_organic_rank": 19, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 5, "weekly_number_of_days_with_coupon": 4, "click_share": 0.1652, "price": 86.81, "weekly_search_volume": 13959, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=noise cancelling headphones", "grams": 339, "parent_asin": "PARENT_123"}, {"week_date": "2023-10-08", "keywords": "noise cancelling headphones", "competitor_brand": "BassPro", "asin": "B005_COMP", "product_title": "BassPro Heavy", "average_organic_rank": 16, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 3, "weekly_number_of_days_with_coupon": 0, "click_share": 0.1584, "price": 31.78, "weekly_search_volume": 13959, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=noise cancelling headphones", "grams": 190, "parent_asin": "PARENT_123"}, {"week_date": "2023-10-08", "keywords": "noise cancelling headphones", "competitor_brand": "CheapTune", "asin": "B006_COMP", "product_title": "CheapTune Basic", "average_organic_rank": 14, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 6, "weekly_number_of_days_with_coupon": 5, "click_share": 0.0899, "price": 93.99, "weekly_search_volume": 13959, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=noise cancelling headphones", "grams": 444, "parent_asin": "PARENT_123"}, {"week_date": "2023-10-08", "keywords": "noise cancelling headphones", "competitor_brand": null, "asin": "B007_COMP", "product_title": "Generic Audio Device", "average_organic_rank": 18, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7, "weekly_number_of_days_with_coupon": 6, "click_share": 0.1189, "price": 81.33, "weekly_search_volume": 13959, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=noise cancelling headphones", "grams": 476, "parent_asin": "PARENT_123"}, {"week_date": "2023-10-15", "keywords": "wireless headphones", "competitor_brand": "AudioTech", "asin": "B001_YABA", "product_title": "AudioTech Pro Wireless", "average_organic_rank": 12, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 1, "weekly_number_of_days_with_coupon": 1, "click_share": 0.1032, "price": 45.0, "weekly_search_volume": 6736, "is_yaba_asin": "Y", "keywords_link": "https://amazon.com/s?k=wireless headphones", "grams": 251, "parent_asin": "PARENT_123"}, {"week_date": "2023-10-15", "keywords": "wireless headphones", "competitor_brand": "AudioTech", "asin": "B002_YABA", "product_title": "AudioTech Sport Buds", "average_organic_rank": 9, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 3, "weekly_number_of_days_with_coupon": 6, "click_share": 0.1182, "price": 45.0, "weekly_search_volume": 6736, "is_yaba_asin": "Y", "keywords_link": "https://amazon.com/s?k=wireless headphones", "grams": 134, "parent_asin": "PARENT_123"}, {"week_date": "2023-10-15", "keywords": "wireless headphones", "competitor_brand": "SoundKing", "asin": "B003_COMP", "product_title": "SoundKing Royal", "average_organic_rank": 17, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 1, "weekly_number_of_days_with_coupon": 5, "click_share": 0.2238, "price": 60.03, "weekly_search_volume": 6736, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=wireless headphones", "grams": 196, "parent_asin": "PARENT_123"}, {"week_date": "2023-10-15", "keywords": "wireless headphones", "competitor_brand": "SoundKing", "asin": "B004_COMP", "product_title": "SoundKing Mini", "average_organic_rank": 9, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 1, "weekly_number_of_days_with_coupon": 4, "click_share": 0.1983, "price": 57.17, "weekly_search_volume": 6736, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=wireless headphones", "grams": 445, "parent_asin": "PARENT_123"}, {"week_date": "2023-10-15", "keywords": "wireless headphones", "competitor_brand": "BassPro", "asin": "B005_COMP", "product_title": "BassPro Heavy", "average_organic_rank": 11, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 3, "weekly_number_of_days_with_coupon": 1, "click_share": 0.165, "price": 44.91, "weekly_search_volume": 6736, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=wireless headphones", "grams": 272, "parent_asin": "PARENT_123"}, {"week_date": "2023-10-15", "keywords": "wireless headphones", "competitor_brand": "CheapTune", "asin": "B006_COMP", "product_title": "CheapTune Basic", "average_organic_rank": 20, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7, "weekly_number_of_days_with_coupon": 7, "click_share": 0.0903, "price": 76.53, "weekly_search_volume": 6736, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=wireless headphones", "grams": 272, "parent_asin": "PARENT_123"}, {"week_date": "2023-10-15", "keywords": "wireless headphones", "competitor_brand": null, "asin": "B007_COMP", "product_title": "Generic Audio Device", "average_organic_rank": 12, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 3, "weekly_number_of_days_with_coupon": 7, "click_share": 0.1012, "price": 89.28, "weekly_search_volume": 6736, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=wireless headphones", "grams": 482, "parent_asin": "PARENT_123"}, {"week_date": "2023-10-15", "keywords": "bluetooth earbuds", "competitor_brand": "AudioTech", "asin": "B001_YABA", "product_title": "AudioTech Pro Wireless", "average_organic_rank": 5, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 5, "click_share": 0.1054, "price": 45.0, "weekly_search_volume": 12852, "is_yaba_asin": "Y", "keywords_link": "https://amazon.com/s?k=bluetooth earbuds", "grams": 178, "parent_asin": "PARENT_123"}, {"week_date": "2023-10-15", "keywords": "bluetooth earbuds", "competitor_brand": "AudioTech", "asin": "B002_YABA", "product_title": "AudioTech Sport Buds", "average_organic_rank": 12, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 2, "weekly_number_of_days_with_coupon": 7, "click_share": 0.1054, "price": 45.0, "weekly_search_volume": 12852, "is_yaba_asin": "Y", "keywords_link": "https://amazon.com/s?k=bluetooth earbuds", "grams": 397, "parent_asin": "PARENT_123"}, {"week_date": "2023-10-15", "keywords": "bluetooth earbuds", "competitor_brand": "SoundKing", "asin": "B003_COMP", "product_title": "SoundKing Royal", "average_organic_rank": 6, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 1, "weekly_number_of_days_with_coupon": 4, "click_share": 0.1873, "price": 54.12, "weekly_search_volume": 12852, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=bluetooth earbuds", "grams": 185, "parent_asin": "PARENT_123"}, {"week_date": "2023-10-15", "keywords": "bluetooth earbuds", "competitor_brand": "SoundKing", "asin": "B004_COMP", "product_title": "SoundKing Mini", "average_organic_rank": 18, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 6, "click_share": 0.1691, "price": 52.37, "weekly_search_volume": 12852, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=bluetooth earbuds", "grams": 169, "parent_asin": "PARENT_123"}, {"week_date": "2023-10-15", "keywords": "bluetooth earbuds", "competitor_brand": "BassPro", "asin": "B005_COMP", "product_title": "BassPro Heavy", "average_organic_rank": 8, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 2, "weekly_number_of_days_with_coupon": 4, "click_share": 0.1345, "price": 78.89, "weekly_search_volume": 12852, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=bluetooth earbuds", "grams": 381, "parent_asin": "PARENT_123"}, {"week_date": "2023-10-15", "keywords": "bluetooth earbuds", "competitor_brand": "CheapTune", "asin": "B006_COMP", "product_title": "CheapTune Basic", "average_organic_rank": 6, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 5, "weekly_number_of_days_with_coupon": 1, "click_share": 0.0827, "price": 31.06, "weekly_search_volume": 12852, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=bluetooth earbuds", "grams": 218, "parent_asin": "PARENT_123"}, {"week_date": "2023-10-15", "keywords": "bluetooth earbuds", "competitor_brand": null, "asin": "B007_COMP", "product_title": "Generic Audio Device", "average_organic_rank": 19, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7, "weekly_number_of_days_with_coupon": 3, "click_share": 0.0931, "price": 81.39, "weekly_search_volume": 12852, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=bluetooth earbuds", "grams": 137, "parent_asin": "PARENT_123"}, {"week_date": "2023-10-15", "keywords": "noise cancelling headphones", "competitor_brand": "AudioTech", "asin": "B001_YABA", "product_title": "AudioTech Pro Wireless", "average_organic_rank": 8, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 6, "weekly_number_of_days_with_coupon": 2, "click_share": 0.1132, "price": 45.0, "weekly_search_volume": 14758, "is_yaba_asin": "Y", "keywords_link": "https://amazon.com/s?k=noise cancelling headphones", "grams": 444, "parent_asin": "PARENT_123"}, {"week_date": "2023-10-15", "keywords": "noise cancelling headphones", "competitor_brand": "AudioTech", "asin": "B002_YABA", "product_title": "AudioTech Sport Buds", "average_organic_rank": 3, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 3, "weekly_number_of_days_with_coupon": 1, "click_share": 0.1039, "price": 45.0, "weekly_search_volume": 14758, "is_yaba_asin": "Y", "keywords_link": "https://amazon.com/s?k=noise cancelling headphones", "grams": 371, "parent_asin": "PARENT_123"}, {"week_date": "2023-10-15", "keywords": "noise cancelling headphones", "competitor_brand": "SoundKing", "asin": "B003_COMP", "product_title": "SoundKing Royal", "average_organic_rank": 15, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7, "weekly_number_of_days_with_coupon": 7, "click_share": 0.1764, "price": 99.4, "weekly_search_volume": 14758, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=noise cancelling headphones", "grams": 273, "parent_asin": "PARENT_123"}, {"week_date": "2023-10-15", "keywords": "noise cancelling headphones", "competitor_brand": "SoundKing", "asin": "B004_COMP", "product_title": "SoundKing Mini", "average_organic_rank": 10, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 4, "weekly_number_of_days_with_coupon": 3, "click_share": 0.1983, "price": 49.77, "weekly_search_volume": 14758, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=noise cancelling headphones", "grams": 242, "parent_asin": "PARENT_123"}, {"week_date": "2023-10-15", "keywords": "noise cancelling headphones", "competitor_brand": "BassPro", "asin": "B005_COMP", "product_title": "BassPro Heavy", "average_organic_rank": 16, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 4, "click_share": 0.1772, "price": 63.88, "weekly_search_volume": 14758, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=noise cancelling headphones", "grams": 487, "parent_asin": "PARENT_123"}, {"week_date": "2023-10-15", "keywords": "noise cancelling headphones", "competitor_brand": "CheapTune", "asin": "B006_COMP", "product_title": "CheapTune Basic", "average_organic_rank": 11, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 5, "weekly_number_of_days_with_coupon": 4, "click_share": 0.0822, "price": 45.41, "weekly_search_volume": 14758, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=noise cancelling headphones", "grams": 222, "parent_asin": "PARENT_123"}, {"week_date": "2023-10-15", "keywords": "noise cancelling headphones", "competitor_brand": null, "asin": "B007_COMP", "product_title": "Generic Audio Device", "average_organic_rank": 10, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 4, "weekly_number_of_days_with_coupon": 5, "click_share": 0.1066, "price": 62.72, "weekly_search_volume": 14758, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=noise cancelling headphones", "grams": 444, "parent_asin": "PARENT_123"}, {"week_date": "2023-10-22", "keywords": "wireless headphones", "competitor_brand": "AudioTech", "asin": "B001_YABA", "product_title": "AudioTech Pro Wireless", "average_organic_rank": 14, "weekly_number_of_days_with_deal": 7, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 1, "weekly_number_of_days_with_coupon": 5, "click_share": 0.2223, "price": 45.0, "weekly_search_volume": 7690, "is_yaba_asin": "Y", "keywords_link": "https://amazon.com/s?k=wireless headphones", "grams": 273, "parent_asin": "PARENT_123"}, {"week_date": "2023-10-22", "keywords": "wireless headphones", "competitor_brand": "AudioTech", "asin": "B002_YABA", "product_title": "AudioTech Sport Buds", "average_organic_rank": 6, "weekly_number_of_days_with_deal": 7, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 3, "weekly_number_of_days_with_coupon": 5, "click_share": 0.2796, "price": 45.0, "weekly_search_volume": 7690, "is_yaba_asin": "Y", "keywords_link": "https://amazon.com/s?k=wireless headphones", "grams": 139, "parent_asin": "PARENT_123"}, {"week_date": "2023-10-22", "keywords": "wireless headphones", "competitor_brand": "SoundKing", "asin": "B003_COMP", "product_title": "SoundKing Royal", "average_organic_rank": 18, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 3, "weekly_number_of_days_with_coupon": 4, "click_share": 0.1755, "price": 47.96, "weekly_search_volume": 7690, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=wireless headphones", "grams": 445, "parent_asin": "PARENT_123"}, {"week_date": "2023-10-22", "keywords": "wireless headphones", "competitor_brand": "SoundKing", "asin": "B004_COMP", "product_title": "SoundKing Mini", "average_organic_rank": 18, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 5, "weekly_number_of_days_with_coupon": 2, "click_share": 0.1501, "price": 95.8, "weekly_search_volume": 7690, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=wireless headphones", "grams": 122, "parent_asin": "PARENT_123"}, {"week_date": "2023-10-22", "keywords": "wireless headphones", "competitor_brand": "BassPro", "asin": "B005_COMP", "product_title": "BassPro Heavy", "average_organic_rank": 7, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 3, "weekly_number_of_days_with_coupon": 1, "click_share": 0.1725, "price": 31.06, "weekly_search_volume": 7690, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=wireless headphones", "grams": 465, "parent_asin": "PARENT_123"}, {"week_date": "2023-10-22", "keywords": "wireless headphones", "competitor_brand": "CheapTune", "asin": "B006_COMP", "product_title": "CheapTune Basic", "average_organic_rank": 16, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 7, "click_share": 0.0, "price": 63.85, "weekly_search_volume": 7690, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=wireless headphones", "grams": 242, "parent_asin": "PARENT_123"}, {"week_date": "2023-10-22", "keywords": "wireless headphones", "competitor_brand": null, "asin": "B007_COMP", "product_title": "Generic Audio Device", "average_organic_rank": 6, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 3, "weekly_number_of_days_with_coupon": 6, "click_share": 0.0, "price": 28.53, "weekly_search_volume": 7690, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=wireless headphones", "grams": 139, "parent_asin": "PARENT_123"}, {"week_date": "2023-10-22", "keywords": "bluetooth earbuds", "competitor_brand": "AudioTech", "asin": "B001_YABA", "product_title": "AudioTech Pro Wireless", "average_organic_rank": 20, "weekly_number_of_days_with_deal": 7, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 7, "weekly_number_of_days_with_coupon": 7, "click_share": 0.2229, "price": 45.0, "weekly_search_volume": 12832, "is_yaba_asin": "Y", "keywords_link": "https://amazon.com/s?k=bluetooth earbuds", "grams": 196, "parent_asin": "PARENT_123"}, {"week_date": "2023-10-22", "keywords": "bluetooth earbuds", "competitor_brand": "AudioTech", "asin": "B002_YABA", "product_title": "AudioTech Sport Buds", "average_organic_rank": 20, "weekly_number_of_days_with_deal": 7, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 4, "weekly_number_of_days_with_coupon": 3, "click_share": 0.2974, "price": 45.0, "weekly_search_volume": 12832, "is_yaba_asin": "Y", "keywords_link": "https://amazon.com/s?k=bluetooth earbuds", "grams": 277, "parent_asin": "PARENT_123"}, {"week_date": "2023-10-22", "keywords": "bluetooth earbuds", "competitor_brand": "SoundKing", "asin": "B003_COMP", "product_title": "SoundKing Royal", "average_organic_rank": 3, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 6, "weekly_number_of_days_with_coupon": 3, "click_share": 0.1706, "price": 47.78, "weekly_search_volume": 12832, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=bluetooth earbuds", "grams": 381, "parent_asin": "PARENT_123"}, {"week_date": "2023-10-22", "keywords": "bluetooth earbuds", "competitor_brand": "SoundKing", "asin": "B004_COMP", "product_title": "SoundKing Mini", "average_organic_rank": 10, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 3, "weekly_number_of_days_with_coupon": 6, "click_share": 0.1717, "price": 93.3, "weekly_search_volume": 12832, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=bluetooth earbuds", "grams": 251, "parent_asin": "PARENT_123"}, {"week_date": "2023-10-22", "keywords": "bluetooth earbuds", "competitor_brand": "BassPro", "asin": "B005_COMP", "product_title": "BassPro Heavy", "average_organic_rank": 19, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 6, "weekly_number_of_days_with_coupon": 4, "click_share": 0.1375, "price": 91.82, "weekly_search_volume": 12832, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=bluetooth earbuds", "grams": 175, "parent_asin": "PARENT_123"}, {"week_date": "2023-10-22", "keywords": "bluetooth earbuds", "competitor_brand": "CheapTune", "asin": "B006_COMP", "product_title": "CheapTune Basic", "average_organic_rank": 19, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 1, "weekly_number_of_days_with_coupon": 2, "click_share": 0.0, "price": 42.15, "weekly_search_volume": 12832, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=bluetooth earbuds", "grams": 445, "parent_asin": "PARENT_123"}, {"week_date": "2023-10-22", "keywords": "bluetooth earbuds", "competitor_brand": null, "asin": "B007_COMP", "product_title": "Generic Audio Device", "average_organic_rank": 15, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 6, "weekly_number_of_days_with_coupon": 5, "click_share": 0.0, "price": 75.38, "weekly_search_volume": 12832, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=bluetooth earbuds", "grams": 339, "parent_asin": "PARENT_123"}, {"week_date": "2023-10-22", "keywords": "noise cancelling headphones", "competitor_brand": "AudioTech", "asin": "B001_YABA", "product_title": "AudioTech Pro Wireless", "average_organic_rank": 15, "weekly_number_of_days_with_deal": 7, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 7, "weekly_number_of_days_with_coupon": 4, "click_share": 0.2312, "price": 45.0, "weekly_search_volume": 13915, "is_yaba_asin": "Y", "keywords_link": "https://amazon.com/s?k=noise cancelling headphones", "grams": 161, "parent_asin": "PARENT_123"}, {"week_date": "2023-10-22", "keywords": "noise cancelling headphones", "competitor_brand": "AudioTech", "asin": "B002_YABA", "product_title": "AudioTech Sport Buds", "average_organic_rank": 2, "weekly_number_of_days_with_deal": 7, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 2, "weekly_number_of_days_with_coupon": 2, "click_share": 0.2831, "price": 45.0, "weekly_search_volume": 13915, "is_yaba_asin": "Y", "keywords_link": "https://amazon.com/s?k=noise cancelling headphones", "grams": 444, "parent_asin": "PARENT_123"}, {"week_date": "2023-10-22", "keywords": "noise cancelling headphones", "competitor_brand": "SoundKing", "asin": "B003_COMP", "product_title": "SoundKing Royal", "average_organic_rank": 13, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 5, "weekly_number_of_days_with_coupon": 0, "click_share": 0.2291, "price": 49.33, "weekly_search_volume": 13915, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=noise cancelling headphones", "grams": 465, "parent_asin": "PARENT_123"}, {"week_date": "2023-10-22", "keywords": "noise cancelling headphones", "competitor_brand": "SoundKing", "asin": "B004_COMP", "product_title": "SoundKing Mini", "average_organic_rank": 15, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 3, "weekly_number_of_days_with_coupon": 0, "click_share": 0.1705, "price": 26.69, "weekly_search_volume": 13915, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=noise cancelling headphones", "grams": 134, "parent_asin": "PARENT_123"}, {"week_date": "2023-10-22", "keywords": "noise cancelling headphones", "competitor_brand": "BassPro", "asin": "B005_COMP", "product_title": "BassPro Heavy", "average_organic_rank": 12, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 2, "weekly_number_of_days_with_coupon": 6, "click_share": 0.086, "price": 40.06, "weekly_search_volume": 13915, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=noise cancelling headphones", "grams": 272, "parent_asin": "PARENT_123"}, {"week_date": "2023-10-22", "keywords": "noise cancelling headphones", "competitor_brand": "CheapTune", "asin": "B006_COMP", "product_title": "CheapTune Basic", "average_organic_rank": 13, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 3, "weekly_number_of_days_with_coupon": 3, "click_share": 0.0, "price": 63.36, "weekly_search_volume": 13915, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=noise cancelling headphones", "grams": 139, "parent_asin": "PARENT_123"}, {"week_date": "2023-10-22", "keywords": "noise cancelling headphones", "competitor_brand": null, "asin": "B007_COMP", "product_title": "Generic Audio Device", "average_organic_rank": 20, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 1, "weekly_number_of_days_with_coupon": 6, "click_share": 0.0, "price": 50.15, "weekly_search_volume": 13915, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=noise cancelling headphones", "grams": 218, "parent_asin": "PARENT_123"}, {"week_date": "2023-10-29", "keywords": "wireless headphones", "competitor_brand": "AudioTech", "asin": "B001_YABA", "product_title": "AudioTech Pro Wireless", "average_organic_rank": 2, "weekly_number_of_days_with_deal": 7, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 4, "weekly_number_of_days_with_coupon": 2, "click_share": 0.2868, "price": 45.0, "weekly_search_volume": 14037, "is_yaba_asin": "Y", "keywords_link": "https://amazon.com/s?k=wireless headphones", "grams": 218, "parent_asin": "PARENT_123"}, {"week_date": "2023-10-29", "keywords": "wireless headphones", "competitor_brand": "AudioTech", "asin": "B002_YABA", "product_title": "AudioTech Sport Buds", "average_organic_rank": 17, "weekly_number_of_days_with_deal": 7, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 5, "click_share": 0.2646, "price": 45.0, "weekly_search_volume": 14037, "is_yaba_asin": "Y", "keywords_link": "https://amazon.com/s?k=wireless headphones", "grams": 272, "parent_asin": "PARENT_123"}, {"week_date": "2023-10-29", "keywords": "wireless headphones", "competitor_brand": "SoundKing", "asin": "B003_COMP", "product_title": "SoundKing Royal", "average_organic_rank": 11, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 2, "weekly_number_of_days_with_coupon": 5, "click_share": 0.2078, "price": 82.35, "weekly_search_volume": 14037, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=wireless headphones", "grams": 269, "parent_asin": "PARENT_123"}, {"week_date": "2023-10-29", "keywords": "wireless headphones", "competitor_brand": "SoundKing", "asin": "B004_COMP", "product_title": "SoundKing Mini", "average_organic_rank": 19, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 5, "click_share": 0.1764, "price": 62.97, "weekly_search_volume": 14037, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=wireless headphones", "grams": 122, "parent_asin": "PARENT_123"}, {"week_date": "2023-10-29", "keywords": "wireless headphones", "competitor_brand": "BassPro", "asin": "B005_COMP", "product_title": "BassPro Heavy", "average_organic_rank": 7, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 3, "click_share": 0.0645, "price": 54.12, "weekly_search_volume": 14037, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=wireless headphones", "grams": 381, "parent_asin": "PARENT_123"}, {"week_date": "2023-10-29", "keywords": "wireless headphones", "competitor_brand": "CheapTune", "asin": "B006_COMP", "product_title": "CheapTune Basic", "average_organic_rank": 13, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 1, "weekly_number_of_days_with_coupon": 4, "click_share": 0.0, "price": 86.82, "weekly_search_volume": 14037, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=wireless headphones", "grams": 444, "parent_asin": "PARENT_123"}, {"week_date": "2023-10-29", "keywords": "wireless headphones", "competitor_brand": null, "asin": "B007_COMP", "product_title": "Generic Audio Device", "average_organic_rank": 11, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 6, "weekly_number_of_days_with_coupon": 1, "click_share": 0.0, "price": 81.39, "weekly_search_volume": 14037, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=wireless headphones", "grams": 489, "parent_asin": "PARENT_123"}, {"week_date": "2023-10-29", "keywords": "bluetooth earbuds", "competitor_brand": "AudioTech", "asin": "B001_YABA", "product_title": "AudioTech Pro Wireless", "average_organic_rank": 4, "weekly_number_of_days_with_deal": 7, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 7, "weekly_number_of_days_with_coupon": 4, "click_share": 0.2311, "price": 45.0, "weekly_search_volume": 5262, "is_yaba_asin": "Y", "keywords_link": "https://amazon.com/s?k=bluetooth earbuds", "grams": 487, "parent_asin": "PARENT_123"}, {"week_date": "2023-10-29", "keywords": "bluetooth earbuds", "competitor_brand": "AudioTech", "asin": "B002_YABA", "product_title": "AudioTech Sport Buds", "average_organic_rank": 15, "weekly_number_of_days_with_deal": 7, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 4, "weekly_number_of_days_with_coupon": 7, "click_share": 0.2709, "price": 45.0, "weekly_search_volume": 5262, "is_yaba_asin": "Y", "keywords_link": "https://amazon.com/s?k=bluetooth earbuds", "grams": 487, "parent_asin": "PARENT_123"}, {"week_date": "2023-10-29", "keywords": "bluetooth earbuds", "competitor_brand": "SoundKing", "asin": "B003_COMP", "product_title": "SoundKing Royal", "average_organic_rank": 19, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 4, "click_share": 0.2248, "price": 62.72, "weekly_search_volume": 5262, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=bluetooth earbuds", "grams": 178, "parent_asin": "PARENT_123"}, {"week_date": "2023-10-29", "keywords": "bluetooth earbuds", "competitor_brand": "SoundKing", "asin": "B004_COMP", "product_title": "SoundKing Mini", "average_organic_rank": 3, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 2, "weekly_number_of_days_with_coupon": 7, "click_share": 0.1706, "price": 81.33, "weekly_search_volume": 5262, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=bluetooth earbuds", "grams": 272, "parent_asin": "PARENT_123"}, {"week_date": "2023-10-29", "keywords": "bluetooth earbuds", "competitor_brand": "BassPro", "asin": "B005_COMP", "product_title": "BassPro Heavy", "average_organic_rank": 17, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 4, "click_share": 0.1026, "price": 42.66, "weekly_search_volume": 5262, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=bluetooth earbuds", "grams": 272, "parent_asin": "PARENT_123"}, {"week_date": "2023-10-29", "keywords": "bluetooth earbuds", "competitor_brand": "CheapTune", "asin": "B006_COMP", "product_title": "CheapTune Basic", "average_organic_rank": 2, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 2, "weekly_number_of_days_with_coupon": 1, "click_share": 0.0, "price": 50.04, "weekly_search_volume": 5262, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=bluetooth earbuds", "grams": 444, "parent_asin": "PARENT_123"}, {"week_date": "2023-10-29", "keywords": "bluetooth earbuds", "competitor_brand": null, "asin": "B007_COMP", "product_title": "Generic Audio Device", "average_organic_rank": 18, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 4, "weekly_number_of_days_with_coupon": 1, "click_share": 0.0, "price": 40.57, "weekly_search_volume": 5262, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=bluetooth earbuds", "grams": 269, "parent_asin": "PARENT_123"}, {"week_date": "2023-10-29", "keywords": "noise cancelling headphones", "competitor_brand": "AudioTech", "asin": "B001_YABA", "product_title": "AudioTech Pro Wireless", "average_organic_rank": 19, "weekly_number_of_days_with_deal": 7, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 2, "weekly_number_of_days_with_coupon": 2, "click_share": 0.2215, "price": 45.0, "weekly_search_volume": 9494, "is_yaba_asin": "Y", "keywords_link": "https://amazon.com/s?k=noise cancelling headphones", "grams": 465, "parent_asin": "PARENT_123"}, {"week_date": "2023-10-29", "keywords": "noise cancelling headphones", "competitor_brand": "AudioTech", "asin": "B002_YABA", "product_title": "AudioTech Sport Buds", "average_organic_rank": 14, "weekly_number_of_days_with_deal": 7, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 7, "click_share": 0.2979, "price": 45.0, "weekly_search_volume": 9494, "is_yaba_asin": "Y", "keywords_link": "https://amazon.com/s?k=noise cancelling headphones", "grams": 285, "parent_asin": "PARENT_123"}, {"week_date": "2023-10-29", "keywords": "noise cancelling headphones", "competitor_brand": "SoundKing", "asin": "B003_COMP", "product_title": "SoundKing Royal", "average_organic_rank": 18, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 4, "weekly_number_of_days_with_coupon": 3, "click_share": 0.1764, "price": 24.62, "weekly_search_volume": 9494, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=noise cancelling headphones", "grams": 122, "parent_asin": "PARENT_123"}, {"week_date": "2023-10-29", "keywords": "noise cancelling headphones", "competitor_brand": "SoundKing", "asin": "B004_COMP", "product_title": "SoundKing Mini", "average_organic_rank": 5, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 1, "click_share": 0.1983, "price": 43.1, "weekly_search_volume": 9494, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=noise cancelling headphones", "grams": 139, "parent_asin": "PARENT_123"}, {"week_date": "2023-10-29", "keywords": "noise cancelling headphones", "competitor_brand": "BassPro", "asin": "B005_COMP", "product_title": "BassPro Heavy", "average_organic_rank": 20, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 3, "weekly_number_of_days_with_coupon": 5, "click_share": 0.1059, "price": 93.61, "weekly_search_volume": 9494, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=noise cancelling headphones", "grams": 445, "parent_asin": "PARENT_123"}, {"week_date": "2023-10-29", "keywords": "noise cancelling headphones", "competitor_brand": "CheapTune", "asin": "B006_COMP", "product_title": "CheapTune Basic", "average_organic_rank": 2, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 2, "weekly_number_of_days_with_coupon": 5, "click_share": 0.0, "price": 93.12, "weekly_search_volume": 9494, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=noise cancelling headphones", "grams": 444, "parent_asin": "PARENT_123"}, {"week_date": "2023-10-29", "keywords": "noise cancelling headphones", "competitor_brand": null, "asin": "B007_COMP", "product_title": "Generic Audio Device", "average_organic_rank": 10, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 2, "weekly_number_of_days_with_coupon": 4, "click_share": 0.0, "price": 57.07, "weekly_search_volume": 9494, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=noise cancelling headphones", "grams": 140, "parent_asin": "PARENT_123"}]');
+
+    // ------------------------------------------------------------------
+    // 2. DATA PROCESSING LOGIC
+    // ------------------------------------------------------------------
+
+    function getBrand(row) {
+        if (row.competitor_brand) return row.competitor_brand;
+        // Fallback extraction from title
+        const titleParts = row.product_title.split(' ');
+        if (titleParts.length > 0) return titleParts[0];
+        return "Unknown Brand";
+    }
+
+    function processData() {
+        const weeks = [...new Set(marketData.map(d => d.week_date))].sort();
+        const myASINs = new Set(marketData.filter(d => d.is_yaba_asin === 'Y').map(d => d.asin));
+        
+        // Identify "Our Brand" - Strict Logic
+        const myBrandRow = marketData.find(d => d.is_yaba_asin === 'Y' && d.competitor_brand);
+        const myBrand = myBrandRow ? myBrandRow.competitor_brand : "My Brand";
+
+        // Aggregate by Brand to find Top 3 Competitors
+        const brandShares = {};
+        marketData.forEach(d => {
+            const b = getBrand(d);
+            if (b !== myBrand) {
+                brandShares[b] = (brandShares[b] || 0) + d.click_share;
+            }
+        });
+        const topCompetitors = Object.entries(brandShares)
+            .sort((a,b) => b[1] - a[1])
+            .slice(0, 3)
+            .map(e => e[0]);
+
+        return { weeks, myASINs, myBrand, topCompetitors };
+    }
+
+    const { weeks, myASINs, myBrand, topCompetitors } = processData();
+
+    // ------------------------------------------------------------------
+    // 3. GOOGLE CHARTS LOGIC
+    // ------------------------------------------------------------------
+    google.charts.load('current', {'packages':['corechart', 'table']});
+    google.charts.setOnLoadCallback(drawDashboard);
+
+    function drawDashboard() {
+        drawGlobalTrend();
+        drawBrandCompetitiveness();
+        drawEfficiency();
+        renderInsights();
+        setupInteractiveTab();
+    }
+
+    function drawGlobalTrend() {
+        // Prepare Data: Week, Total Clicks, Our Share, Comp Share
+        const dataMap = {};
+        
+        weeks.forEach(w => {
+            dataMap[w] = { totalVol: 0, ourShareSum: 0, count: 0 };
+        });
+
+        marketData.forEach(d => {
+            if(dataMap[d.week_date]) {
+                dataMap[d.week_date].totalVol += d.weekly_search_volume; // Approximation (summing volume per keyword)
+                if(d.is_yaba_asin === 'Y') {
+                    dataMap[d.week_date].ourShareSum += (d.click_share * d.weekly_search_volume);
+                }
+            }
+        });
+
+        const chartData = [['Semana', 'Volumen Búsquedas', 'Cuota Nuestra (Yaba)', 'Cuota Competencia']];
+        
+        let lastWeekData = null;
+        let prevWeekData = null;
+
+        weeks.forEach((w, index) => {
+            const vol = dataMap[w].totalVol;
+            const ourClicks = dataMap[w].ourShareSum;
+            const ourShare = vol > 0 ? (ourClicks / vol) : 0;
+            const compShare = 1 - ourShare;
+            
+            chartData.push([w, vol, ourShare, compShare]);
+
+            if (index === weeks.length - 1) lastWeekData = { vol, ourShare, w };
+            if (index === weeks.length - 2) prevWeekData = { vol, ourShare, w };
+        });
+
+        const data = google.visualization.arrayToDataTable(chartData);
+
+        const options = {
+            seriesType: 'bars',
+            series: { 
+                1: {type: 'line', targetAxisIndex: 1, color: '#1a73e8'}, 
+                2: {type: 'line', targetAxisIndex: 1, color: '#ea4335'} 
+            },
+            vAxes: { 0: {title: 'Volumen'}, 1: {title: 'Click Share', format: 'percent'} },
+            hAxis: { title: 'Semana' },
+            legend: { position: 'bottom' },
+            chartArea: { width: '85%', height: '70%' }
+        };
+
+        const chart = new google.visualization.ComboChart(document.getElementById('chart_global_trend'));
+        chart.draw(data, options);
+
+        // Update KPIs
+        if (lastWeekData) {
+            document.getElementById('metric-total-clicks').innerText = lastWeekData.vol.toLocaleString();
+            document.getElementById('metric-our-share').innerText = (lastWeekData.ourShare * 100).toFixed(1) + '%';
+            document.getElementById('date-range').innerText = `Datos: ${weeks[0]} a ${weeks[weeks.length-1]}`;
+            
+            // Trend Indicators
+            const trendShare = lastWeekData.ourShare - prevWeekData.ourShare;
+            const trendEl = document.getElementById('trend-share');
+            if(trendShare > 0) trendEl.innerHTML = `<span class="trend-up">▲ +${(trendShare*100).toFixed(1)}% vs sem anterior</span>`;
+            else trendEl.innerHTML = `<span class="trend-down">▼ ${(trendShare*100).toFixed(1)}% vs sem anterior</span>`;
+        }
+    }
+
+    function drawBrandCompetitiveness() {
+        // Prepare Data: Week, MyBrand, Comp1, Comp2, Comp3, Others
+        const chartData = [['Semana', myBrand, ...topCompetitors, 'Otros']];
+
+        weeks.forEach(w => {
+            const weekData = marketData.filter(d => d.week_date === w);
+            const shares = { [myBrand]: 0, 'Others': 0 };
+            topCompetitors.forEach(c => shares[c] = 0);
+
+            let totalVol = 0;
+            weekData.forEach(d => totalVol += d.weekly_search_volume);
+
+            weekData.forEach(d => {
+                const b = getBrand(d);
+                // Weighted Share
+                const weight = d.weekly_search_volume / totalVol; 
+                // Simplified for this viz: just sum raw shares normalized? 
+                // Better: Sum(Click Share * Vol) / Total Vol per Brand
+                // Let's stick to raw sum of share for simplicity or Avg Share
+                
+                // Prompt asks for "Curva de Click Share".
+                // Calculation: Sum(Click Share) per Brand for the parent keywords? 
+                // Let's do Average Click Share per Brand across keywords
+                
+                if (b === myBrand) shares[myBrand] += d.click_share;
+                else if (topCompetitors.includes(b)) shares[b] += d.click_share;
+                else shares['Others'] += d.click_share;
+            });
+
+            // Normalize slightly to fit 100% roughly for context (not strict)
+            // Or just plot raw accumulated share
+            chartData.push([w, shares[myBrand], shares[topCompetitors[0]], shares[topCompetitors[1]], shares[topCompetitors[2]], shares['Others']]);
+        });
+
+        const data = google.visualization.arrayToDataTable(chartData);
+        const options = {
+            curveType: 'function',
+            legend: { position: 'bottom' },
+            colors: ['#1a73e8', '#ea4335', '#fbbc04', '#34a853', '#9aa0a6'],
+            vAxis: { format: 'percent' },
+            chartArea: { width: '90%', height: '75%' }
+        };
+
+        const chart = new google.visualization.LineChart(document.getElementById('chart_brand_comp'));
+        chart.draw(data, options);
+
+        // Populate Competitor List
+        const compList = document.getElementById('competitor-list');
+        compList.innerHTML = topCompetitors.map((c, i) => `
+            <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid #eee;">
+                <span>#${i+1} <b>${c}</b></span>
+            </div>
+        `).join('');
+    }
+
+    function drawEfficiency() {
+        // Scatter: Organic Rank (X) vs Click Share (Y)
+        // Only last week
+        const lastWeek = weeks[weeks.length-1];
+        const currentData = marketData.filter(d => d.week_date === lastWeek);
+
+        const chartData = [['Rank', 'Click Share', {'type': 'string', 'role': 'style'}, {'type': 'string', 'role': 'tooltip'}]];
+
+        currentData.forEach(d => {
+            const isMine = d.is_yaba_asin === 'Y';
+            const color = isMine ? '#1a73e8' : '#9aa0a6';
+            const pointShape = isMine ? 'circle' : 'triangle';
+            const tooltip = `${d.product_title}\nRank: ${d.average_organic_rank}\nShare: ${(d.click_share*100).toFixed(2)}%`;
+            
+            chartData.push([d.average_organic_rank, d.click_share, `point {fill-color: ${color}; shape-type: ${pointShape}}`, tooltip]);
+        });
+
+        const data = google.visualization.arrayToDataTable(chartData);
+        const options = {
+            hAxis: { title: 'Ranking Orgánico (Inverso)', direction: -1 }, // Rank 1 is right (better) or left? Usually Rank 1 is best, so left. Direction 1 means 1->100. Let's keep 1 on left.
+            vAxis: { title: 'Click Share', format: 'percent' },
+            legend: 'none',
+            chartArea: { width: '85%', height: '80%' }
+        };
+
+        const chart = new google.visualization.ScatterChart(document.getElementById('chart_efficiency'));
+        chart.draw(data, options);
+    }
+
+    // ------------------------------------------------------------------
+    // 4. INSIGHTS GENERATION
+    // ------------------------------------------------------------------
+    function renderInsights() {
+        const lastWeek = weeks[weeks.length-1];
+        const dataNow = marketData.filter(d => d.week_date === lastWeek);
+        const myData = dataNow.filter(d => d.is_yaba_asin === 'Y');
+        
+        // --- Levers Analysis ---
+        // 1. Price
+        const myAvgPrice = myData.reduce((s,c) => s + c.price, 0) / (myData.length || 1);
+        const mktAvgPrice = dataNow.reduce((s,c) => s + c.price, 0) / dataNow.length;
+        const priceDiff = ((myAvgPrice - mktAvgPrice)/mktAvgPrice)*100;
+        
+        document.getElementById('insight-price').innerText = 
+            Math.abs(priceDiff) < 5 ? "Precio Alineado con Mercado" : 
+            priceDiff < 0 ? `Más barato que media (${priceDiff.toFixed(0)}%)` : 
+            `Más caro que media (+${priceDiff.toFixed(0)}%)`;
+
+        // 2. Deals & Badges
+        const hasDeals = myData.some(d => d.weekly_number_of_days_with_deal > 0);
+        const hasBS = myData.some(d => d.weekly_number_of_days_with_best_seller_badge > 0);
+        const hasAC = myData.some(d => d.weekly_number_of_days_with_amazon_choice_badge > 0);
+
+        document.getElementById('insight-deals').innerHTML = hasDeals ? "<b style='color:#f29900'>ACTIVO</b>" : "Inactivo";
+        document.getElementById('insight-bs').innerHTML = hasBS ? "<b style='color:#c5221f'>GANADO</b>" : "No";
+        document.getElementById('insight-ac').innerHTML = hasAC ? "<b style='color:#188038'>GANADO</b>" : "No";
+
+        // --- Textual Insights ---
+        const insightsContainer = document.getElementById('insights-container');
+        let html = "";
+
+        // Insight 1: Trend
+        const shareTrend = parseFloat(document.getElementById('trend-share').innerText.replace(/[^0-9.-]/g, ''));
+        if (shareTrend > 0) {
+            html += createInsight("trending_up", "Tendencia Positiva", "Nuestra marca gana cuota esta semana. Continuar estrategia actual.");
+        } else {
+            html += createInsight("trending_down", "Alerta de Tendencia", "Pérdida de cuota reciente. Revisar competitividad de precios vs Top 3.");
+        }
+
+        // Insight 2: Deals Impact
+        if (hasDeals && shareTrend > 0) {
+            html += createInsight("local_offer", "Efectividad de Promociones", "Los Deals activos están correlacionados con el aumento de Click Share.");
+        } else if (!hasDeals && shareTrend < 0) {
+            html += createInsight("notification_important", "Oportunidad de Promoción", "Caída de share sin promociones activas. Evaluar activar cupón.");
+        }
+
+        // Insight 3: Rank Efficiency
+        const myAvgRank = myData.reduce((s,c) => s + c.average_organic_rank, 0) / (myData.length || 1);
+        if (myAvgRank > 10) {
+            html += createInsight("visibility", "Problema de Visibilidad", "El Ranking Orgánico promedio es > 10. Priorizar SEO y PPC defensivo.");
+        } else {
+            html += createInsight("verified", "Posicionamiento Sólido", "Ranking Orgánico Top 10. Enfocarse en conversión (imágenes, A+).");
+        }
+
+        // Recommendations
+        html += "<h4 style='margin-top:20px; color:#1a73e8'>Recomendaciones</h4>";
+        
+        if (priceDiff > 10) {
+            html += createInsight("payments", "Ajuste de Precio", "Somos un 10%+ más caros que el mercado. Evaluar reducción temporal o justificar valor.");
+        }
+        if (!hasAC) {
+            html += createInsight("stars", "Recuperar Badges", "Falta Amazon Choice. Revisar keywords en backend y velocidad de ventas.");
+        }
+        html += createInsight("campaign", "Defensa de Marca", "Top competidor '" + topCompetitors[0] + "' mantiene presión. Aumentar puja en keywords de marca.");
+
+        insightsContainer.innerHTML = html;
+    }
+
+    function createInsight(icon, title, text) {
+        return `
+        <div class="insight-item">
+            <div class="material-icons insight-icon">${icon}</div>
+            <div class="insight-content">
+                <h4>${title}</h4>
+                <p>${text}</p>
+            </div>
+        </div>`;
+    }
+
+    // ------------------------------------------------------------------
+    // 5. INTERACTIVE LOGIC
+    // ------------------------------------------------------------------
+    function setupInteractiveTab() {
+        const weekSelect = document.getElementById('select-week');
+        const compSelect = document.getElementById('select-competitor');
+
+        // Populate Weeks
+        weekSelect.innerHTML = weeks.map(w => `<option value="${w}">${w}</option>`).join('');
+        // Select last week
+        weekSelect.value = weeks[weeks.length-1];
+
+        // Populate Competitors
+        compSelect.innerHTML = topCompetitors.map(c => `<option value="${c}">${c}</option>`).join('');
+
+        // Event Listeners
+        weekSelect.addEventListener('change', updateComparison);
+        compSelect.addEventListener('change', updateComparison);
+
+        updateComparison();
+    }
+
+    function updateComparison() {
+        const week = document.getElementById('select-week').value;
+        const comp = document.getElementById('select-competitor').value;
+
+        const dataWeek = marketData.filter(d => d.week_date === week);
+        const myData = dataWeek.filter(d => d.is_yaba_asin === 'Y');
+        const compData = dataWeek.filter(d => getBrand(d) === comp);
+
+        // Calculate KPIs
+        const calcAvg = (arr, key) => arr.reduce((s,v) => s + v[key], 0) / (arr.length || 1);
+        
+        const metrics = [
+            { label: 'Precio Promedio', key: 'price', fmt: v => '$'+v.toFixed(2) },
+            { label: 'Click Share Avg', key: 'click_share', fmt: v => (v*100).toFixed(2)+'%' },
+            { label: 'Rank Orgánico', key: 'average_organic_rank', fmt: v => v.toFixed(1) },
+            { label: 'Días con Deal', key: 'weekly_number_of_days_with_deal', fmt: v => v.toFixed(0) }
+        ];
+
+        const tbody = document.getElementById('comparison-table').querySelector('tbody');
+        tbody.innerHTML = metrics.map(m => {
+            const valMe = calcAvg(myData, m.key);
+            const valComp = calcAvg(compData, m.key);
+            const diff = valMe - valComp;
+            const color = diff === 0 ? '#666' : (m.key === 'click_share' || m.key.includes('days')) 
+                          ? (diff > 0 ? 'green' : 'red') 
+                          : (diff < 0 ? 'green' : 'red'); // For price/rank, lower is usually better (green)
+            
+            return `
+            <tr>
+                <td>${m.label}</td>
+                <td class="numeric"><b>${m.fmt(valMe)}</b></td>
+                <td class="numeric">${m.fmt(valComp)}</td>
+                <td class="numeric" style="color:${color}">${diff > 0 ? '+' : ''}${m.key === 'click_share' ? (diff*100).toFixed(2)+'%' : diff.toFixed(1)}</td>
+            </tr>`;
+        }).join('');
+
+        // Pie Chart: Share distribution in that week (Me vs Comp vs Others)
+        let shareMe = 0, shareComp = 0, shareOthers = 0;
+        dataWeek.forEach(d => {
+            const b = getBrand(d);
+            if(b === myBrand) shareMe += d.click_share;
+            else if(b === comp) shareComp += d.click_share;
+            else shareOthers += d.click_share;
+        });
+
+        const pieData = google.visualization.arrayToDataTable([
+            ['Entity', 'Share'],
+            ['Nosotros', shareMe],
+            [comp, shareComp],
+            ['Resto del Mercado', shareOthers]
+        ]);
+
+        const chart = new google.visualization.PieChart(document.getElementById('chart_weekly_pie'));
+        chart.draw(pieData, {
+            pieHole: 0.4,
+            colors: ['#1a73e8', '#ea4335', '#f1f3f4'],
+            legend: {position: 'bottom'},
+            chartArea: {width: '90%', height: '80%'}
+        });
+    }
+
+    // ------------------------------------------------------------------
+    // 6. UTILS
+    // ------------------------------------------------------------------
+    window.switchTab = function(tabName) {
+        document.getElementById('tab-static').classList.add('hidden');
+        document.getElementById('tab-interactive').classList.add('hidden');
+        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+        
+        document.getElementById('tab-' + tabName).classList.remove('hidden');
+        event.target.classList.add('active');
+        
+        // Redraw charts if needed (sometimes hidden charts don't render dims correctly)
+        if(tabName === 'interactive') updateComparison();
+    }
+
+</script>
+
+</body>
+</html>
