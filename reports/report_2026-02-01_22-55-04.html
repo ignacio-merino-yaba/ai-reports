@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Amazon Market Intelligence: Parent ASIN Analysis</title>
+    <!-- Google Material Design -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <link rel="stylesheet" href="https://code.getmdl.io/1.3.0/material.indigo-blue.min.css">
+    <script defer src="https://code.getmdl.io/1.3.0/material.min.js"></script>
+    <!-- Google Charts -->
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    
+    <style>
+        body { background-color: #f4f6f8; font-family: 'Roboto', 'Helvetica', 'Arial', sans-serif; color: #333; }
+        .mdl-layout__header { background-color: #ffffff; color: #333; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .mdl-layout__header-row .mdl-navigation__link { color: #555; font-weight: 500; }
+        .report-container { max-width: 1200px; margin: 20px auto; padding: 0 15px; }
+        .card-box { background: white; border-radius: 16px; padding: 24px; margin-bottom: 24px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); transition: transform 0.2s; }
+        .card-box:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0,0,0,0.08); }
+        .section-title { font-size: 1.25rem; font-weight: 600; color: #1a73e8; margin-bottom: 16px; display: flex; align-items: center; }
+        .section-title .material-icons { margin-right: 8px; }
+        .metric-value { font-size: 2rem; font-weight: 700; color: #202124; }
+        .metric-label { color: #5f6368; font-size: 0.875rem; text-transform: uppercase; letter-spacing: 0.5px; }
+        .trend-up { color: #137333; font-size: 0.9rem; font-weight: 500; }
+        .trend-down { color: #c5221f; font-size: 0.9rem; font-weight: 500; }
+        
+        /* Charts */
+        .chart-container { width: 100%; height: 350px; }
+        
+        /* Tabs */
+        .tab-nav { display: flex; gap: 10px; margin-bottom: 20px; }
+        .tab-btn { padding: 10px 20px; border-radius: 20px; border: none; background: #e0e0e0; cursor: pointer; font-weight: 500; transition: background 0.3s; }
+        .tab-btn.active { background: #1a73e8; color: white; }
+        
+        /* Insights List */
+        .insight-item { display: flex; align-items: flex-start; margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid #eee; }
+        .insight-icon { color: #1a73e8; margin-right: 12px; margin-top: 2px; }
+        .recommendation-card { background-color: #e8f0fe; border-left: 4px solid #1a73e8; }
+        
+        /* Hidden/Show Logic */
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+    </style>
+</head>
+<body>
+
+    <div class="mdl-layout mdl-js-layout mdl-layout--fixed-header">
+        <header class="mdl-layout__header">
+            <div class="mdl-layout__header-row">
+                <span class="mdl-layout-title">📦 Parent ASIN Intelligence Report</span>
+                <div class="mdl-layout-spacer"></div>
+                <nav class="mdl-navigation">
+                    <span class="mdl-navigation__link" id="reportDateRange">Loading...</span>
+                </nav>
+            </div>
+        </header>
+        
+        <main class="mdl-layout__content">
+            <div class="report-container">
+                
+                <!-- Navigation Tabs -->
+                <div class="tab-nav">
+                    <button class="tab-btn active" onclick="switchTab('static')">📊 Strategic Analysis</button>
+                    <button class="tab-btn" onclick="switchTab('interactive')">⚔️ Competitor Lab</button>
+                </div>
+
+                <!-- TAB 1: STATIC REPORT -->
+                <div id="tab-static" class="tab-content active">
+                    
+                    <!-- Section 1: Global Trend -->
+                    <div class="mdl-grid">
+                        <div class="mdl-cell mdl-cell--12-col card-box">
+                            <div class="section-title"><i class="material-icons">show_chart</i> 1. Global Parent Trend (Clicks & Share)</div>
+                            <div class="mdl-grid">
+                                <div class="mdl-cell mdl-cell--3-col">
+                                    <div class="metric-label">Total Clicks (Last Week)</div>
+                                    <div class="metric-value" id="totalClicks">0</div>
+                                    <div id="clickTrendLabel"></div>
+                                </div>
+                                <div class="mdl-cell mdl-cell--3-col">
+                                    <div class="metric-label">Our Share (Last Week)</div>
+                                    <div class="metric-value" id="currentShare">0%</div>
+                                    <div id="shareTrendLabel"></div>
+                                </div>
+                                <div class="mdl-cell mdl-cell--6-col">
+                                    <p style="color:#666; font-size:0.9rem;">
+                                        Analysis aggregated across all keywords. "Our ASINs" (Blue) vs Competitors (Grey/Red).
+                                    </p>
+                                </div>
+                            </div>
+                            <div id="globalTrendChart" class="chart-container"></div>
+                        </div>
+                    </div>
+
+                    <!-- Section 2: Brand Competitiveness -->
+                    <div class="mdl-grid">
+                        <div class="mdl-cell mdl-cell--12-col card-box">
+                            <div class="section-title"><i class="material-icons">flag</i> 2. Brand Competitiveness (Top 3 Rivals)</div>
+                            <div id="brandShareChart" class="chart-container"></div>
+                            <div style="margin-top:10px; font-size:0.85rem; color:#666;">
+                                *Brands identified via 'competitor_brand' or inferred from title. 'Our Brand' identified via is_yaba_asin='Y'.
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Section 3: Palancas (Levers) -->
+                    <div class="mdl-grid">
+                        <div class="mdl-cell mdl-cell--6-col card-box">
+                            <div class="section-title"><i class="material-icons">rocket_launch</i> 3. Growth Levers (Impact on Share)</div>
+                            <div id="leversChart" class="chart-container" style="height: 250px;"></div>
+                        </div>
+                        <div class="mdl-cell mdl-cell--6-col card-box">
+                            <div class="section-title"><i class="material-icons">scatter_plot</i> 4. Efficiency (Rank vs Share)</div>
+                            <div id="efficiencyChart" class="chart-container" style="height: 250px;"></div>
+                            <div style="font-size:0.8rem; text-align:center;">X: Organic Rank (Lower is Better) | Y: Click Share</div>
+                        </div>
+                    </div>
+
+                    <!-- Section 5: Insights -->
+                    <div class="mdl-grid">
+                        <div class="mdl-cell mdl-cell--6-col card-box">
+                            <div class="section-title"><i class="material-icons">lightbulb</i> 5. Key Insights</div>
+                            <div id="insightsList">Loading insights...</div>
+                        </div>
+                        <div class="mdl-cell mdl-cell--6-col card-box recommendation-card">
+                            <div class="section-title" style="color:#0d47a1;"><i class="material-icons">construction</i> Actionable Recommendations</div>
+                            <div id="recommendationsList">Loading recommendations...</div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- TAB 2: INTERACTIVE COMPARE -->
+                <div id="tab-interactive" class="tab-content">
+                    <div class="mdl-grid">
+                        <div class="mdl-cell mdl-cell--12-col card-box">
+                            <div class="section-title">Head-to-Head Comparator</div>
+                            <div style="display:flex; gap:15px; margin-bottom:20px;">
+                                <select id="compSelect" class="mdl-textfield__input" style="width:200px; border:1px solid #ccc; border-radius:4px; padding:5px;" onchange="updateInteractive()">
+                                    <option value="all">All Competitors</option>
+                                </select>
+                                <select id="metricSelect" class="mdl-textfield__input" style="width:200px; border:1px solid #ccc; border-radius:4px; padding:5px;" onchange="updateInteractive()">
+                                    <option value="price">Price Evolution</option>
+                                    <option value="share">Click Share Evolution</option>
+                                    <option value="rank">Organic Rank Evolution</option>
+                                </select>
+                            </div>
+                            <div id="interactiveChart" class="chart-container"></div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- DATA & LOGIC -->
+    <script type="text/javascript">
+        // INJECTED DATA
+        const marketData = [{"brand_aggregation": "YabaAudio", "parent_asin": "B00YABA001", "week_date": "2023-10-01", "keywords": "wireless headphones", "competitor_brand": "YabaAudio", "asin": "B00YABA001", "product_title": "YabaAudio Wireless Headphones Over Ear, Noise Cancelling", "country_code": "ES", "average_organic_rank": 5, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7, "weekly_number_of_days_with_coupon": 0, "click_share": 0.1, "impression_share": 0.2, "price": 59.99, "weekly_search_volume": 10000, "is_yaba_asin": "Y", "keywords_link": "http://amazon.es", "grams": 250, "organic_or_not": "Organic", "container": "Box"}, {"brand_aggregation": "YabaAudio", "parent_asin": "B00YABA001", "week_date": "2023-10-01", "keywords": "wireless headphones", "competitor_brand": "Sony", "asin": "B00SON001", "product_title": "Sony Wireless Headphones Over Ear, Noise Cancelling", "country_code": "ES", "average_organic_rank": 1, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.25, "impression_share": 0.3, "price": 80.0, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "http://amazon.es", "grams": 250, "organic_or_not": "Organic", "container": "Box"}, {"brand_aggregation": "YabaAudio", "parent_asin": "B00YABA001", "week_date": "2023-10-01", "keywords": "wireless headphones", "competitor_brand": "Bose", "asin": "B00BOS001", "product_title": "Bose Wireless Headphones Over Ear, Noise Cancelling", "country_code": "ES", "average_organic_rank": 4, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.05, "impression_share": 0.06, "price": 40.0, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "http://amazon.es", "grams": 250, "organic_or_not": "Organic", "container": "Box"}, {"brand_aggregation": "YabaAudio", "parent_asin": "B00YABA001", "week_date": "2023-10-01", "keywords": "wireless headphones", "competitor_brand": "JBL", "asin": "B00JBL001", "product_title": "JBL Wireless Headphones Over Ear, Noise Cancelling", "country_code": "ES", "average_organic_rank": 4, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.05, "impression_share": 0.06, "price": 40.0, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "http://amazon.es", "grams": 250, "organic_or_not": "Organic", "container": "Box"}, {"brand_aggregation": "YabaAudio", "parent_asin": "B00YABA001", "week_date": "2023-10-01", "keywords": "wireless headphones", "competitor_brand": "Anker", "asin": "B00ANK001", "product_title": "Anker Wireless Headphones Over Ear, Noise Cancelling", "country_code": "ES", "average_organic_rank": 4, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.05, "impression_share": 0.06, "price": 40.0, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "http://amazon.es", "grams": 250, "organic_or_not": "Organic", "container": "Box"}, {"brand_aggregation": "YabaAudio", "parent_asin": "B00YABA001", "week_date": "2023-10-01", "keywords": "wireless headphones", "competitor_brand": null, "asin": "B00UNK001", "product_title": "Generic Wireless Headset Black", "country_code": "ES", "average_organic_rank": 10, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.05, "impression_share": 0.06, "price": 40.0, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "http://amazon.es", "grams": 250, "organic_or_not": "Organic", "container": "Box"}, {"brand_aggregation": "YabaAudio", "parent_asin": "B00YABA001", "week_date": "2023-10-01", "keywords": "bluetooth earbuds", "competitor_brand": "YabaAudio", "asin": "B00YABA001", "product_title": "YabaAudio Wireless Headphones Over Ear, Noise Cancelling", "country_code": "ES", "average_organic_rank": 5, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7, "weekly_number_of_days_with_coupon": 0, "click_share": 0.1, "impression_share": 0.2, "price": 59.99, "weekly_search_volume": 10000, "is_yaba_asin": "Y", "keywords_link": "http://amazon.es", "grams": 250, "organic_or_not": "Organic", "container": "Box"}, {"brand_aggregation": "YabaAudio", "parent_asin": "B00YABA001", "week_date": "2023-10-01", "keywords": "bluetooth earbuds", "competitor_brand": "Sony", "asin": "B00SON001", "product_title": "Sony Wireless Headphones Over Ear, Noise Cancelling", "country_code": "ES", "average_organic_rank": 1, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.25, "impression_share": 0.3, "price": 80.0, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "http://amazon.es", "grams": 250, "organic_or_not": "Organic", "container": "Box"}, {"brand_aggregation": "YabaAudio", "parent_asin": "B00YABA001", "week_date": "2023-10-01", "keywords": "bluetooth earbuds", "competitor_brand": "Bose", "asin": "B00BOS001", "product_title": "Bose Wireless Headphones Over Ear, Noise Cancelling", "country_code": "ES", "average_organic_rank": 4, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.05, "impression_share": 0.06, "price": 40.0, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "http://amazon.es", "grams": 250, "organic_or_not": "Organic", "container": "Box"}, {"brand_aggregation": "YabaAudio", "parent_asin": "B00YABA001", "week_date": "2023-10-01", "keywords": "bluetooth earbuds", "competitor_brand": "JBL", "asin": "B00JBL001", "product_title": "JBL Wireless Headphones Over Ear, Noise Cancelling", "country_code": "ES", "average_organic_rank": 4, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.05, "impression_share": 0.06, "price": 40.0, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "http://amazon.es", "grams": 250, "organic_or_not": "Organic", "container": "Box"}, {"brand_aggregation": "YabaAudio", "parent_asin": "B00YABA001", "week_date": "2023-10-01", "keywords": "bluetooth earbuds", "competitor_brand": "Anker", "asin": "B00ANK001", "product_title": "Anker Wireless Headphones Over Ear, Noise Cancelling", "country_code": "ES", "average_organic_rank": 4, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.05, "impression_share": 0.06, "price": 40.0, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "http://amazon.es", "grams": 250, "organic_or_not": "Organic", "container": "Box"}, {"brand_aggregation": "YabaAudio", "parent_asin": "B00YABA001", "week_date": "2023-10-01", "keywords": "bluetooth earbuds", "competitor_brand": null, "asin": "B00UNK001", "product_title": "Generic Wireless Headset Black", "country_code": "ES", "average_organic_rank": 10, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.05, "impression_share": 0.06, "price": 40.0, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "http://amazon.es", "grams": 250, "organic_or_not": "Organic", "container": "Box"}, {"brand_aggregation": "YabaAudio", "parent_asin": "B00YABA001", "week_date": "2023-10-01", "keywords": "noise cancelling headphones", "competitor_brand": "YabaAudio", "asin": "B00YABA001", "product_title": "YabaAudio Wireless Headphones Over Ear, Noise Cancelling", "country_code": "ES", "average_organic_rank": 5, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7, "weekly_number_of_days_with_coupon": 0, "click_share": 0.1, "impression_share": 0.2, "price": 59.99, "weekly_search_volume": 10000, "is_yaba_asin": "Y", "keywords_link": "http://amazon.es", "grams": 250, "organic_or_not": "Organic", "container": "Box"}, {"brand_aggregation": "YabaAudio", "parent_asin": "B00YABA001", "week_date": "2023-10-01", "keywords": "noise cancelling headphones", "competitor_brand": "Sony", "asin": "B00SON001", "product_title": "Sony Wireless Headphones Over Ear, Noise Cancelling", "country_code": "ES", "average_organic_rank": 1, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.25, "impression_share": 0.3, "price": 80.0, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "http://amazon.es", "grams": 250, "organic_or_not": "Organic", "container": "Box"}, {"brand_aggregation": "YabaAudio", "parent_asin": "B00YABA001", "week_date": "2023-10-01", "keywords": "noise cancelling headphones", "competitor_brand": "Bose", "asin": "B00BOS001", "product_title": "Bose Wireless Headphones Over Ear, Noise Cancelling", "country_code": "ES", "average_organic_rank": 4, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.05, "impression_share": 0.06, "price": 40.0, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "http://amazon.es", "grams": 250, "organic_or_not": "Organic", "container": "Box"}, {"brand_aggregation": "YabaAudio", "parent_asin": "B00YABA001", "week_date": "2023-10-01", "keywords": "noise cancelling headphones", "competitor_brand": "JBL", "asin": "B00JBL001", "product_title": "JBL Wireless Headphones Over Ear, Noise Cancelling", "country_code": "ES", "average_organic_rank": 4, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.05, "impression_share": 0.06, "price": 40.0, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "http://amazon.es", "grams": 250, "organic_or_not": "Organic", "container": "Box"}, {"brand_aggregation": "YabaAudio", "parent_asin": "B00YABA001", "week_date": "2023-10-01", "keywords": "noise cancelling headphones", "competitor_brand": "Anker", "asin": "B00ANK001", "product_title": "Anker Wireless Headphones Over Ear, Noise Cancelling", "country_code": "ES", "average_organic_rank": 4, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.05, "impression_share": 0.06, "price": 40.0, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "http://amazon.es", "grams": 250, "organic_or_not": "Organic", "container": "Box"}, {"brand_aggregation": "YabaAudio", "parent_asin": "B00YABA001", "week_date": "2023-10-01", "keywords": "noise cancelling headphones", "competitor_brand": null, "asin": "B00UNK001", "product_title": "Generic Wireless Headset Black", "country_code": "ES", "average_organic_rank": 10, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.05, "impression_share": 0.06, "price": 40.0, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "http://amazon.es", "grams": 250, "organic_or_not": "Organic", "container": "Box"}, {"brand_aggregation": "YabaAudio", "parent_asin": "B00YABA001", "week_date": "2023-10-08", "keywords": "wireless headphones", "competitor_brand": "YabaAudio", "asin": "B00YABA001", "product_title": "YabaAudio Wireless Headphones Over Ear, Noise Cancelling", "country_code": "ES", "average_organic_rank": 5, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7, "weekly_number_of_days_with_coupon": 0, "click_share": 0.1, "impression_share": 0.2, "price": 59.99, "weekly_search_volume": 10000, "is_yaba_asin": "Y", "keywords_link": "http://amazon.es", "grams": 250, "organic_or_not": "Organic", "container": "Box"}, {"brand_aggregation": "YabaAudio", "parent_asin": "B00YABA001", "week_date": "2023-10-08", "keywords": "wireless headphones", "competitor_brand": "Sony", "asin": "B00SON001", "product_title": "Sony Wireless Headphones Over Ear, Noise Cancelling", "country_code": "ES", "average_organic_rank": 1, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.25, "impression_share": 0.3, "price": 80.0, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "http://amazon.es", "grams": 250, "organic_or_not": "Organic", "container": "Box"}, {"brand_aggregation": "YabaAudio", "parent_asin": "B00YABA001", "week_date": "2023-10-08", "keywords": "wireless headphones", "competitor_brand": "Bose", "asin": "B00BOS001", "product_title": "Bose Wireless Headphones Over Ear, Noise Cancelling", "country_code": "ES", "average_organic_rank": 4, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.05, "impression_share": 0.06, "price": 40.0, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "http://amazon.es", "grams": 250, "organic_or_not": "Organic", "container": "Box"}, {"brand_aggregation": "YabaAudio", "parent_asin": "B00YABA001", "week_date": "2023-10-08", "keywords": "wireless headphones", "competitor_brand": "JBL", "asin": "B00JBL001", "product_title": "JBL Wireless Headphones Over Ear, Noise Cancelling", "country_code": "ES", "average_organic_rank": 4, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.05, "impression_share": 0.06, "price": 40.0, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "http://amazon.es", "grams": 250, "organic_or_not": "Organic", "container": "Box"}, {"brand_aggregation": "YabaAudio", "parent_asin": "B00YABA001", "week_date": "2023-10-08", "keywords": "wireless headphones", "competitor_brand": "Anker", "asin": "B00ANK001", "product_title": "Anker Wireless Headphones Over Ear, Noise Cancelling", "country_code": "ES", "average_organic_rank": 4, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.05, "impression_share": 0.06, "price": 40.0, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "http://amazon.es", "grams": 250, "organic_or_not": "Organic", "container": "Box"}, {"brand_aggregation": "YabaAudio", "parent_asin": "B00YABA001", "week_date": "2023-10-08", "keywords": "wireless headphones", "competitor_brand": null, "asin": "B00UNK001", "product_title": "Generic Wireless Headset Black", "country_code": "ES", "average_organic_rank": 10, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.05, "impression_share": 0.06, "price": 40.0, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "http://amazon.es", "grams": 250, "organic_or_not": "Organic", "container": "Box"}, {"brand_aggregation": "YabaAudio", "parent_asin": "B00YABA001", "week_date": "2023-10-08", "keywords": "bluetooth earbuds", "competitor_brand": "YabaAudio", "asin": "B00YABA001", "product_title": "YabaAudio Wireless Headphones Over Ear, Noise Cancelling", "country_code": "ES", "average_organic_rank": 5, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7, "weekly_number_of_days_with_coupon": 0, "click_share": 0.1, "impression_share": 0.2, "price": 59.99, "weekly_search_volume": 10000, "is_yaba_asin": "Y", "keywords_link": "http://amazon.es", "grams": 250, "organic_or_not": "Organic", "container": "Box"}, {"brand_aggregation": "YabaAudio", "parent_asin": "B00YABA001", "week_date": "2023-10-08", "keywords": "bluetooth earbuds", "competitor_brand": "Sony", "asin": "B00SON001", "product_title": "Sony Wireless Headphones Over Ear, Noise Cancelling", "country_code": "ES", "average_organic_rank": 1, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.25, "impression_share": 0.3, "price": 80.0, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "http://amazon.es", "grams": 250, "organic_or_not": "Organic", "container": "Box"}, {"brand_aggregation": "YabaAudio", "parent_asin": "B00YABA001", "week_date": "2023-10-08", "keywords": "bluetooth earbuds", "competitor_brand": "Bose", "asin": "B00BOS001", "product_title": "Bose Wireless Headphones Over Ear, Noise Cancelling", "country_code": "ES", "average_organic_rank": 4, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.05, "impression_share": 0.06, "price": 40.0, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "http://amazon.es", "grams": 250, "organic_or_not": "Organic", "container": "Box"}, {"brand_aggregation": "YabaAudio", "parent_asin": "B00YABA001", "week_date": "2023-10-08", "keywords": "bluetooth earbuds", "competitor_brand": "JBL", "asin": "B00JBL001", "product_title": "JBL Wireless Headphones Over Ear, Noise Cancelling", "country_code": "ES", "average_organic_rank": 4, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.05, "impression_share": 0.06, "price": 40.0, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "http://amazon.es", "grams": 250, "organic_or_not": "Organic", "container": "Box"}, {"brand_aggregation": "YabaAudio", "parent_asin": "B00YABA001", "week_date": "2023-10-08", "keywords": "bluetooth earbuds", "competitor_brand": "Anker", "asin": "B00ANK001", "product_title": "Anker Wireless Headphones Over Ear, Noise Cancelling", "country_code": "ES", "average_organic_rank": 4, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.05, "impression_share": 0.06, "price": 40.0, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "http://amazon.es", "grams": 250, "organic_or_not": "Organic", "container": "Box"}, {"brand_aggregation": "YabaAudio", "parent_asin": "B00YABA001", "week_date": "2023-10-08", "keywords": "bluetooth earbuds", "competitor_brand": null, "asin": "B00UNK001", "product_title": "Generic Wireless Headset Black", "country_code": "ES", "average_organic_rank": 10, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.05, "impression_share": 0.06, "price": 40.0, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "http://amazon.es", "grams": 250, "organic_or_not": "Organic", "container": "Box"}, {"brand_aggregation": "YabaAudio", "parent_asin": "B00YABA001", "week_date": "2023-10-08", "keywords": "noise cancelling headphones", "competitor_brand": "YabaAudio", "asin": "B00YABA001", "product_title": "YabaAudio Wireless Headphones Over Ear, Noise Cancelling", "country_code": "ES", "average_organic_rank": 5, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7, "weekly_number_of_days_with_coupon": 0, "click_share": 0.1, "impression_share": 0.2, "price": 59.99, "weekly_search_volume": 10000, "is_yaba_asin": "Y", "keywords_link": "http://amazon.es", "grams": 250, "organic_or_not": "Organic", "container": "Box"}, {"brand_aggregation": "YabaAudio", "parent_asin": "B00YABA001", "week_date": "2023-10-08", "keywords": "noise cancelling headphones", "competitor_brand": "Sony", "asin": "B00SON001", "product_title": "Sony Wireless Headphones Over Ear, Noise Cancelling", "country_code": "ES", "average_organic_rank": 1, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.25, "impression_share": 0.3, "price": 80.0, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "http://amazon.es", "grams": 250, "organic_or_not": "Organic", "container": "Box"}, {"brand_aggregation": "YabaAudio", "parent_asin": "B00YABA001", "week_date": "2023-10-08", "keywords": "noise cancelling headphones", "competitor_brand": "Bose", "asin": "B00BOS001", "product_title": "Bose Wireless Headphones Over Ear, Noise Cancelling", "country_code": "ES", "average_organic_rank": 4, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.05, "impression_share": 0.06, "price": 40.0, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "http://amazon.es", "grams": 250, "organic_or_not": "Organic", "container": "Box"}, {"brand_aggregation": "YabaAudio", "parent_asin": "B00YABA001", "week_date": "2023-10-08", "keywords": "noise cancelling headphones", "competitor_brand": "JBL", "asin": "B00JBL001", "product_title": "JBL Wireless Headphones Over Ear, Noise Cancelling", "country_code": "ES", "average_organic_rank": 4, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.05, "impression_share": 0.06, "price": 40.0, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "http://amazon.es", "grams": 250, "organic_or_not": "Organic", "container": "Box"}, {"brand_aggregation": "YabaAudio", "parent_asin": "B00YABA001", "week_date": "2023-10-08", "keywords": "noise cancelling headphones", "competitor_brand": "Anker", "asin": "B00ANK001", "product_title": "Anker Wireless Headphones Over Ear, Noise Cancelling", "country_code": "ES", "average_organic_rank": 4, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.05, "impression_share": 0.06, "price": 40.0, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "http://amazon.es", "grams": 250, "organic_or_not": "Organic", "container": "Box"}, {"brand_aggregation": "YabaAudio", "parent_asin": "B00YABA001", "week_date": "2023-10-08", "keywords": "noise cancelling headphones", "competitor_brand": null, "asin": "B00UNK001", "product_title": "Generic Wireless Headset Black", "country_code": "ES", "average_organic_rank": 10, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.05, "impression_share": 0.06, "price": 40.0, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "http://amazon.es", "grams": 250, "organic_or_not": "Organic", "container": "Box"}, {"brand_aggregation": "YabaAudio", "parent_asin": "B00YABA001", "week_date": "2023-10-15", "keywords": "wireless headphones", "competitor_brand": "YabaAudio", "asin": "B00YABA001", "product_title": "YabaAudio Wireless Headphones Over Ear, Noise Cancelling", "country_code": "ES", "average_organic_rank": 3, "weekly_number_of_days_with_deal": 7, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7, "weekly_number_of_days_with_coupon": 0, "click_share": 0.15, "impression_share": 0.2, "price": 49.99, "weekly_search_volume": 10000, "is_yaba_asin": "Y", "keywords_link": "http://amazon.es", "grams": 250, "organic_or_not": "Organic", "container": "Box"}, {"brand_aggregation": "YabaAudio", "parent_asin": "B00YABA001", "week_date": "2023-10-15", "keywords": "wireless headphones", "competitor_brand": "Sony", "asin": "B00SON001", "product_title": "Sony Wireless Headphones Over Ear, Noise Cancelling", "country_code": "ES", "average_organic_rank": 1, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.25, "impression_share": 0.3, "price": 80.0, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "http://amazon.es", "grams": 250, "organic_or_not": "Organic", "container": "Box"}, {"brand_aggregation": "YabaAudio", "parent_asin": "B00YABA001", "week_date": "2023-10-15", "keywords": "wireless headphones", "competitor_brand": "Bose", "asin": "B00BOS001", "product_title": "Bose Wireless Headphones Over Ear, Noise Cancelling", "country_code": "ES", "average_organic_rank": 4, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.05, "impression_share": 0.06, "price": 40.0, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "http://amazon.es", "grams": 250, "organic_or_not": "Organic", "container": "Box"}, {"brand_aggregation": "YabaAudio", "parent_asin": "B00YABA001", "week_date": "2023-10-15", "keywords": "wireless headphones", "competitor_brand": "JBL", "asin": "B00JBL001", "product_title": "JBL Wireless Headphones Over Ear, Noise Cancelling", "country_code": "ES", "average_organic_rank": 4, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.05, "impression_share": 0.06, "price": 40.0, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "http://amazon.es", "grams": 250, "organic_or_not": "Organic", "container": "Box"}, {"brand_aggregation": "YabaAudio", "parent_asin": "B00YABA001", "week_date": "2023-10-15", "keywords": "wireless headphones", "competitor_brand": "Anker", "asin": "B00ANK001", "product_title": "Anker Wireless Headphones Over Ear, Noise Cancelling", "country_code": "ES", "average_organic_rank": 4, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.05, "impression_share": 0.06, "price": 40.0, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "http://amazon.es", "grams": 250, "organic_or_not": "Organic", "container": "Box"}, {"brand_aggregation": "YabaAudio", "parent_asin": "B00YABA001", "week_date": "2023-10-15", "keywords": "wireless headphones", "competitor_brand": null, "asin": "B00UNK001", "product_title": "Generic Wireless Headset Black", "country_code": "ES", "average_organic_rank": 10, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.05, "impression_share": 0.06, "price": 40.0, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "http://amazon.es", "grams": 250, "organic_or_not": "Organic", "container": "Box"}, {"brand_aggregation": "YabaAudio", "parent_asin": "B00YABA001", "week_date": "2023-10-15", "keywords": "bluetooth earbuds", "competitor_brand": "YabaAudio", "asin": "B00YABA001", "product_title": "YabaAudio Wireless Headphones Over Ear, Noise Cancelling", "country_code": "ES", "average_organic_rank": 3, "weekly_number_of_days_with_deal": 7, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7, "weekly_number_of_days_with_coupon": 0, "click_share": 0.15, "impression_share": 0.2, "price": 49.99, "weekly_search_volume": 10000, "is_yaba_asin": "Y", "keywords_link": "http://amazon.es", "grams": 250, "organic_or_not": "Organic", "container": "Box"}, {"brand_aggregation": "YabaAudio", "parent_asin": "B00YABA001", "week_date": "2023-10-15", "keywords": "bluetooth earbuds", "competitor_brand": "Sony", "asin": "B00SON001", "product_title": "Sony Wireless Headphones Over Ear, Noise Cancelling", "country_code": "ES", "average_organic_rank": 1, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.25, "impression_share": 0.3, "price": 80.0, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "http://amazon.es", "grams": 250, "organic_or_not": "Organic", "container": "Box"}, {"brand_aggregation": "YabaAudio", "parent_asin": "B00YABA001", "week_date": "2023-10-15", "keywords": "bluetooth earbuds", "competitor_brand": "Bose", "asin": "B00BOS001", "product_title": "Bose Wireless Headphones Over Ear, Noise Cancelling", "country_code": "ES", "average_organic_rank": 4, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.05, "impression_share": 0.06, "price": 40.0, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "http://amazon.es", "grams": 250, "organic_or_not": "Organic", "container": "Box"}, {"brand_aggregation": "YabaAudio", "parent_asin": "B00YABA001", "week_date": "2023-10-15", "keywords": "bluetooth earbuds", "competitor_brand": "JBL", "asin": "B00JBL001", "product_title": "JBL Wireless Headphones Over Ear, Noise Cancelling", "country_code": "ES", "average_organic_rank": 4, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.05, "impression_share": 0.06, "price": 40.0, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "http://amazon.es", "grams": 250, "organic_or_not": "Organic", "container": "Box"}, {"brand_aggregation": "YabaAudio", "parent_asin": "B00YABA001", "week_date": "2023-10-15", "keywords": "bluetooth earbuds", "competitor_brand": "Anker", "asin": "B00ANK001", "product_title": "Anker Wireless Headphones Over Ear, Noise Cancelling", "country_code": "ES", "average_organic_rank": 4, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.05, "impression_share": 0.06, "price": 40.0, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "http://amazon.es", "grams": 250, "organic_or_not": "Organic", "container": "Box"}, {"brand_aggregation": "YabaAudio", "parent_asin": "B00YABA001", "week_date": "2023-10-15", "keywords": "bluetooth earbuds", "competitor_brand": null, "asin": "B00UNK001", "product_title": "Generic Wireless Headset Black", "country_code": "ES", "average_organic_rank": 10, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.05, "impression_share": 0.06, "price": 40.0, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "http://amazon.es", "grams": 250, "organic_or_not": "Organic", "container": "Box"}, {"brand_aggregation": "YabaAudio", "parent_asin": "B00YABA001", "week_date": "2023-10-15", "keywords": "noise cancelling headphones", "competitor_brand": "YabaAudio", "asin": "B00YABA001", "product_title": "YabaAudio Wireless Headphones Over Ear, Noise Cancelling", "country_code": "ES", "average_organic_rank": 3, "weekly_number_of_days_with_deal": 7, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7, "weekly_number_of_days_with_coupon": 0, "click_share": 0.15, "impression_share": 0.2, "price": 49.99, "weekly_search_volume": 10000, "is_yaba_asin": "Y", "keywords_link": "http://amazon.es", "grams": 250, "organic_or_not": "Organic", "container": "Box"}, {"brand_aggregation": "YabaAudio", "parent_asin": "B00YABA001", "week_date": "2023-10-15", "keywords": "noise cancelling headphones", "competitor_brand": "Sony", "asin": "B00SON001", "product_title": "Sony Wireless Headphones Over Ear, Noise Cancelling", "country_code": "ES", "average_organic_rank": 1, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.25, "impression_share": 0.3, "price": 80.0, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "http://amazon.es", "grams": 250, "organic_or_not": "Organic", "container": "Box"}, {"brand_aggregation": "YabaAudio", "parent_asin": "B00YABA001", "week_date": "2023-10-15", "keywords": "noise cancelling headphones", "competitor_brand": "Bose", "asin": "B00BOS001", "product_title": "Bose Wireless Headphones Over Ear, Noise Cancelling", "country_code": "ES", "average_organic_rank": 4, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.05, "impression_share": 0.06, "price": 40.0, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "http://amazon.es", "grams": 250, "organic_or_not": "Organic", "container": "Box"}, {"brand_aggregation": "YabaAudio", "parent_asin": "B00YABA001", "week_date": "2023-10-15", "keywords": "noise cancelling headphones", "competitor_brand": "JBL", "asin": "B00JBL001", "product_title": "JBL Wireless Headphones Over Ear, Noise Cancelling", "country_code": "ES", "average_organic_rank": 4, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.05, "impression_share": 0.06, "price": 40.0, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "http://amazon.es", "grams": 250, "organic_or_not": "Organic", "container": "Box"}, {"brand_aggregation": "YabaAudio", "parent_asin": "B00YABA001", "week_date": "2023-10-15", "keywords": "noise cancelling headphones", "competitor_brand": "Anker", "asin": "B00ANK001", "product_title": "Anker Wireless Headphones Over Ear, Noise Cancelling", "country_code": "ES", "average_organic_rank": 4, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.05, "impression_share": 0.06, "price": 40.0, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "http://amazon.es", "grams": 250, "organic_or_not": "Organic", "container": "Box"}, {"brand_aggregation": "YabaAudio", "parent_asin": "B00YABA001", "week_date": "2023-10-15", "keywords": "noise cancelling headphones", "competitor_brand": null, "asin": "B00UNK001", "product_title": "Generic Wireless Headset Black", "country_code": "ES", "average_organic_rank": 10, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.05, "impression_share": 0.06, "price": 40.0, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "http://amazon.es", "grams": 250, "organic_or_not": "Organic", "container": "Box"}, {"brand_aggregation": "YabaAudio", "parent_asin": "B00YABA001", "week_date": "2023-10-22", "keywords": "wireless headphones", "competitor_brand": "YabaAudio", "asin": "B00YABA001", "product_title": "YabaAudio Wireless Headphones Over Ear, Noise Cancelling", "country_code": "ES", "average_organic_rank": 5, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7, "weekly_number_of_days_with_coupon": 0, "click_share": 0.1, "impression_share": 0.2, "price": 59.99, "weekly_search_volume": 10000, "is_yaba_asin": "Y", "keywords_link": "http://amazon.es", "grams": 250, "organic_or_not": "Organic", "container": "Box"}, {"brand_aggregation": "YabaAudio", "parent_asin": "B00YABA001", "week_date": "2023-10-22", "keywords": "wireless headphones", "competitor_brand": "Sony", "asin": "B00SON001", "product_title": "Sony Wireless Headphones Over Ear, Noise Cancelling", "country_code": "ES", "average_organic_rank": 1, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.25, "impression_share": 0.3, "price": 80.0, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "http://amazon.es", "grams": 250, "organic_or_not": "Organic", "container": "Box"}, {"brand_aggregation": "YabaAudio", "parent_asin": "B00YABA001", "week_date": "2023-10-22", "keywords": "wireless headphones", "competitor_brand": "Bose", "asin": "B00BOS001", "product_title": "Bose Wireless Headphones Over Ear, Noise Cancelling", "country_code": "ES", "average_organic_rank": 4, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.05, "impression_share": 0.06, "price": 40.0, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "http://amazon.es", "grams": 250, "organic_or_not": "Organic", "container": "Box"}, {"brand_aggregation": "YabaAudio", "parent_asin": "B00YABA001", "week_date": "2023-10-22", "keywords": "wireless headphones", "competitor_brand": "JBL", "asin": "B00JBL001", "product_title": "JBL Wireless Headphones Over Ear, Noise Cancelling", "country_code": "ES", "average_organic_rank": 4, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.05, "impression_share": 0.06, "price": 40.0, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "http://amazon.es", "grams": 250, "organic_or_not": "Organic", "container": "Box"}, {"brand_aggregation": "YabaAudio", "parent_asin": "B00YABA001", "week_date": "2023-10-22", "keywords": "wireless headphones", "competitor_brand": "Anker", "asin": "B00ANK001", "product_title": "Anker Wireless Headphones Over Ear, Noise Cancelling", "country_code": "ES", "average_organic_rank": 4, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 7, "click_share": 0.1, "impression_share": 0.12, "price": 40.0, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "http://amazon.es", "grams": 250, "organic_or_not": "Organic", "container": "Box"}, {"brand_aggregation": "YabaAudio", "parent_asin": "B00YABA001", "week_date": "2023-10-22", "keywords": "wireless headphones", "competitor_brand": null, "asin": "B00UNK001", "product_title": "Generic Wireless Headset Black", "country_code": "ES", "average_organic_rank": 10, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.05, "impression_share": 0.06, "price": 40.0, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "http://amazon.es", "grams": 250, "organic_or_not": "Organic", "container": "Box"}, {"brand_aggregation": "YabaAudio", "parent_asin": "B00YABA001", "week_date": "2023-10-22", "keywords": "bluetooth earbuds", "competitor_brand": "YabaAudio", "asin": "B00YABA001", "product_title": "YabaAudio Wireless Headphones Over Ear, Noise Cancelling", "country_code": "ES", "average_organic_rank": 5, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7, "weekly_number_of_days_with_coupon": 0, "click_share": 0.1, "impression_share": 0.2, "price": 59.99, "weekly_search_volume": 10000, "is_yaba_asin": "Y", "keywords_link": "http://amazon.es", "grams": 250, "organic_or_not": "Organic", "container": "Box"}, {"brand_aggregation": "YabaAudio", "parent_asin": "B00YABA001", "week_date": "2023-10-22", "keywords": "bluetooth earbuds", "competitor_brand": "Sony", "asin": "B00SON001", "product_title": "Sony Wireless Headphones Over Ear, Noise Cancelling", "country_code": "ES", "average_organic_rank": 1, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.25, "impression_share": 0.3, "price": 80.0, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "http://amazon.es", "grams": 250, "organic_or_not": "Organic", "container": "Box"}, {"brand_aggregation": "YabaAudio", "parent_asin": "B00YABA001", "week_date": "2023-10-22", "keywords": "bluetooth earbuds", "competitor_brand": "Bose", "asin": "B00BOS001", "product_title": "Bose Wireless Headphones Over Ear, Noise Cancelling", "country_code": "ES", "average_organic_rank": 4, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.05, "impression_share": 0.06, "price": 40.0, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "http://amazon.es", "grams": 250, "organic_or_not": "Organic", "container": "Box"}, {"brand_aggregation": "YabaAudio", "parent_asin": "B00YABA001", "week_date": "2023-10-22", "keywords": "bluetooth earbuds", "competitor_brand": "JBL", "asin": "B00JBL001", "product_title": "JBL Wireless Headphones Over Ear, Noise Cancelling", "country_code": "ES", "average_organic_rank": 4, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.05, "impression_share": 0.06, "price": 40.0, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "http://amazon.es", "grams": 250, "organic_or_not": "Organic", "container": "Box"}, {"brand_aggregation": "YabaAudio", "parent_asin": "B00YABA001", "week_date": "2023-10-22", "keywords": "bluetooth earbuds", "competitor_brand": "Anker", "asin": "B00ANK001", "product_title": "Anker Wireless Headphones Over Ear, Noise Cancelling", "country_code": "ES", "average_organic_rank": 4, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 7, "click_share": 0.1, "impression_share": 0.12, "price": 40.0, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "http://amazon.es", "grams": 250, "organic_or_not": "Organic", "container": "Box"}, {"brand_aggregation": "YabaAudio", "parent_asin": "B00YABA001", "week_date": "2023-10-22", "keywords": "bluetooth earbuds", "competitor_brand": null, "asin": "B00UNK001", "product_title": "Generic Wireless Headset Black", "country_code": "ES", "average_organic_rank": 10, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.05, "impression_share": 0.06, "price": 40.0, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "http://amazon.es", "grams": 250, "organic_or_not": "Organic", "container": "Box"}, {"brand_aggregation": "YabaAudio", "parent_asin": "B00YABA001", "week_date": "2023-10-22", "keywords": "noise cancelling headphones", "competitor_brand": "YabaAudio", "asin": "B00YABA001", "product_title": "YabaAudio Wireless Headphones Over Ear, Noise Cancelling", "country_code": "ES", "average_organic_rank": 5, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7, "weekly_number_of_days_with_coupon": 0, "click_share": 0.1, "impression_share": 0.2, "price": 59.99, "weekly_search_volume": 10000, "is_yaba_asin": "Y", "keywords_link": "http://amazon.es", "grams": 250, "organic_or_not": "Organic", "container": "Box"}, {"brand_aggregation": "YabaAudio", "parent_asin": "B00YABA001", "week_date": "2023-10-22", "keywords": "noise cancelling headphones", "competitor_brand": "Sony", "asin": "B00SON001", "product_title": "Sony Wireless Headphones Over Ear, Noise Cancelling", "country_code": "ES", "average_organic_rank": 1, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.25, "impression_share": 0.3, "price": 80.0, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "http://amazon.es", "grams": 250, "organic_or_not": "Organic", "container": "Box"}, {"brand_aggregation": "YabaAudio", "parent_asin": "B00YABA001", "week_date": "2023-10-22", "keywords": "noise cancelling headphones", "competitor_brand": "Bose", "asin": "B00BOS001", "product_title": "Bose Wireless Headphones Over Ear, Noise Cancelling", "country_code": "ES", "average_organic_rank": 4, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.05, "impression_share": 0.06, "price": 40.0, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "http://amazon.es", "grams": 250, "organic_or_not": "Organic", "container": "Box"}, {"brand_aggregation": "YabaAudio", "parent_asin": "B00YABA001", "week_date": "2023-10-22", "keywords": "noise cancelling headphones", "competitor_brand": "JBL", "asin": "B00JBL001", "product_title": "JBL Wireless Headphones Over Ear, Noise Cancelling", "country_code": "ES", "average_organic_rank": 4, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.05, "impression_share": 0.06, "price": 40.0, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "http://amazon.es", "grams": 250, "organic_or_not": "Organic", "container": "Box"}, {"brand_aggregation": "YabaAudio", "parent_asin": "B00YABA001", "week_date": "2023-10-22", "keywords": "noise cancelling headphones", "competitor_brand": "Anker", "asin": "B00ANK001", "product_title": "Anker Wireless Headphones Over Ear, Noise Cancelling", "country_code": "ES", "average_organic_rank": 4, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 7, "click_share": 0.1, "impression_share": 0.12, "price": 40.0, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "http://amazon.es", "grams": 250, "organic_or_not": "Organic", "container": "Box"}, {"brand_aggregation": "YabaAudio", "parent_asin": "B00YABA001", "week_date": "2023-10-22", "keywords": "noise cancelling headphones", "competitor_brand": null, "asin": "B00UNK001", "product_title": "Generic Wireless Headset Black", "country_code": "ES", "average_organic_rank": 10, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.05, "impression_share": 0.06, "price": 40.0, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "http://amazon.es", "grams": 250, "organic_or_not": "Organic", "container": "Box"}, {"brand_aggregation": "YabaAudio", "parent_asin": "B00YABA001", "week_date": "2023-10-29", "keywords": "wireless headphones", "competitor_brand": "YabaAudio", "asin": "B00YABA001", "product_title": "YabaAudio Wireless Headphones Over Ear, Noise Cancelling", "country_code": "ES", "average_organic_rank": 5, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7, "weekly_number_of_days_with_coupon": 0, "click_share": 0.1, "impression_share": 0.2, "price": 59.99, "weekly_search_volume": 10000, "is_yaba_asin": "Y", "keywords_link": "http://amazon.es", "grams": 250, "organic_or_not": "Organic", "container": "Box"}, {"brand_aggregation": "YabaAudio", "parent_asin": "B00YABA001", "week_date": "2023-10-29", "keywords": "wireless headphones", "competitor_brand": "Sony", "asin": "B00SON001", "product_title": "Sony Wireless Headphones Over Ear, Noise Cancelling", "country_code": "ES", "average_organic_rank": 1, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.25, "impression_share": 0.3, "price": 80.0, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "http://amazon.es", "grams": 250, "organic_or_not": "Organic", "container": "Box"}, {"brand_aggregation": "YabaAudio", "parent_asin": "B00YABA001", "week_date": "2023-10-29", "keywords": "wireless headphones", "competitor_brand": "Bose", "asin": "B00BOS001", "product_title": "Bose Wireless Headphones Over Ear, Noise Cancelling", "country_code": "ES", "average_organic_rank": 4, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.05, "impression_share": 0.06, "price": 40.0, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "http://amazon.es", "grams": 250, "organic_or_not": "Organic", "container": "Box"}, {"brand_aggregation": "YabaAudio", "parent_asin": "B00YABA001", "week_date": "2023-10-29", "keywords": "wireless headphones", "competitor_brand": "JBL", "asin": "B00JBL001", "product_title": "JBL Wireless Headphones Over Ear, Noise Cancelling", "country_code": "ES", "average_organic_rank": 4, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.05, "impression_share": 0.06, "price": 40.0, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "http://amazon.es", "grams": 250, "organic_or_not": "Organic", "container": "Box"}, {"brand_aggregation": "YabaAudio", "parent_asin": "B00YABA001", "week_date": "2023-10-29", "keywords": "wireless headphones", "competitor_brand": "Anker", "asin": "B00ANK001", "product_title": "Anker Wireless Headphones Over Ear, Noise Cancelling", "country_code": "ES", "average_organic_rank": 4, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.05, "impression_share": 0.06, "price": 40.0, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "http://amazon.es", "grams": 250, "organic_or_not": "Organic", "container": "Box"}, {"brand_aggregation": "YabaAudio", "parent_asin": "B00YABA001", "week_date": "2023-10-29", "keywords": "wireless headphones", "competitor_brand": null, "asin": "B00UNK001", "product_title": "Generic Wireless Headset Black", "country_code": "ES", "average_organic_rank": 10, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.05, "impression_share": 0.06, "price": 40.0, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "http://amazon.es", "grams": 250, "organic_or_not": "Organic", "container": "Box"}, {"brand_aggregation": "YabaAudio", "parent_asin": "B00YABA001", "week_date": "2023-10-29", "keywords": "bluetooth earbuds", "competitor_brand": "YabaAudio", "asin": "B00YABA001", "product_title": "YabaAudio Wireless Headphones Over Ear, Noise Cancelling", "country_code": "ES", "average_organic_rank": 5, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7, "weekly_number_of_days_with_coupon": 0, "click_share": 0.1, "impression_share": 0.2, "price": 59.99, "weekly_search_volume": 10000, "is_yaba_asin": "Y", "keywords_link": "http://amazon.es", "grams": 250, "organic_or_not": "Organic", "container": "Box"}, {"brand_aggregation": "YabaAudio", "parent_asin": "B00YABA001", "week_date": "2023-10-29", "keywords": "bluetooth earbuds", "competitor_brand": "Sony", "asin": "B00SON001", "product_title": "Sony Wireless Headphones Over Ear, Noise Cancelling", "country_code": "ES", "average_organic_rank": 1, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.25, "impression_share": 0.3, "price": 80.0, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "http://amazon.es", "grams": 250, "organic_or_not": "Organic", "container": "Box"}, {"brand_aggregation": "YabaAudio", "parent_asin": "B00YABA001", "week_date": "2023-10-29", "keywords": "bluetooth earbuds", "competitor_brand": "Bose", "asin": "B00BOS001", "product_title": "Bose Wireless Headphones Over Ear, Noise Cancelling", "country_code": "ES", "average_organic_rank": 4, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.05, "impression_share": 0.06, "price": 40.0, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "http://amazon.es", "grams": 250, "organic_or_not": "Organic", "container": "Box"}, {"brand_aggregation": "YabaAudio", "parent_asin": "B00YABA001", "week_date": "2023-10-29", "keywords": "bluetooth earbuds", "competitor_brand": "JBL", "asin": "B00JBL001", "product_title": "JBL Wireless Headphones Over Ear, Noise Cancelling", "country_code": "ES", "average_organic_rank": 4, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.05, "impression_share": 0.06, "price": 40.0, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "http://amazon.es", "grams": 250, "organic_or_not": "Organic", "container": "Box"}, {"brand_aggregation": "YabaAudio", "parent_asin": "B00YABA001", "week_date": "2023-10-29", "keywords": "bluetooth earbuds", "competitor_brand": "Anker", "asin": "B00ANK001", "product_title": "Anker Wireless Headphones Over Ear, Noise Cancelling", "country_code": "ES", "average_organic_rank": 4, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.05, "impression_share": 0.06, "price": 40.0, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "http://amazon.es", "grams": 250, "organic_or_not": "Organic", "container": "Box"}, {"brand_aggregation": "YabaAudio", "parent_asin": "B00YABA001", "week_date": "2023-10-29", "keywords": "bluetooth earbuds", "competitor_brand": null, "asin": "B00UNK001", "product_title": "Generic Wireless Headset Black", "country_code": "ES", "average_organic_rank": 10, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.05, "impression_share": 0.06, "price": 40.0, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "http://amazon.es", "grams": 250, "organic_or_not": "Organic", "container": "Box"}, {"brand_aggregation": "YabaAudio", "parent_asin": "B00YABA001", "week_date": "2023-10-29", "keywords": "noise cancelling headphones", "competitor_brand": "YabaAudio", "asin": "B00YABA001", "product_title": "YabaAudio Wireless Headphones Over Ear, Noise Cancelling", "country_code": "ES", "average_organic_rank": 5, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7, "weekly_number_of_days_with_coupon": 0, "click_share": 0.1, "impression_share": 0.2, "price": 59.99, "weekly_search_volume": 10000, "is_yaba_asin": "Y", "keywords_link": "http://amazon.es", "grams": 250, "organic_or_not": "Organic", "container": "Box"}, {"brand_aggregation": "YabaAudio", "parent_asin": "B00YABA001", "week_date": "2023-10-29", "keywords": "noise cancelling headphones", "competitor_brand": "Sony", "asin": "B00SON001", "product_title": "Sony Wireless Headphones Over Ear, Noise Cancelling", "country_code": "ES", "average_organic_rank": 1, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.25, "impression_share": 0.3, "price": 80.0, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "http://amazon.es", "grams": 250, "organic_or_not": "Organic", "container": "Box"}, {"brand_aggregation": "YabaAudio", "parent_asin": "B00YABA001", "week_date": "2023-10-29", "keywords": "noise cancelling headphones", "competitor_brand": "Bose", "asin": "B00BOS001", "product_title": "Bose Wireless Headphones Over Ear, Noise Cancelling", "country_code": "ES", "average_organic_rank": 4, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.05, "impression_share": 0.06, "price": 40.0, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "http://amazon.es", "grams": 250, "organic_or_not": "Organic", "container": "Box"}, {"brand_aggregation": "YabaAudio", "parent_asin": "B00YABA001", "week_date": "2023-10-29", "keywords": "noise cancelling headphones", "competitor_brand": "JBL", "asin": "B00JBL001", "product_title": "JBL Wireless Headphones Over Ear, Noise Cancelling", "country_code": "ES", "average_organic_rank": 4, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.05, "impression_share": 0.06, "price": 40.0, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "http://amazon.es", "grams": 250, "organic_or_not": "Organic", "container": "Box"}, {"brand_aggregation": "YabaAudio", "parent_asin": "B00YABA001", "week_date": "2023-10-29", "keywords": "noise cancelling headphones", "competitor_brand": "Anker", "asin": "B00ANK001", "product_title": "Anker Wireless Headphones Over Ear, Noise Cancelling", "country_code": "ES", "average_organic_rank": 4, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.05, "impression_share": 0.06, "price": 40.0, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "http://amazon.es", "grams": 250, "organic_or_not": "Organic", "container": "Box"}, {"brand_aggregation": "YabaAudio", "parent_asin": "B00YABA001", "week_date": "2023-10-29", "keywords": "noise cancelling headphones", "competitor_brand": null, "asin": "B00UNK001", "product_title": "Generic Wireless Headset Black", "country_code": "ES", "average_organic_rank": 10, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.05, "impression_share": 0.06, "price": 40.0, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "http://amazon.es", "grams": 250, "organic_or_not": "Organic", "container": "Box"}];
+
+        // LOAD GOOGLE CHARTS
+        google.charts.load('current', {'packages':['corechart', 'bar', 'table']});
+        google.charts.setOnLoadCallback(initDashboard);
+
+        // GLOBAL STATE
+        let ourBrand = "";
+        let weeks = [];
+        let competitors = [];
+        
+        // --------------------------------------------------------
+        // DATA PROCESSING
+        // --------------------------------------------------------
+        function initDashboard() {
+            processData();
+            drawGlobalTrend();
+            drawBrandCompetitiveness();
+            drawLevers();
+            drawEfficiency();
+            generateInsights();
+            setupInteractive();
+        }
+
+        function processData() {
+            // 1. Identify Our Brand & Weeks
+            const ourAsinRow = marketData.find(d => d.is_yaba_asin === 'Y');
+            ourBrand = ourAsinRow ? ourAsinRow.competitor_brand : "Unknown";
+            if(!ourBrand) ourBrand = "Our Brand";
+
+            // Unique Weeks Sorted
+            weeks = [...new Set(marketData.map(d => d.week_date))].sort();
+            document.getElementById('reportDateRange').innerText = `Period: ${weeks[0]} to ${weeks[weeks.length-1]}`;
+            
+            // 2. Identify Competitors
+            const allBrands = [...new Set(marketData.map(d => d.competitor_brand || "Unknown Brand"))];
+            competitors = allBrands.filter(b => b !== ourBrand && b !== null);
+            
+            // Populate Select
+            const select = document.getElementById('compSelect');
+            competitors.forEach(c => {
+                let opt = document.createElement('option');
+                opt.value = c;
+                opt.innerText = c;
+                select.appendChild(opt);
+            });
+        }
+
+        // --------------------------------------------------------
+        // SECTION 1: GLOBAL TREND
+        // --------------------------------------------------------
+        function drawGlobalTrend() {
+            let chartData = [['Week', 'Our Clicks', 'Market Clicks', 'Our Share (%)']];
+            
+            let lastWeekData = { clicks: 0, share: 0, prevClicks: 0, prevShare: 0 };
+            
+            weeks.forEach((week, index) => {
+                const weekRows = marketData.filter(d => d.week_date === week);
+                const ourRows = weekRows.filter(d => d.is_yaba_asin === 'Y');
+                
+                // Aggregation Logic: Weighted Share by Volume
+                // Clicks = Share * Volume. (Approximation based on available cols)
+                // If Search Volume is per keyword, we sum (Share * Volume) to get total clicks estimate
+                
+                let myClicks = 0;
+                let marketClicks = 0;
+                
+                weekRows.forEach(r => {
+                    const vol = r.weekly_search_volume || 1000;
+                    const clicks = r.click_share * vol;
+                    marketClicks += clicks;
+                    if(r.is_yaba_asin === 'Y') myClicks += clicks;
+                });
+                
+                let myShare = marketClicks > 0 ? (myClicks / marketClicks) : 0;
+                
+                chartData.push([week, myClicks, marketClicks, myShare]);
+                
+                // KPI Logic
+                if(index === weeks.length - 1) {
+                    lastWeekData.clicks = Math.round(myClicks);
+                    lastWeekData.share = (myShare * 100).toFixed(1);
+                }
+                if(index === weeks.length - 2) {
+                    lastWeekData.prevClicks = Math.round(myClicks);
+                    lastWeekData.prevShare = (myShare * 100).toFixed(1);
+                }
+            });
+
+            // Update KPIs
+            document.getElementById('totalClicks').innerText = lastWeekData.clicks.toLocaleString();
+            document.getElementById('currentShare').innerText = lastWeekData.share + "%";
+            
+            // Trend Labels
+            const clickDelta = lastWeekData.clicks - lastWeekData.prevClicks;
+            const shareDelta = lastWeekData.share - lastWeekData.prevShare;
+            
+            document.getElementById('clickTrendLabel').innerHTML = clickDelta >= 0 
+                ? `<span class="trend-up">▲ +${clickDelta} vs last week</span>` 
+                : `<span class="trend-down">▼ ${clickDelta} vs last week</span>`;
+                
+            document.getElementById('shareTrendLabel').innerHTML = shareDelta >= 0 
+                ? `<span class="trend-up">▲ +${shareDelta.toFixed(1)}% pts</span>` 
+                : `<span class="trend-down">▼ ${shareDelta.toFixed(1)}% pts</span>`;
+
+            // Draw Chart
+            var data = google.visualization.arrayToDataTable(chartData);
+            var options = {
+                seriesType: 'bars',
+                series: {2: {type: 'line', targetAxisIndex: 1}}, // Share on right axis
+                colors: ['#4285F4', '#E0E0E0', '#EA4335'],
+                legend: { position: 'bottom' },
+                vAxes: {
+                    0: {title: 'Est. Clicks'},
+                    1: {title: 'Click Share', format: 'percent'}
+                },
+                chartArea: {width: '85%', height: '70%'}
+            };
+            var chart = new google.visualization.ComboChart(document.getElementById('globalTrendChart'));
+            chart.draw(data, options);
+        }
+
+        // --------------------------------------------------------
+        // SECTION 2: BRAND COMPETITIVENESS
+        // --------------------------------------------------------
+        function drawBrandCompetitiveness() {
+            // Find Top 3 Competitors by Avg Share
+            let brandShares = {};
+            competitors.forEach(c => brandShares[c] = 0);
+            
+            marketData.forEach(d => {
+                let b = d.competitor_brand || "Unknown Brand";
+                if(brandShares[b] !== undefined) {
+                    brandShares[b] += d.click_share;
+                }
+            });
+            
+            const top3 = Object.keys(brandShares).sort((a,b) => brandShares[b] - brandShares[a]).slice(0, 3);
+            
+            let header = ['Week', 'Us (' + ourBrand + ')'];
+            top3.forEach(c => header.push(c));
+            header.push('Others');
+            
+            let chartData = [header];
+            
+            weeks.forEach(week => {
+                let row = [week];
+                const weekRows = marketData.filter(d => d.week_date === week);
+                
+                // Us
+                let usShare = 0, usCount = 0;
+                weekRows.filter(d => d.is_yaba_asin === 'Y').forEach(d => { usShare += d.click_share; usCount++; });
+                row.push(usCount ? usShare / usCount : 0);
+                
+                // Top 3
+                top3.forEach(comp => {
+                    let compShare = 0, compCount = 0;
+                    weekRows.filter(d => (d.competitor_brand || "Unknown Brand") === comp).forEach(d => { compShare += d.click_share; compCount++; });
+                    row.push(compCount ? compShare / compCount : 0);
+                });
+                
+                // Others
+                let otherShare = 0, otherCount = 0;
+                weekRows.filter(d => d.is_yaba_asin !== 'Y' && !top3.includes(d.competitor_brand || "Unknown Brand")).forEach(d => { otherShare += d.click_share; otherCount++; });
+                row.push(otherCount ? otherShare / otherCount : 0);
+                
+                chartData.push(row);
+            });
+
+            var data = google.visualization.arrayToDataTable(chartData);
+            var options = {
+                curveType: 'function',
+                legend: { position: 'bottom' },
+                colors: ['#4285F4', '#EA4335', '#FBBC05', '#34A853', '#999'],
+                vAxis: { format: 'percent' },
+                chartArea: {width: '90%', height: '70%'}
+            };
+            var chart = new google.visualization.LineChart(document.getElementById('brandShareChart'));
+            chart.draw(data, options);
+        }
+
+        // --------------------------------------------------------
+        // SECTION 3: LEVERS
+        // --------------------------------------------------------
+        function drawLevers() {
+            // Compare avg share when Deal vs No Deal, Coupon vs No Coupon
+            // For Our Brand
+            const myRows = marketData.filter(d => d.is_yaba_asin === 'Y');
+            
+            let dealShare = 0, dealCount = 0;
+            let noDealShare = 0, noDealCount = 0;
+            
+            myRows.forEach(d => {
+                if(d.weekly_number_of_days_with_deal > 0) { dealShare += d.click_share; dealCount++; }
+                else { noDealShare += d.click_share; noDealCount++; }
+            });
+            
+            const avgDeal = dealCount ? dealShare/dealCount : 0;
+            const avgNoDeal = noDealCount ? noDealShare/noDealCount : 0;
+            
+            var data = google.visualization.arrayToDataTable([
+                ['Lever', 'Avg Click Share', { role: 'style' }],
+                ['No Promotion', avgNoDeal, '#9E9E9E'],
+                ['With Deal', avgDeal, '#34A853']
+            ]);
+
+            var options = {
+                legend: { position: 'none' },
+                vAxis: { format: 'percent', title: 'Avg Click Share' },
+                title: 'Impact of Deals on Our Share'
+            };
+            var chart = new google.visualization.ColumnChart(document.getElementById('leversChart'));
+            chart.draw(data, options);
+        }
+
+        // --------------------------------------------------------
+        // SECTION 4: EFFICIENCY
+        // --------------------------------------------------------
+        function drawEfficiency() {
+            // Scatter: X=Rank, Y=Share. Color=Us vs Them
+            let chartData = [['Rank', 'Click Share', { role: 'style' }]];
+            
+            marketData.forEach(d => {
+                // Filter outliers for cleaner chart
+                if(d.average_organic_rank <= 20) {
+                    const color = d.is_yaba_asin === 'Y' ? 'point { fill-color: #4285F4; size: 6; }' : 'point { fill-color: #ccc; size: 3; }';
+                    chartData.push([d.average_organic_rank, d.click_share, color]);
+                }
+            });
+
+            var data = google.visualization.arrayToDataTable(chartData);
+            var options = {
+                legend: { position: 'none' },
+                hAxis: { title: 'Organic Rank (Lower is Better)', viewWindow: {min: 0} },
+                vAxis: { title: 'Click Share', format: 'percent' },
+                colors: ['#4285F4'],
+                title: 'Rank Efficiency: Are we over/under performing?'
+            };
+            var chart = new google.visualization.ScatterChart(document.getElementById('efficiencyChart'));
+            chart.draw(data, options);
+        }
+
+        // --------------------------------------------------------
+        // INSIGHTS & TEXT
+        // --------------------------------------------------------
+        function generateInsights() {
+            const list = document.getElementById('insightsList');
+            const recs = document.getElementById('recommendationsList');
+            let html = "";
+            let recHtml = "";
+            
+            // 1. Price Trend
+            const myRows = marketData.filter(d => d.is_yaba_asin === 'Y');
+            const lastWeek = weeks[weeks.length-1];
+            const myLast = myRows.filter(d => d.week_date === lastWeek);
+            const myAvgPrice = myLast.reduce((a,b)=>a+b.price,0) / myLast.length;
+            
+            // Simple logic check
+            const dealActive = myLast.some(d => d.weekly_number_of_days_with_deal > 0);
+            
+            if(dealActive) {
+                html += `<div class="insight-item"><i class="material-icons insight-icon">local_offer</i><div><strong>Promotion Active:</strong> Deals detected this week. Monitor profitability vs volume lift.</div></div>`;
+            } else {
+                html += `<div class="insight-item"><i class="material-icons insight-icon">trending_flat</i><div><strong>Standard Pricing:</strong> No deals active for our ASIN this week.</div></div>`;
+            }
+            
+            // 2. Share Volatility
+            const shares = weeks.map(w => {
+                const rs = myRows.filter(r => r.week_date === w);
+                let sum = rs.reduce((a,b)=>a+b.click_share,0);
+                return rs.length ? sum/rs.length : 0;
+            });
+            const variance = Math.max(...shares) - Math.min(...shares);
+            if(variance > 0.05) {
+                html += `<div class="insight-item"><i class="material-icons insight-icon">warning</i><div><strong>High Volatility:</strong> Share fluctuated by >5% points over the period. Check competitor promos.</div></div>`;
+                recHtml += `<div class="insight-item"><div><strong>Stabilize Rank:</strong> High share variance often links to ranking instability. Invest in defensive PPC.</div></div>`;
+            } else {
+                html += `<div class="insight-item"><i class="material-icons insight-icon">check_circle</i><div><strong>Stable Performance:</strong> Market share remains consistent.</div></div>`;
+            }
+
+            // 3. Competitor Badge Check
+            const lastWeekComp = marketData.filter(d => d.week_date === lastWeek && d.is_yaba_asin === 'N');
+            const hasBS = lastWeekComp.some(d => d.weekly_number_of_days_with_best_seller_badge > 0);
+            if(hasBS) {
+                html += `<div class="insight-item"><i class="material-icons insight-icon">stars</i><div><strong>Competitor Badge:</strong> A competitor holds the Best Seller badge, capping our organic growth.</div></div>`;
+                recHtml += `<div class="insight-item"><div><strong>Attack Best Seller:</strong> Run a 7-day coupon blitz to velocity-match the category leader.</div></div>`;
+            }
+
+            // Generic Recs
+            recHtml += `<div class="insight-item"><div><strong>Coupon Strategy:</strong> Test a 5% coupon to improve Click-Through Rate (CTR) efficiency on positions 5-10.</div></div>`;
+            recHtml += `<div class="insight-item"><div><strong>Content Audit:</strong> Ensure main image stands out against the Top 3 competitors shown in the Brand chart.</div></div>`;
+
+            list.innerHTML = html;
+            recs.innerHTML = recHtml;
+        }
+
+        // --------------------------------------------------------
+        // INTERACTIVE TAB
+        // --------------------------------------------------------
+        function setupInteractive() {
+            updateInteractive();
+        }
+
+        function updateInteractive() {
+            const comp = document.getElementById('compSelect').value;
+            const metric = document.getElementById('metricSelect').value; // price, share, rank
+            
+            let chartData = [['Week', 'Us', comp === 'all' ? 'Avg Competitor' : comp]];
+            
+            weeks.forEach(week => {
+                const weekRows = marketData.filter(d => d.week_date === week);
+                const usRows = weekRows.filter(d => d.is_yaba_asin === 'Y');
+                let usVal = 0;
+                
+                // Get Us Value
+                if(usRows.length) {
+                    const r = usRows[0]; // simplistic for parent
+                    if(metric === 'price') usVal = r.price;
+                    if(metric === 'share') usVal = r.click_share;
+                    if(metric === 'rank') usVal = r.average_organic_rank;
+                }
+                
+                // Get Comp Value
+                let compVal = 0;
+                if(comp === 'all') {
+                    const cRows = weekRows.filter(d => d.is_yaba_asin === 'N');
+                    if(cRows.length) {
+                        let sum = 0;
+                        cRows.forEach(r => {
+                            if(metric === 'price') sum += r.price;
+                            if(metric === 'share') sum += r.click_share;
+                            if(metric === 'rank') sum += r.average_organic_rank;
+                        });
+                        compVal = sum / cRows.length;
+                    }
+                } else {
+                    const cRows = weekRows.filter(d => (d.competitor_brand || "Unknown Brand") === comp);
+                    if(cRows.length) {
+                        const r = cRows[0];
+                        if(metric === 'price') compVal = r.price;
+                        if(metric === 'share') compVal = r.click_share;
+                        if(metric === 'rank') compVal = r.average_organic_rank;
+                    }
+                }
+                
+                chartData.push([week, usVal, compVal]);
+            });
+
+            var data = google.visualization.arrayToDataTable(chartData);
+            
+            let vAxisFormat = '';
+            if(metric === 'price') vAxisFormat = 'currency';
+            if(metric === 'share') vAxisFormat = 'percent';
+            
+            let direction = 1; 
+            if(metric === 'rank') direction = -1; // Invert for rank? Google charts tricky with inversion, keep standard
+
+            var options = {
+                title: `${metric.toUpperCase()} Evolution`,
+                curveType: 'function',
+                legend: { position: 'bottom' },
+                vAxis: { format: vAxisFormat, direction: metric === 'rank' ? -1 : 1 },
+                colors: ['#4285F4', '#EA4335']
+            };
+
+            var chart = new google.visualization.LineChart(document.getElementById('interactiveChart'));
+            chart.draw(data, options);
+        }
+
+        // --------------------------------------------------------
+        // UTILS
+        // --------------------------------------------------------
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            
+            document.getElementById('tab-' + tabId).classList.add('active');
+            event.target.classList.add('active');
+            
+            // Redraw charts to fix width issues
+            if(tabId === 'static') {
+                drawGlobalTrend();
+                drawBrandCompetitiveness();
+                drawLevers();
+                drawEfficiency();
+            } else {
+                updateInteractive();
+            }
+        }
+
+    </script>
+</body>
+</html>
