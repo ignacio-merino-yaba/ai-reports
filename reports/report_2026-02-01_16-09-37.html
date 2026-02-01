@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Amazon ASIN Intelligence Report</title>
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #4285F4;
+            --success: #34A853;
+            --warning: #FBBC05;
+            --danger: #EA4335;
+            --gray-100: #F3F4F6;
+            --gray-200: #E5E7EB;
+            --gray-800: #1F2937;
+            --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #F9FAFB;
+            margin: 0;
+            color: var(--gray-800);
+        }
+
+        .container {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* Header */
+        .header {
+            background: white;
+            padding: 20px 0;
+            border-bottom: 1px solid var(--gray-200);
+            margin-bottom: 30px;
+        }
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        .header h1 { margin: 0; font-size: 24px; font-weight: 600; }
+        .badge {
+            padding: 4px 12px;
+            border-radius: 99px;
+            font-size: 12px;
+            font-weight: 600;
+            background: #DBEAFE;
+            color: #1E40AF;
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 24px;
+            border-bottom: 1px solid var(--gray-200);
+        }
+        .tab-btn {
+            padding: 12px 20px;
+            background: none;
+            border: none;
+            border-bottom: 2px solid transparent;
+            font-size: 14px;
+            font-weight: 500;
+            color: #6B7280;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .tab-btn.active {
+            border-bottom-color: var(--primary);
+            color: var(--primary);
+        }
+
+        /* Cards */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+        .card {
+            background: white;
+            border-radius: 16px;
+            box-shadow: var(--card-shadow);
+            padding: 24px;
+            height: 100%;
+            box-sizing: border-box;
+        }
+        .col-3 { grid-column: span 3; }
+        .col-4 { grid-column: span 4; }
+        .col-6 { grid-column: span 6; }
+        .col-8 { grid-column: span 8; }
+        .col-12 { grid-column: span 12; }
+
+        @media (max-width: 768px) {
+            .col-3, .col-4, .col-6, .col-8 { grid-column: span 12; }
+        }
+
+        .metric-title { font-size: 14px; color: #6B7280; margin-bottom: 8px; }
+        .metric-value { font-size: 28px; font-weight: 700; color: var(--gray-800); }
+        .metric-change { font-size: 14px; font-weight: 500; display: flex; align-items: center; gap: 4px; }
+        .up { color: var(--success); }
+        .down { color: var(--danger); }
+
+        /* Charts */
+        .chart-container {
+            width: 100%;
+            height: 350px;
+        }
+        h2 { font-size: 18px; font-weight: 600; margin: 0 0 16px 0; }
+
+        /* Recommendations */
+        .rec-list { list-style: none; padding: 0; margin: 0; }
+        .rec-item {
+            display: flex;
+            gap: 12px;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--gray-100);
+        }
+        .rec-icon { color: var(--primary); }
+        .rec-content strong { display: block; color: var(--gray-800); font-size: 14px; }
+        .rec-content p { margin: 4px 0 0 0; color: #6B7280; font-size: 13px; }
+
+        /* Comparator */
+        .controls {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        select {
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid var(--gray-200);
+            font-size: 14px;
+            min-width: 200px;
+        }
+        .comp-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .comp-table th, .comp-table td {
+            padding: 16px;
+            text-align: left;
+            border-bottom: 1px solid var(--gray-200);
+        }
+        .comp-table th { background: var(--gray-100); font-weight: 600; color: #374151; }
+        
+        /* Utils */
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <div class="header-content">
+        <div>
+            <h1>Análisis de Parent ASIN</h1>
+            <p style="margin: 4px 0 0 0; color: #6B7280;">Inteligencia de Mercado & Competitividad</p>
+        </div>
+        <span class="badge">Datos Actualizados</span>
+    </div>
+</div>
+
+<div class="container">
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('dashboard')">Dashboard Ejecutivo</button>
+        <button class="tab-btn" onclick="switchTab('comparator')">Comparador Interactivo</button>
+    </div>
+
+    <!-- DASHBOARD TAB -->
+    <div id="dashboard">
+        <!-- KPI Row -->
+        <div class="grid">
+            <div class="card col-3">
+                <div class="metric-title">Click Share (Nuestra Marca)</div>
+                <div class="metric-value" id="kpi-share">-</div>
+                <div class="metric-change" id="kpi-share-delta">-</div>
+            </div>
+            <div class="card col-3">
+                <div class="metric-title">Volumen Estimado Clics</div>
+                <div class="metric-value" id="kpi-clicks">-</div>
+                <div class="metric-change" id="kpi-clicks-delta">-</div>
+            </div>
+            <div class="card col-3">
+                <div class="metric-title">Precio Promedio</div>
+                <div class="metric-value" id="kpi-price">-</div>
+                <div class="metric-change" id="kpi-price-delta">-</div>
+            </div>
+            <div class="card col-3">
+                <div class="metric-title">Organic Rank Promedio</div>
+                <div class="metric-value" id="kpi-rank">-</div>
+                <div class="metric-change" id="kpi-rank-delta">-</div>
+            </div>
+        </div>
+
+        <!-- Charts Row 1 -->
+        <div class="grid">
+            <div class="card col-8">
+                <h2>1. Tendencia Global del Parent</h2>
+                <div id="chart_trend" class="chart-container"></div>
+            </div>
+            <div class="card col-4">
+                <h2>Conclusiones Clave</h2>
+                <div id="insights-text" class="rec-list"></div>
+            </div>
+        </div>
+
+        <!-- Charts Row 2 -->
+        <div class="grid">
+            <div class="card col-12">
+                <h2>2. Competitividad de Marca (Share %)</h2>
+                <div id="chart_competitiveness" class="chart-container"></div>
+            </div>
+        </div>
+
+        <!-- Charts Row 3 -->
+        <div class="grid">
+            <div class="card col-6">
+                <h2>3. Palancas: Precio vs Share</h2>
+                <div id="chart_price" class="chart-container"></div>
+            </div>
+            <div class="card col-6">
+                <h2>4. Eficiencia: Rank vs Share</h2>
+                <div id="chart_efficiency" class="chart-container"></div>
+            </div>
+        </div>
+        
+        <!-- Recommendations -->
+        <div class="grid">
+             <div class="card col-12">
+                <h2>5. Recomendaciones Accionables</h2>
+                <ul class="rec-list" id="rec-list">
+                    <!-- Dynamic Content -->
+                </ul>
+             </div>
+        </div>
+        
+        <div class="grid">
+             <div class="card col-12">
+                <h2>6. Other Insights</h2>
+                <ul class="rec-list" id="other-insights-list">
+                   <!-- Dynamic Content -->
+                </ul>
+             </div>
+        </div>
+    </div>
+
+    <!-- COMPARATOR TAB -->
+    <div id="comparator" class="hidden">
+        <div class="card col-12">
+            <div class="controls">
+                <select id="comp-week-select" onchange="updateComparator()"></select>
+                <select id="comp-brand-select" onchange="updateComparator()"></select>
+            </div>
+            <h2>Cara a Cara: Nosotros vs Competencia</h2>
+            <div id="comparator_table_div"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // DATA INJECTION
+    const marketData = [{"week_str": "2024-04-03", "parent_asin": "PARENT123", "asin": "VIT857", "real_brand": "VitalityPlus", "is_yaba_asin": "Y", "product_title": "VitalityPlus Premium Supplement 1", "click_share": 8.52, "price": 23.49, "average_organic_rank": 5, "weekly_search_volume": 6867, "estimated_clicks": 585, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0}, {"week_str": "2024-04-03", "parent_asin": "PARENT123", "asin": "VIT735", "real_brand": "VitalityPlus", "is_yaba_asin": "Y", "product_title": "VitalityPlus Premium Supplement 2", "click_share": 9.9, "price": 24.3, "average_organic_rank": 5, "weekly_search_volume": 6867, "estimated_clicks": 679, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0}, {"week_str": "2024-04-03", "parent_asin": "PARENT123", "asin": "MEG977", "real_brand": "MegaCorp", "is_yaba_asin": "N", "product_title": "MegaCorp Premium Supplement 1", "click_share": 15.65, "price": 25.12, "average_organic_rank": 3, "weekly_search_volume": 6867, "estimated_clicks": 1074, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 0}, {"week_str": "2024-04-03", "parent_asin": "PARENT123", "asin": "MEG294", "real_brand": "MegaCorp", "is_yaba_asin": "N", "product_title": "MegaCorp Premium Supplement 2", "click_share": 16.27, "price": 24.23, "average_organic_rank": 3, "weekly_search_volume": 6867, "estimated_clicks": 1117, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 0}, {"week_str": "2024-04-03", "parent_asin": "PARENT123", "asin": "HEA106", "real_brand": "HealthFix", "is_yaba_asin": "N", "product_title": "HealthFix Premium Supplement 1", "click_share": 9.38, "price": 23.32, "average_organic_rank": 10, "weekly_search_volume": 6867, "estimated_clicks": 644, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 7, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0}, {"week_str": "2024-04-03", "parent_asin": "PARENT123", "asin": "HEA647", "real_brand": "HealthFix", "is_yaba_asin": "N", "product_title": "HealthFix Premium Supplement 2", "click_share": 10.99, "price": 25.86, "average_organic_rank": 13, "weekly_search_volume": 6867, "estimated_clicks": 754, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 7, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0}, {"week_str": "2024-04-03", "parent_asin": "PARENT123", "asin": "NAT371", "real_brand": "NaturePure", "is_yaba_asin": "N", "product_title": "NaturePure Premium Supplement 1", "click_share": 11.23, "price": 25.92, "average_organic_rank": 10, "weekly_search_volume": 6867, "estimated_clicks": 771, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0}, {"week_str": "2024-04-03", "parent_asin": "PARENT123", "asin": "NAT635", "real_brand": "NaturePure", "is_yaba_asin": "N", "product_title": "NaturePure Premium Supplement 2", "click_share": 8.01, "price": 24.0, "average_organic_rank": 20, "weekly_search_volume": 6867, "estimated_clicks": 550, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0}, {"week_str": "2024-04-03", "parent_asin": "PARENT123", "asin": "GEN106", "real_brand": "GenericCo", "is_yaba_asin": "N", "product_title": "GenericCo Premium Supplement 1", "click_share": 10.21, "price": 14.62, "average_organic_rank": 20, "weekly_search_volume": 6867, "estimated_clicks": 701, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0}, {"week_str": "2024-04-03", "parent_asin": "PARENT123", "asin": "GEN703", "real_brand": "GenericCo", "is_yaba_asin": "N", "product_title": "GenericCo Premium Supplement 2", "click_share": 10.6, "price": 14.93, "average_organic_rank": 3, "weekly_search_volume": 6867, "estimated_clicks": 727, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0}, {"week_str": "2024-04-10", "parent_asin": "PARENT123", "asin": "VIT503", "real_brand": "VitalityPlus", "is_yaba_asin": "Y", "product_title": "VitalityPlus Premium Supplement 1", "click_share": 11.2, "price": 24.64, "average_organic_rank": 14, "weekly_search_volume": 5363, "estimated_clicks": 600, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0}, {"week_str": "2024-04-10", "parent_asin": "PARENT123", "asin": "VIT865", "real_brand": "VitalityPlus", "is_yaba_asin": "Y", "product_title": "VitalityPlus Premium Supplement 2", "click_share": 9.42, "price": 24.31, "average_organic_rank": 2, "weekly_search_volume": 5363, "estimated_clicks": 505, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7}, {"week_str": "2024-04-10", "parent_asin": "PARENT123", "asin": "MEG696", "real_brand": "MegaCorp", "is_yaba_asin": "N", "product_title": "MegaCorp Premium Supplement 1", "click_share": 13.92, "price": 23.3, "average_organic_rank": 3, "weekly_search_volume": 5363, "estimated_clicks": 746, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 0}, {"week_str": "2024-04-10", "parent_asin": "PARENT123", "asin": "MEG151", "real_brand": "MegaCorp", "is_yaba_asin": "N", "product_title": "MegaCorp Premium Supplement 2", "click_share": 16.03, "price": 23.95, "average_organic_rank": 1, "weekly_search_volume": 5363, "estimated_clicks": 859, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 7}, {"week_str": "2024-04-10", "parent_asin": "PARENT123", "asin": "HEA764", "real_brand": "HealthFix", "is_yaba_asin": "N", "product_title": "HealthFix Premium Supplement 1", "click_share": 9.38, "price": 23.86, "average_organic_rank": 4, "weekly_search_volume": 5363, "estimated_clicks": 503, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 7, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0}, {"week_str": "2024-04-10", "parent_asin": "PARENT123", "asin": "HEA954", "real_brand": "HealthFix", "is_yaba_asin": "N", "product_title": "HealthFix Premium Supplement 2", "click_share": 10.37, "price": 23.1, "average_organic_rank": 5, "weekly_search_volume": 5363, "estimated_clicks": 556, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 7, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0}, {"week_str": "2024-04-10", "parent_asin": "PARENT123", "asin": "NAT761", "real_brand": "NaturePure", "is_yaba_asin": "N", "product_title": "NaturePure Premium Supplement 1", "click_share": 10.15, "price": 26.68, "average_organic_rank": 12, "weekly_search_volume": 5363, "estimated_clicks": 544, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0}, {"week_str": "2024-04-10", "parent_asin": "PARENT123", "asin": "NAT976", "real_brand": "NaturePure", "is_yaba_asin": "N", "product_title": "NaturePure Premium Supplement 2", "click_share": 8.0, "price": 23.51, "average_organic_rank": 17, "weekly_search_volume": 5363, "estimated_clicks": 429, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0}, {"week_str": "2024-04-10", "parent_asin": "PARENT123", "asin": "GEN627", "real_brand": "GenericCo", "is_yaba_asin": "N", "product_title": "GenericCo Premium Supplement 1", "click_share": 10.31, "price": 14.33, "average_organic_rank": 17, "weekly_search_volume": 5363, "estimated_clicks": 552, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0}, {"week_str": "2024-04-10", "parent_asin": "PARENT123", "asin": "GEN164", "real_brand": "GenericCo", "is_yaba_asin": "N", "product_title": "GenericCo Premium Supplement 2", "click_share": 10.32, "price": 14.16, "average_organic_rank": 9, "weekly_search_volume": 5363, "estimated_clicks": 553, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0}, {"week_str": "2024-04-17", "parent_asin": "PARENT123", "asin": "VIT561", "real_brand": "VitalityPlus", "is_yaba_asin": "Y", "product_title": "VitalityPlus Premium Supplement 1", "click_share": 11.0, "price": 26.31, "average_organic_rank": 17, "weekly_search_volume": 5621, "estimated_clicks": 618, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0}, {"week_str": "2024-04-17", "parent_asin": "PARENT123", "asin": "VIT133", "real_brand": "VitalityPlus", "is_yaba_asin": "Y", "product_title": "VitalityPlus Premium Supplement 2", "click_share": 12.35, "price": 23.95, "average_organic_rank": 8, "weekly_search_volume": 5621, "estimated_clicks": 694, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0}, {"week_str": "2024-04-17", "parent_asin": "PARENT123", "asin": "MEG984", "real_brand": "MegaCorp", "is_yaba_asin": "N", "product_title": "MegaCorp Premium Supplement 1", "click_share": 13.56, "price": 26.68, "average_organic_rank": 2, "weekly_search_volume": 5621, "estimated_clicks": 762, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 7}, {"week_str": "2024-04-17", "parent_asin": "PARENT123", "asin": "MEG227", "real_brand": "MegaCorp", "is_yaba_asin": "N", "product_title": "MegaCorp Premium Supplement 2", "click_share": 16.31, "price": 26.25, "average_organic_rank": 4, "weekly_search_volume": 5621, "estimated_clicks": 916, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 0}, {"week_str": "2024-04-17", "parent_asin": "PARENT123", "asin": "HEA712", "real_brand": "HealthFix", "is_yaba_asin": "N", "product_title": "HealthFix Premium Supplement 1", "click_share": 8.0, "price": 26.21, "average_organic_rank": 2, "weekly_search_volume": 5621, "estimated_clicks": 449, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 7, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7}, {"week_str": "2024-04-17", "parent_asin": "PARENT123", "asin": "HEA107", "real_brand": "HealthFix", "is_yaba_asin": "N", "product_title": "HealthFix Premium Supplement 2", "click_share": 8.16, "price": 24.38, "average_organic_rank": 10, "weekly_search_volume": 5621, "estimated_clicks": 458, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 7, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0}, {"week_str": "2024-04-17", "parent_asin": "PARENT123", "asin": "NAT767", "real_brand": "NaturePure", "is_yaba_asin": "N", "product_title": "NaturePure Premium Supplement 1", "click_share": 8.52, "price": 25.42, "average_organic_rank": 15, "weekly_search_volume": 5621, "estimated_clicks": 478, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0}, {"week_str": "2024-04-17", "parent_asin": "PARENT123", "asin": "NAT892", "real_brand": "NaturePure", "is_yaba_asin": "N", "product_title": "NaturePure Premium Supplement 2", "click_share": 9.42, "price": 26.06, "average_organic_rank": 16, "weekly_search_volume": 5621, "estimated_clicks": 529, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0}, {"week_str": "2024-04-17", "parent_asin": "PARENT123", "asin": "GEN129", "real_brand": "GenericCo", "is_yaba_asin": "N", "product_title": "GenericCo Premium Supplement 1", "click_share": 9.38, "price": 14.85, "average_organic_rank": 18, "weekly_search_volume": 5621, "estimated_clicks": 527, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0}, {"week_str": "2024-04-17", "parent_asin": "PARENT123", "asin": "GEN627", "real_brand": "GenericCo", "is_yaba_asin": "N", "product_title": "GenericCo Premium Supplement 2", "click_share": 8.87, "price": 15.01, "average_organic_rank": 11, "weekly_search_volume": 5621, "estimated_clicks": 498, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0}, {"week_str": "2024-04-24", "parent_asin": "PARENT123", "asin": "VIT896", "real_brand": "VitalityPlus", "is_yaba_asin": "Y", "product_title": "VitalityPlus Premium Supplement 1", "click_share": 14.28, "price": 24.3, "average_organic_rank": 12, "weekly_search_volume": 5304, "estimated_clicks": 757, "weekly_number_of_days_with_deal": 7, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0}, {"week_str": "2024-04-24", "parent_asin": "PARENT123", "asin": "VIT503", "real_brand": "VitalityPlus", "is_yaba_asin": "Y", "product_title": "VitalityPlus Premium Supplement 2", "click_share": 12.37, "price": 25.13, "average_organic_rank": 14, "weekly_search_volume": 5304, "estimated_clicks": 656, "weekly_number_of_days_with_deal": 7, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0}, {"week_str": "2024-04-24", "parent_asin": "PARENT123", "asin": "MEG984", "real_brand": "MegaCorp", "is_yaba_asin": "N", "product_title": "MegaCorp Premium Supplement 1", "click_share": 16.94, "price": 26.97, "average_organic_rank": 2, "weekly_search_volume": 5304, "estimated_clicks": 898, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 7}, {"week_str": "2024-04-24", "parent_asin": "PARENT123", "asin": "MEG593", "real_brand": "MegaCorp", "is_yaba_asin": "N", "product_title": "MegaCorp Premium Supplement 2", "click_share": 14.61, "price": 24.63, "average_organic_rank": 4, "weekly_search_volume": 5304, "estimated_clicks": 774, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 0}, {"week_str": "2024-04-24", "parent_asin": "PARENT123", "asin": "HEA341", "real_brand": "HealthFix", "is_yaba_asin": "N", "product_title": "HealthFix Premium Supplement 1", "click_share": 9.58, "price": 26.24, "average_organic_rank": 12, "weekly_search_volume": 5304, "estimated_clicks": 508, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 7, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0}, {"week_str": "2024-04-24", "parent_asin": "PARENT123", "asin": "HEA215", "real_brand": "HealthFix", "is_yaba_asin": "N", "product_title": "HealthFix Premium Supplement 2", "click_share": 11.23, "price": 23.95, "average_organic_rank": 13, "weekly_search_volume": 5304, "estimated_clicks": 595, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 7, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0}, {"week_str": "2024-04-24", "parent_asin": "PARENT123", "asin": "NAT761", "real_brand": "NaturePure", "is_yaba_asin": "N", "product_title": "NaturePure Premium Supplement 1", "click_share": 8.04, "price": 26.49, "average_organic_rank": 6, "weekly_search_volume": 5304, "estimated_clicks": 426, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0}, {"week_str": "2024-04-24", "parent_asin": "PARENT123", "asin": "NAT635", "real_brand": "NaturePure", "is_yaba_asin": "N", "product_title": "NaturePure Premium Supplement 2", "click_share": 10.15, "price": 25.17, "average_organic_rank": 16, "weekly_search_volume": 5304, "estimated_clicks": 538, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0}, {"week_str": "2024-04-24", "parent_asin": "PARENT123", "asin": "GEN627", "real_brand": "GenericCo", "is_yaba_asin": "N", "product_title": "GenericCo Premium Supplement 1", "click_share": 9.87, "price": 14.53, "average_organic_rank": 1, "weekly_search_volume": 5304, "estimated_clicks": 523, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7}, {"week_str": "2024-04-24", "parent_asin": "PARENT123", "asin": "GEN627", "real_brand": "GenericCo", "is_yaba_asin": "N", "product_title": "GenericCo Premium Supplement 2", "click_share": 9.69, "price": 14.63, "average_organic_rank": 20, "weekly_search_volume": 5304, "estimated_clicks": 513, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0}, {"week_str": "2024-05-01", "parent_asin": "PARENT123", "asin": "VIT503", "real_brand": "VitalityPlus", "is_yaba_asin": "Y", "product_title": "VitalityPlus Premium Supplement 1", "click_share": 12.02, "price": 26.47, "average_organic_rank": 15, "weekly_search_volume": 7619, "estimated_clicks": 915, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0}, {"week_str": "2024-05-01", "parent_asin": "PARENT123", "asin": "VIT275", "real_brand": "VitalityPlus", "is_yaba_asin": "Y", "product_title": "VitalityPlus Premium Supplement 2", "click_share": 12.51, "price": 23.75, "average_organic_rank": 16, "weekly_search_volume": 7619, "estimated_clicks": 953, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0}, {"week_str": "2024-05-01", "parent_asin": "PARENT123", "asin": "MEG593", "real_brand": "MegaCorp", "is_yaba_asin": "N", "product_title": "MegaCorp Premium Supplement 1", "click_share": 14.73, "price": 26.63, "average_organic_rank": 1, "weekly_search_volume": 7619, "estimated_clicks": 1122, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 7}, {"week_str": "2024-05-01", "parent_asin": "PARENT123", "asin": "MEG227", "real_brand": "MegaCorp", "is_yaba_asin": "N", "product_title": "MegaCorp Premium Supplement 2", "click_share": 16.92, "price": 23.3, "average_organic_rank": 4, "weekly_search_volume": 7619, "estimated_clicks": 1289, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 0}, {"week_str": "2024-05-01", "parent_asin": "PARENT123", "asin": "HEA341", "real_brand": "HealthFix", "is_yaba_asin": "N", "product_title": "HealthFix Premium Supplement 1", "click_share": 11.2, "price": 23.79, "average_organic_rank": 17, "weekly_search_volume": 7619, "estimated_clicks": 853, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 7, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0}, {"week_str": "2024-05-01", "parent_asin": "PARENT123", "asin": "HEA764", "real_brand": "HealthFix", "is_yaba_asin": "N", "product_title": "HealthFix Premium Supplement 2", "click_share": 11.02, "price": 23.11, "average_organic_rank": 14, "weekly_search_volume": 7619, "estimated_clicks": 839, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 7, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0}, {"week_str": "2024-05-01", "parent_asin": "PARENT123", "asin": "NAT767", "real_brand": "NaturePure", "is_yaba_asin": "N", "product_title": "NaturePure Premium Supplement 1", "click_share": 8.0, "price": 24.3, "average_organic_rank": 20, "weekly_search_volume": 7619, "estimated_clicks": 609, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0}, {"week_str": "2024-05-01", "parent_asin": "PARENT123", "asin": "NAT761", "real_brand": "NaturePure", "is_yaba_asin": "N", "product_title": "NaturePure Premium Supplement 2", "click_share": 9.38, "price": 25.13, "average_organic_rank": 14, "weekly_search_volume": 7619, "estimated_clicks": 714, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0}, {"week_str": "2024-05-01", "parent_asin": "PARENT123", "asin": "GEN164", "real_brand": "GenericCo", "is_yaba_asin": "N", "product_title": "GenericCo Premium Supplement 1", "click_share": 11.58, "price": 14.77, "average_organic_rank": 5, "weekly_search_volume": 7619, "estimated_clicks": 882, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0}, {"week_str": "2024-05-01", "parent_asin": "PARENT123", "asin": "GEN164", "real_brand": "GenericCo", "is_yaba_asin": "N", "product_title": "GenericCo Premium Supplement 2", "click_share": 8.92, "price": 13.56, "average_organic_rank": 9, "weekly_search_volume": 7619, "estimated_clicks": 679, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0}];
+
+    // INIT GOOGLE CHARTS
+    google.charts.load('current', {'packages':['corechart', 'bar', 'table', 'line']});
+    google.charts.setOnLoadCallback(initApp);
+
+    // STATE
+    let myBrand = "";
+    let weeks = [];
+    let brands = [];
+
+    function initApp() {
+        processData();
+        renderDashboard();
+        setupComparator();
+    }
+
+    function processData() {
+        // Extract Unique Weeks and Brands
+        weeks = [...new Set(marketData.map(d => d.week_str))].sort();
+        brands = [...new Set(marketData.map(d => d.real_brand))];
+        
+        // Identify My Brand
+        const myBrandRow = marketData.find(d => d.is_yaba_asin === 'Y');
+        myBrand = myBrandRow ? myBrandRow.real_brand : (brands[0] || "Unknown");
+    }
+
+    function renderDashboard() {
+        drawTrendChart();
+        drawCompetitivenessChart();
+        drawPriceChart();
+        drawEfficiencyChart();
+        calculateKPIs();
+        generateInsights();
+    }
+
+    // --- CHART 1: TREND GLOBAL ---
+    function drawTrendChart() {
+        const data = new google.visualization.DataTable();
+        data.addColumn('string', 'Semana');
+        data.addColumn('number', 'Volumen Clics (Mercado)');
+        data.addColumn('number', 'My Click Share %');
+        
+        const chartData = weeks.map(week => {
+            const weeklyData = marketData.filter(d => d.week_str === week);
+            const totalClicks = weeklyData.reduce((sum, d) => sum + d.estimated_clicks, 0);
+            
+            // Calculate weighted share for My Brand
+            const myData = weeklyData.filter(d => d.real_brand === myBrand);
+            const myShareSum = myData.reduce((sum, d) => sum + d.click_share, 0); // Simplified sum of shares
+            
+            return [week, totalClicks, myShareSum];
+        });
+
+        data.addRows(chartData);
+
+        const options = {
+            seriesType: 'bars',
+            series: {1: {type: 'line', targetAxisIndex: 1}},
+            colors: ['#E0E0E0', '#4285F4'],
+            legend: {position: 'bottom'},
+            vAxes: {
+                0: {title: 'Volumen Clics'},
+                1: {title: 'Click Share %', format: '#\'%\''}
+            },
+            chartArea: {width: '85%', height: '70%'}
+        };
+
+        const chart = new google.visualization.ComboChart(document.getElementById('chart_trend'));
+        chart.draw(data, options);
+    }
+
+    // --- CHART 2: COMPETITIVENESS ---
+    function drawCompetitivenessChart() {
+        // Get Top 3 Competitors by Avg Share
+        const brandShares = brands.map(b => {
+            const bData = marketData.filter(d => d.real_brand === b);
+            const avgShare = bData.reduce((s, d) => s + d.click_share, 0) / weeks.length;
+            return {brand: b, share: avgShare};
+        }).sort((a, b) => b.share - a.share);
+
+        const topBrands = brandShares.slice(0, 4).map(b => b.brand); // Include MyBrand usually in top
+
+        const data = new google.visualization.DataTable();
+        data.addColumn('string', 'Semana');
+        topBrands.forEach(b => data.addColumn('number', b));
+        data.addColumn('number', 'Otros');
+
+        const rows = weeks.map(week => {
+            const row = [week];
+            const weeklyData = marketData.filter(d => d.week_str === week);
+            
+            let othersShare = 0;
+            
+            topBrands.forEach(b => {
+                const share = weeklyData.filter(d => d.real_brand === b)
+                                        .reduce((s, d) => s + d.click_share, 0);
+                row.push(share);
+            });
+            
+            // Calculate Others
+            othersShare = weeklyData.filter(d => !topBrands.includes(d.real_brand))
+                                    .reduce((s, d) => s + d.click_share, 0);
+            row.push(othersShare);
+            
+            return row;
+        });
+
+        data.addRows(rows);
+
+        const options = {
+            curveType: 'function',
+            legend: {position: 'bottom'},
+            colors: topBrands.map(b => b === myBrand ? '#4285F4' : null), // Dynamic coloring?
+            chartArea: {width: '90%', height: '70%'}
+        };
+
+        const chart = new google.visualization.LineChart(document.getElementById('chart_competitiveness'));
+        chart.draw(data, options);
+    }
+
+    // --- CHART 3: PRICE VS SHARE (Latest Week) ---
+    function drawPriceChart() {
+        const lastWeek = weeks[weeks.length - 1];
+        const weeklyData = marketData.filter(d => d.week_str === lastWeek);
+        
+        // Aggregate by Brand
+        const brandStats = brands.map(b => {
+            const bData = weeklyData.filter(d => d.real_brand === b);
+            if (bData.length === 0) return null;
+            const avgPrice = bData.reduce((s, d) => s + d.price, 0) / bData.length;
+            const totalShare = bData.reduce((s, d) => s + d.click_share, 0);
+            return [b, avgPrice, totalShare];
+        }).filter(x => x !== null);
+
+        const data = new google.visualization.DataTable();
+        data.addColumn('string', 'Marca');
+        data.addColumn('number', 'Precio Promedio');
+        data.addColumn('number', 'Click Share');
+
+        data.addRows(brandStats);
+
+        const options = {
+            series: {
+                0: {targetAxisIndex: 0, type: 'bars'},
+                1: {targetAxisIndex: 1, type: 'line'}
+            },
+            vAxes: {
+                0: {title: 'Precio ($)'},
+                1: {title: 'Share (%)'}
+            },
+            colors: ['#FBBC05', '#EA4335'],
+            legend: {position: 'bottom'}
+        };
+
+        const chart = new google.visualization.ComboChart(document.getElementById('chart_price'));
+        chart.draw(data, options);
+    }
+
+    // --- CHART 4: EFFICIENCY SCATTER (Rank vs Share) ---
+    function drawEfficiencyChart() {
+        const lastWeek = weeks[weeks.length - 1];
+        const weeklyData = marketData.filter(d => d.week_str === lastWeek);
+        
+        const data = new google.visualization.DataTable();
+        data.addColumn('number', 'Organic Rank');
+        data.addColumn('number', 'Click Share');
+        data.addColumn({type: 'string', role: 'tooltip'});
+        data.addColumn({type: 'string', role: 'style'});
+
+        const rows = weeklyData.map(d => {
+            const color = d.real_brand === myBrand ? '#4285F4' : '#9CA3AF';
+            const tooltip = `${d.product_title}\nRank: ${d.average_organic_rank}\nShare: ${d.click_share}%`;
+            return [d.average_organic_rank, d.click_share, tooltip, `point { size: 5; fill-color: ${color}; }`];
+        });
+
+        data.addRows(rows);
+
+        const options = {
+            hAxis: {title: 'Organic Rank (Lower is Better)', direction: -1},
+            vAxis: {title: 'Click Share (%)'},
+            legend: 'none',
+            chartArea: {width: '85%', height: '70%'}
+        };
+
+        const chart = new google.visualization.ScatterChart(document.getElementById('chart_efficiency'));
+        chart.draw(data, options);
+    }
+
+    // --- KPIS & INSIGHTS ---
+    function calculateKPIs() {
+        const current = marketData.filter(d => d.week_str === weeks[weeks.length - 1] && d.real_brand === myBrand);
+        const previous = marketData.filter(d => d.week_str === weeks[weeks.length - 2] && d.real_brand === myBrand);
+
+        const getAvg = (arr, key) => arr.length ? arr.reduce((s, x) => s + x[key], 0) / arr.length : 0;
+        const getSum = (arr, key) => arr.reduce((s, x) => s + x[key], 0);
+
+        const curShare = getSum(current, 'click_share');
+        const prevShare = getSum(previous, 'click_share');
+        const curClicks = getSum(current, 'estimated_clicks');
+        const curPrice = getAvg(current, 'price');
+        const curRank = getAvg(current, 'average_organic_rank');
+
+        updateMetric('kpi-share', curShare.toFixed(1) + '%', curShare - prevShare);
+        updateMetric('kpi-clicks', curClicks.toLocaleString(), 0); // Delta difficult without full market context
+        updateMetric('kpi-price', '$' + curPrice.toFixed(2), 0);
+        updateMetric('kpi-rank', curRank.toFixed(1), 0);
+    }
+
+    function updateMetric(id, value, delta) {
+        document.getElementById(id).innerText = value;
+        const deltaEl = document.getElementById(id + '-delta');
+        if (delta !== 0) {
+            const sign = delta > 0 ? '+' : '';
+            const colorClass = delta > 0 ? 'up' : 'down';
+            // Logic for Rank is inverse (lower is better), but generic here:
+            deltaEl.innerHTML = `<span class="${colorClass} material-icons" style="font-size:16px">${delta > 0 ? 'arrow_upward' : 'arrow_downward'}</span> ${sign}${delta.toFixed(1)}`;
+            deltaEl.className = 'metric-change ' + colorClass;
+        }
+    }
+
+    function generateInsights() {
+        // Analyze Trend
+        const lastWeek = weeks[weeks.length - 1];
+        const myData = marketData.filter(d => d.week_str === lastWeek && d.real_brand === myBrand);
+        const share = myData.reduce((s, d) => s + d.click_share, 0);
+        
+        let insights = [];
+        insights.push(`<li class="rec-item"><span class="material-icons rec-icon">trending_up</span><div class="rec-content"><strong>Tendencia de Marca</strong><p>Nuestra cuota de mercado actual es ${share.toFixed(1)}%.</p></div></li>`);
+        
+        // Competitor Insight
+        const compData = marketData.filter(d => d.week_str === lastWeek && d.real_brand !== myBrand);
+        if (compData.length > 0) {
+            const topComp = compData.sort((a,b) => b.click_share - a.click_share)[0];
+            insights.push(`<li class="rec-item"><span class="material-icons rec-icon">warning</span><div class="rec-content"><strong>Amenaza Principal</strong><p>${topComp.real_brand} lidera con un ASIN al ${topComp.click_share}% share.</p></div></li>`);
+        }
+
+        document.getElementById('insights-text').innerHTML = insights.join('');
+
+        // Recs
+        let recs = [];
+        recs.push(`<li class="rec-item"><span class="material-icons rec-icon">lightbulb</span><div class="rec-content"><strong>Optimizar Precio</strong><p>Revisar competitividad de precios vs Top 3 competidores.</p></div></li>`);
+        recs.push(`<li class="rec-item"><span class="material-icons rec-icon">verified</span><div class="rec-content"><strong>Defensa de Ranking</strong><p>Priorizar keywords donde organic rank ha caído.</p></div></li>`);
+        recs.push(`<li class="rec-item"><span class="material-icons rec-icon">local_offer</span><div class="rec-content"><strong>Activación de Deals</strong><p>Considerar cupones para mejorar CTR en listing.</p></div></li>`);
+        document.getElementById('rec-list').innerHTML = recs.join('');
+
+        // Other Insights
+        let others = [];
+        others.push(`<li class="rec-item"><span class="material-icons rec-icon">visibility</span><div class="rec-content"><strong>Oportunidad de Visibilidad</strong><p>Hay huecos de mercado en rangos de precio medio.</p></div></li>`);
+        document.getElementById('other-insights-list').innerHTML = others.join('');
+    }
+
+    // --- INTERACTIVITY ---
+    function switchTab(tabId) {
+        document.getElementById('dashboard').classList.add('hidden');
+        document.getElementById('comparator').classList.add('hidden');
+        document.getElementById(tabId).classList.remove('hidden');
+        
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        event.target.classList.add('active');
+    }
+
+    function setupComparator() {
+        const weekSel = document.getElementById('comp-week-select');
+        weeks.forEach(w => {
+            const opt = document.createElement('option');
+            opt.value = w;
+            opt.text = w;
+            weekSel.add(opt);
+        });
+        weekSel.value = weeks[weeks.length - 1];
+
+        const brandSel = document.getElementById('comp-brand-select');
+        brands.filter(b => b !== myBrand).forEach(b => {
+            const opt = document.createElement('option');
+            opt.value = b;
+            opt.text = b;
+            brandSel.add(opt);
+        });
+    }
+
+    function updateComparator() {
+        const week = document.getElementById('comp-week-select').value;
+        const compBrand = document.getElementById('comp-brand-select').value;
+
+        const myRow = marketData.filter(d => d.week_str === week && d.real_brand === myBrand);
+        const compRow = marketData.filter(d => d.week_str === week && d.real_brand === compBrand);
+
+        // Aggregate
+        const agg = (rows) => ({
+            share: rows.reduce((s,d)=>s+d.click_share,0).toFixed(1)+'%',
+            price: (rows.reduce((s,d)=>s+d.price,0)/(rows.length||1)).toFixed(2),
+            rank: (rows.reduce((s,d)=>s+d.average_organic_rank,0)/(rows.length||1)).toFixed(1),
+            deals: rows.reduce((s,d)=>s+d.weekly_number_of_days_with_deal,0)
+        });
+
+        const m = agg(myRow);
+        const c = agg(compRow);
+
+        const html = `
+            <table class="comp-table">
+                <thead><tr><th>Métrica</th><th>${myBrand} (Nosotros)</th><th>${compBrand}</th></tr></thead>
+                <tbody>
+                    <tr><td>Click Share</td><td>${m.share}</td><td>${c.share}</td></tr>
+                    <tr><td>Precio Promedio</td><td>$${m.price}</td><td>$${c.price}</td></tr>
+                    <tr><td>Organic Rank</td><td>${m.rank}</td><td>${c.rank}</td></tr>
+                    <tr><td>Días en Deal</td><td>${m.deals}</td><td>${c.deals}</td></tr>
+                </tbody>
+            </table>
+        `;
+        document.getElementById('comparator_table_div').innerHTML = html;
+    }
+</script>
+</body>
+</html>
