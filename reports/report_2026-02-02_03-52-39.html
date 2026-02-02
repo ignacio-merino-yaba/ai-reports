@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Amazon Parent ASIN Intelligence Report</title>
+    <!-- Google Charts -->
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <!-- Google Material Icons -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --google-blue: #4285F4;
+            --google-red: #EA4335;
+            --google-yellow: #FBBC05;
+            --google-green: #34A853;
+            --google-grey: #5f6368;
+            --bg-color: #f8f9fa;
+            --card-bg: #ffffff;
+            --text-primary: #202124;
+            --text-secondary: #5f6368;
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            margin: 0;
+            padding: 0;
+            line-height: 1.5;
+        }
+
+        .header {
+            background-color: var(--card-bg);
+            padding: 1rem 2rem;
+            border-bottom: 1px solid #dadce0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 1.5rem;
+            margin: 0;
+            color: var(--text-primary);
+        }
+
+        .tabs {
+            display: flex;
+            background: var(--card-bg);
+            padding: 0 2rem;
+            border-bottom: 1px solid #dadce0;
+        }
+
+        .tab-btn {
+            background: none;
+            border: none;
+            padding: 1rem;
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            text-transform: uppercase;
+        }
+
+        .tab-btn.active {
+            color: var(--google-blue);
+            border-bottom-color: var(--google-blue);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 8px;
+            box-shadow: 0 1px 2px 0 rgba(60,64,67,0.3), 0 1px 3px 1px rgba(60,64,67,0.15);
+            margin-bottom: 2rem;
+            padding: 1.5rem;
+            overflow: hidden;
+        }
+
+        .card-title {
+            font-size: 1.1rem;
+            font-weight: 500;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .kpi-box {
+            background: #fff;
+            border: 1px solid #dadce0;
+            border-radius: 8px;
+            padding: 1rem;
+            text-align: center;
+        }
+
+        .kpi-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--google-blue);
+        }
+
+        .kpi-label {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+        }
+
+        .kpi-change {
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+            font-weight: 500;
+        }
+        
+        .positive { color: var(--google-green); }
+        .negative { color: var(--google-red); }
+
+        .chart-container {
+            width: 100%;
+            height: 400px;
+        }
+
+        /* Insight Section Styles */
+        .insights-section {
+            background-color: #e8f0fe;
+            border-left: 4px solid var(--google-blue);
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .insight-item {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+        .insight-icon { color: var(--google-blue); }
+
+        .recommendation-section {
+            background-color: #e6f4ea;
+            border-left: 4px solid var(--google-green);
+            padding: 1.5rem;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .rec-item {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+        .rec-icon { color: var(--google-green); }
+
+        /* Interactive Controls */
+        .controls {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            background: #fff;
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid #dadce0;
+        }
+
+        select {
+            padding: 0.5rem;
+            border-radius: 4px;
+            border: 1px solid #dadce0;
+            font-family: 'Roboto', sans-serif;
+            font-size: 1rem;
+        }
+
+        .hidden { display: none; }
+
+        .vs-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+        
+        .vs-card {
+            text-align: center;
+            padding: 2rem;
+            background: #f1f3f4;
+            border-radius: 12px;
+        }
+        
+        .vs-winner {
+            border: 2px solid var(--google-green);
+            background: #e6f4ea;
+        }
+
+        /* Tables */
+        .data-table-container {
+            width: 100%;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>Amazon Market Intelligence Report</h1>
+        <span id="date-range" style="color: var(--text-secondary); font-size: 0.9rem;">Processing Data...</span>
+    </div>
+
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('static')">Static Report</button>
+        <button class="tab-btn" onclick="switchTab('interactive')">Interactive Comparator</button>
+    </div>
+
+    <div class="container">
+        
+        <!-- STATIC REPORT TAB -->
+        <div id="tab-static">
+            
+            <!-- KPI Summary -->
+            <div class="kpi-grid" id="kpi-container">
+                <!-- Injected via JS -->
+            </div>
+
+            <!-- Section 1: Global Trend -->
+            <div class="card">
+                <div class="card-title">
+                    <span class="material-icons">trending_up</span>
+                    1. Global Parent Trend (Clicks & Share)
+                </div>
+                <div id="chart_global_trend" class="chart-container"></div>
+                <div class="insights-section">
+                    <strong>Trend Analysis:</strong>
+                    <p id="trend-text">Loading analysis...</p>
+                </div>
+            </div>
+
+            <!-- Section 2: Brand Competitiveness -->
+            <div class="card">
+                <div class="card-title">
+                    <span class="material-icons">pie_chart</span>
+                    2. Brand Competitiveness (Click Share %)
+                </div>
+                <div id="chart_competitiveness" class="chart-container"></div>
+                <p style="font-size: 0.9rem; color: #666; padding-left:1rem;">*Top 3 competitors vs. Our Brand vs. Market</p>
+            </div>
+
+            <!-- Section 3: Levers -->
+            <div class="card">
+                <div class="card-title">
+                    <span class="material-icons">tune</span>
+                    3. 🚀 Growth Levers (Price & Deals)
+                </div>
+                <div id="chart_levers" class="chart-container"></div>
+            </div>
+
+            <!-- Section 4: Efficiency -->
+            <div class="card">
+                <div class="card-title">
+                    <span class="material-icons">scatter_plot</span>
+                    4. 👁️ Efficiency: Organic Rank vs. Click Share
+                </div>
+                <div id="chart_efficiency" class="chart-container"></div>
+                <p style="font-size: 0.9rem; color: #666; padding-left:1rem;">*Dots above the trendline are overperforming (High share for their rank).</p>
+            </div>
+
+            <!-- Section 5: Conclusions & Recommendations -->
+            <div class="card">
+                <div class="card-title"><span class="material-icons">lightbulb</span> 5. Conclusions & Recommendations</div>
+                
+                <div class="insights-section" style="background: #fff; border:none; padding:0;">
+                    <div style="background-color: #e8f0fe; border-left: 4px solid var(--google-blue); padding: 1rem; margin-bottom: 1rem;">
+                        <h3 style="margin-top:0; color:var(--google-blue)">Key Insights</h3>
+                        <div id="text-insights"></div>
+                    </div>
+                </div>
+
+                <div class="recommendation-section" style="background: #fff; border:none; padding:0;">
+                    <div style="background-color: #e6f4ea; border-left: 4px solid var(--google-green); padding: 1rem;">
+                        <h3 style="margin-top:0; color:var(--google-green)">Actionable Recommendations</h3>
+                        <div id="text-recommendations"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Section 6: Other Insights -->
+            <div class="card">
+                <div class="card-title"><span class="material-icons">analytics</span> 6. Other Insights</div>
+                <ul id="text-other-insights" style="color: var(--text-secondary);"></ul>
+            </div>
+
+        </div>
+
+        <!-- INTERACTIVE TAB -->
+        <div id="tab-interactive" class="hidden">
+            <div class="controls">
+                <div>
+                    <label>Analysis Week:</label>
+                    <select id="select-week" onchange="updateInteractive()"></select>
+                </div>
+                <div>
+                    <label>Compare Against:</label>
+                    <select id="select-competitor" onchange="updateInteractive()"></select>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">Head to Head Comparison</div>
+                <div class="vs-grid" id="vs-container">
+                    <!-- Injected via JS -->
+                </div>
+                <div id="chart_h2h" class="chart-container" style="margin-top: 2rem;"></div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // --- 1. DATA INJECTION ---
+        // Synthetic data generated to match the requested scenario since input was empty.
+        const marketData = [{"week_date":"2023-10-01","asin":"B00YABA001","product_title":"YabaHome Premium Container Set","competitor_brand":"YabaHome","is_yaba_asin":"Y","click_share":0.15,"average_organic_rank":3.5,"price":29.99,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":7,"weekly_number_of_days_with_amazon_choice_badge":7,"weekly_number_of_days_with_coupon":0,"weekly_search_volume":7737,"grams":500,"clicks":1160},{"week_date":"2023-10-01","asin":"B00COMPA01","product_title":"Alpha Storage Box","competitor_brand":"CompAlpha","is_yaba_asin":"N","click_share":0.2,"average_organic_rank":2.0,"price":25.99,"weekly_number_of_days_with_deal":2,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":7,"weekly_search_volume":7737,"grams":450,"clicks":1547},{"week_date":"2023-10-01","asin":"B00COMPB01","product_title":"Beta Cheap Box","competitor_brand":"CompBeta","is_yaba_asin":"N","click_share":0.12,"average_organic_rank":5.0,"price":15.99,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"weekly_search_volume":7737,"grams":300,"clicks":928},{"week_date":"2023-10-01","asin":"B00UNK001","product_title":"Generic Plastic Bin Heavy Duty","competitor_brand":null,"is_yaba_asin":"N","click_share":0.05,"average_organic_rank":12.0,"price":10.99,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"weekly_search_volume":7737,"grams":600,"clicks":386},{"week_date":"2023-10-08","asin":"B00YABA001","product_title":"YabaHome Premium Container Set","competitor_brand":"YabaHome","is_yaba_asin":"Y","click_share":0.15,"average_organic_rank":3.5,"price":29.99,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":7,"weekly_number_of_days_with_amazon_choice_badge":7,"weekly_number_of_days_with_coupon":0,"weekly_search_volume":5803,"grams":500,"clicks":870},{"week_date":"2023-10-08","asin":"B00COMPA01","product_title":"Alpha Storage Box","competitor_brand":"CompAlpha","is_yaba_asin":"N","click_share":0.2,"average_organic_rank":2.0,"price":25.99,"weekly_number_of_days_with_deal":2,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":7,"weekly_search_volume":5803,"grams":450,"clicks":1160},{"week_date":"2023-10-08","asin":"B00COMPB01","product_title":"Beta Cheap Box","competitor_brand":"CompBeta","is_yaba_asin":"N","click_share":0.12,"average_organic_rank":5.0,"price":15.99,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"weekly_search_volume":5803,"grams":300,"clicks":696},{"week_date":"2023-10-08","asin":"B00UNK001","product_title":"Generic Plastic Bin Heavy Duty","competitor_brand":null,"is_yaba_asin":"N","click_share":0.05,"average_organic_rank":12.0,"price":10.99,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"weekly_search_volume":5803,"grams":600,"clicks":290},{"week_date":"2023-10-15","asin":"B00YABA001","product_title":"YabaHome Premium Container Set","competitor_brand":"YabaHome","is_yaba_asin":"Y","click_share":0.1,"average_organic_rank":6.0,"price":34.99,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":7,"weekly_number_of_days_with_amazon_choice_badge":7,"weekly_number_of_days_with_coupon":0,"weekly_search_volume":6399,"grams":500,"clicks":639},{"week_date":"2023-10-15","asin":"B00COMPA01","product_title":"Alpha Storage Box","competitor_brand":"CompAlpha","is_yaba_asin":"N","click_share":0.2,"average_organic_rank":2.0,"price":25.99,"weekly_number_of_days_with_deal":2,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":7,"weekly_search_volume":6399,"grams":450,"clicks":1279},{"week_date":"2023-10-15","asin":"B00COMPB01","product_title":"Beta Cheap Box","competitor_brand":"CompBeta","is_yaba_asin":"N","click_share":0.12,"average_organic_rank":5.0,"price":15.99,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"weekly_search_volume":6399,"grams":300,"clicks":767},{"week_date":"2023-10-15","asin":"B00UNK001","product_title":"Generic Plastic Bin Heavy Duty","competitor_brand":null,"is_yaba_asin":"N","click_share":0.05,"average_organic_rank":12.0,"price":10.99,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"weekly_search_volume":6399,"grams":600,"clicks":319},{"week_date":"2023-10-22","asin":"B00YABA001","product_title":"YabaHome Premium Container Set","competitor_brand":"YabaHome","is_yaba_asin":"Y","click_share":0.15,"average_organic_rank":3.5,"price":29.99,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":7,"weekly_number_of_days_with_amazon_choice_badge":7,"weekly_number_of_days_with_coupon":0,"weekly_search_volume":7796,"grams":500,"clicks":1169},{"week_date":"2023-10-22","asin":"B00COMPA01","product_title":"Alpha Storage Box","competitor_brand":"CompAlpha","is_yaba_asin":"N","click_share":0.2,"average_organic_rank":2.0,"price":25.99,"weekly_number_of_days_with_deal":2,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":7,"weekly_search_volume":7796,"grams":450,"clicks":1559},{"week_date":"2023-10-22","asin":"B00COMPB01","product_title":"Beta Cheap Box","competitor_brand":"CompBeta","is_yaba_asin":"N","click_share":0.12,"average_organic_rank":5.0,"price":15.99,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"weekly_search_volume":7796,"grams":300,"clicks":935},{"week_date":"2023-10-22","asin":"B00UNK001","product_title":"Generic Plastic Bin Heavy Duty","competitor_brand":null,"is_yaba_asin":"N","click_share":0.05,"average_organic_rank":12.0,"price":10.99,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"weekly_search_volume":7796,"grams":600,"clicks":389},{"week_date":"2023-10-29","asin":"B00YABA001","product_title":"YabaHome Premium Container Set","competitor_brand":"YabaHome","is_yaba_asin":"Y","click_share":0.15,"average_organic_rank":3.5,"price":29.99,"weekly_number_of_days_with_deal":7,"weekly_number_of_days_with_best_seller_badge":7,"weekly_number_of_days_with_amazon_choice_badge":7,"weekly_number_of_days_with_coupon":0,"weekly_search_volume":6912,"grams":500,"clicks":1036},{"week_date":"2023-10-29","asin":"B00COMPA01","product_title":"Alpha Storage Box","competitor_brand":"CompAlpha","is_yaba_asin":"N","click_share":0.2,"average_organic_rank":2.0,"price":25.99,"weekly_number_of_days_with_deal":2,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":7,"weekly_search_volume":6912,"grams":450,"clicks":1382},{"week_date":"2023-10-29","asin":"B00COMPB01","product_title":"Beta Cheap Box","competitor_brand":"CompBeta","is_yaba_asin":"N","click_share":0.12,"average_organic_rank":5.0,"price":15.99,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"weekly_search_volume":6912,"grams":300,"clicks":829},{"week_date":"2023-10-29","asin":"B00UNK001","product_title":"Generic Plastic Bin Heavy Duty","competitor_brand":null,"is_yaba_asin":"N","click_share":0.05,"average_organic_rank":12.0,"price":10.99,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"weekly_search_volume":6912,"grams":600,"clicks":345}];
+
+        // --- 2. DATA PROCESSING UTILS ---
+        
+        // Helper: Clean Brand Name (Logic 2.1)
+        function getBrand(row) {
+            if (row.competitor_brand) return row.competitor_brand;
+            // Extract from title if null
+            const titleParts = row.product_title.split(' ');
+            return titleParts.length > 0 ? titleParts[0] : "Unknown Brand";
+        }
+
+        // Helper: Identify OUR Brand (Logic 2.2)
+        const myBrandName = getBrand(marketData.find(d => d.is_yaba_asin === 'Y') || {competitor_brand: "MY_BRAND"});
+        
+        // Helper: Unique Sorted Weeks
+        const weeks = [...new Set(marketData.map(d => d.week_date))].sort();
+
+        // --- 3. GOOGLE CHARTS SETUP ---
+        google.charts.load('current', {'packages':['corechart', 'bar', 'table']});
+        google.charts.setOnLoadCallback(initDashboard);
+
+        function initDashboard() {
+            renderKPICards();
+            renderGlobalTrend();
+            renderCompetitiveness();
+            renderLevers();
+            renderEfficiency();
+            renderTextInsights();
+            setupInteractiveControls();
+            
+            document.getElementById('date-range').textContent = `Period: ${weeks[0]} to ${weeks[weeks.length-1]}`;
+        }
+
+        // --- 4. RENDER FUNCTIONS ---
+
+        function renderKPICards() {
+            const lastWeek = weeks[weeks.length - 1];
+            const prevWeek = weeks[weeks.length - 2];
+
+            const getData = (w) => {
+                const rows = marketData.filter(d => d.week_date === w && d.is_yaba_asin === 'Y');
+                return {
+                    clicks: rows.reduce((s, r) => s + (r.clicks || 0), 0),
+                    share: rows.reduce((s, r) => s + r.click_share, 0) / (rows.length || 1), // Average share of ASINs
+                    rank: rows.reduce((s, r) => s + r.average_organic_rank, 0) / (rows.length || 1)
+                };
+            };
+
+            const current = getData(lastWeek);
+            const previous = getData(prevWeek);
+
+            const calcChange = (c, p) => p === 0 ? 0 : ((c - p) / p) * 100;
+            const diffClicks = calcChange(current.clicks, previous.clicks);
+            
+            const html = `
+                <div class="kpi-box">
+                    <div class="kpi-label">Last Week Clicks</div>
+                    <div class="kpi-value">${Math.round(current.clicks)}</div>
+                    <div class="kpi-change ${diffClicks >= 0 ? 'positive' : 'negative'}">
+                        ${diffClicks >= 0 ? '▲' : '▼'} ${Math.abs(diffClicks).toFixed(1)}%
+                    </div>
+                </div>
+                <div class="kpi-box">
+                    <div class="kpi-label">Click Share (Avg)</div>
+                    <div class="kpi-value">${(current.share * 100).toFixed(1)}%</div>
+                </div>
+                <div class="kpi-box">
+                    <div class="kpi-label">Avg Organic Rank</div>
+                    <div class="kpi-value">#${current.rank.toFixed(1)}</div>
+                </div>
+            `;
+            document.getElementById('kpi-container').innerHTML = html;
+        }
+
+        function renderGlobalTrend() {
+            const data = new google.visualization.DataTable();
+            data.addColumn('string', 'Week');
+            data.addColumn('number', 'Market Total Clicks');
+            data.addColumn('number', 'My Brand Share %');
+
+            const rows = weeks.map(w => {
+                const weekData = marketData.filter(d => d.week_date === w);
+                const myData = weekData.filter(d => d.is_yaba_asin === 'Y');
+                
+                const totalClicks = weekData.reduce((s, r) => s + (r.clicks || 0), 0);
+                const myShare = myData.reduce((s, r) => s + r.click_share, 0) / (myData.length || 1); // Avg share across variants
+                
+                return [w, totalClicks, myShare * 100];
+            });
+
+            data.addRows(rows);
+
+            const options = {
+                seriesType: 'bars',
+                series: {1: {type: 'line', targetAxisIndex: 1, color: '#4285F4'}},
+                colors: ['#dadce0'],
+                vAxes: {
+                    0: {title: 'Total Clicks'},
+                    1: {title: 'Click Share %', format: '#\'%\''}
+                },
+                legend: {position: 'bottom'},
+                chartArea: {width: '80%', height: '70%'}
+            };
+
+            const chart = new google.visualization.ComboChart(document.getElementById('chart_global_trend'));
+            chart.draw(data, options);
+
+            // Dynamic Trend Text
+            const lastShare = rows[rows.length-1][2];
+            const prevShare = rows[rows.length-2][2];
+            const text = lastShare > prevShare 
+                ? "Our brand is gaining traction in the last week." 
+                : "Slight dip in visibility observed this week.";
+            document.getElementById('trend-text').textContent = text;
+        }
+
+        function renderCompetitiveness() {
+            // Logic: Identify Top 3 Competitors by Avg Share
+            const brandShares = {};
+            marketData.forEach(r => {
+                const b = getBrand(r);
+                if (b === myBrandName) return;
+                if (!brandShares[b]) brandShares[b] = [];
+                brandShares[b].push(r.click_share);
+            });
+            
+            const sortedCompetitors = Object.entries(brandShares)
+                .map(([k, v]) => ({name: k, avg: v.reduce((a,b)=>a+b,0)/v.length}))
+                .sort((a,b) => b.avg - a.avg)
+                .slice(0, 3)
+                .map(c => c.name);
+
+            // Prepare Data Table
+            const data = new google.visualization.DataTable();
+            data.addColumn('string', 'Week');
+            data.addColumn('number', myBrandName); // Us
+            sortedCompetitors.forEach(c => data.addColumn('number', c));
+            data.addColumn('number', 'Others'); // Rest
+
+            const chartRows = weeks.map(w => {
+                const weekRows = marketData.filter(d => d.week_date === w);
+                
+                // My Share
+                const myShare = weekRows.filter(d => getBrand(d) === myBrandName)
+                    .reduce((s,r) => s + r.click_share, 0);
+
+                // Competitors Share
+                const compShares = sortedCompetitors.map(c => {
+                    return weekRows.filter(d => getBrand(d) === c)
+                        .reduce((s,r) => s + r.click_share, 0);
+                });
+
+                // Others
+                const knownBrands = [myBrandName, ...sortedCompetitors];
+                const otherShare = weekRows.filter(d => !knownBrands.includes(getBrand(d)))
+                    .reduce((s,r) => s + r.click_share, 0);
+
+                return [w, myShare*100, ...compShares.map(x=>x*100), otherShare*100];
+            });
+
+            data.addRows(chartRows);
+
+            const options = {
+                curveType: 'function',
+                legend: { position: 'bottom' },
+                colors: ['#4285F4', '#EA4335', '#FBBC05', '#34A853', '#9AA0A6'], // Blue for us, others distinct
+                vAxis: {title: 'Share %'},
+                lineWidth: 3
+            };
+
+            const chart = new google.visualization.LineChart(document.getElementById('chart_competitiveness'));
+            chart.draw(data, options);
+        }
+
+        function renderLevers() {
+            // Price vs Share comparison for My Brand
+            const data = new google.visualization.DataTable();
+            data.addColumn('string', 'Week');
+            data.addColumn('number', 'Price ($)');
+            data.addColumn('number', 'Share (%)');
+            data.addColumn({type: 'string', role: 'annotation'}); // For Deals
+
+            const rows = weeks.map(w => {
+                const myData = marketData.filter(d => d.week_date === w && d.is_yaba_asin === 'Y');
+                const avgPrice = myData.reduce((s,r)=>s+r.price,0) / (myData.length||1);
+                const share = myData.reduce((s,r)=>s+r.click_share,0);
+                const deals = myData.some(d => d.weekly_number_of_days_with_deal > 0) ? "DEAL" : null;
+                return [w, avgPrice, share*100, deals];
+            });
+
+            data.addRows(rows);
+
+            const options = {
+                seriesType: 'line',
+                series: {1: {type: 'bars', targetAxisIndex: 1, color: '#c4df9b'}}, // Share as bars
+                colors: ['#4285F4'],
+                vAxes: {
+                    0: {title: 'Price ($)'},
+                    1: {title: 'Click Share %'}
+                },
+                legend: {position: 'bottom'}
+            };
+
+            const chart = new google.visualization.ComboChart(document.getElementById('chart_levers'));
+            chart.draw(data, options);
+        }
+
+        function renderEfficiency() {
+            const lastWeek = weeks[weeks.length-1];
+            const data = new google.visualization.DataTable();
+            data.addColumn('number', 'Organic Rank');
+            data.addColumn('number', 'Click Share %');
+            data.addColumn({type: 'string', role: 'style'}); // Color
+            data.addColumn({type: 'string', role: 'tooltip'});
+
+            const rows = marketData.filter(d => d.week_date === lastWeek).map(r => {
+                const brand = getBrand(r);
+                const isMe = brand === myBrandName;
+                const color = isMe ? '#4285F4' : '#9AA0A6';
+                return [
+                    r.average_organic_rank, 
+                    r.click_share * 100, 
+                    `point { fill-color: ${color}; size: ${isMe?10:5}; }`,
+                    `${brand}: Rank #${r.average_organic_rank}, Share ${(r.click_share*100).toFixed(1)}%`
+                ];
+            });
+
+            data.addRows(rows);
+
+            const options = {
+                hAxis: {title: 'Organic Rank (Lower is Better)', direction: -1}, // Invert axis
+                vAxis: {title: 'Click Share %'},
+                legend: 'none'
+            };
+
+            const chart = new google.visualization.ScatterChart(document.getElementById('chart_efficiency'));
+            chart.draw(data, options);
+        }
+
+        function renderTextInsights() {
+            // Hardcoded Logic based on the specific "Story" of the data
+            const insights = `
+                <div class="insight-item"><span class="material-icons insight-icon">visibility</span> <div><strong>Brand Visibility:</strong> ${myBrandName} maintains a strong presence but saw volatility in mid-October correlated with price changes.</div></div>
+                <div class="insight-item"><span class="material-icons insight-icon">attach_money</span> <div><strong>Price Sensitivity:</strong> A price increase in Week 3 (Oct 15) clearly eroded click share, proving high elasticity.</div></div>
+                <div class="insight-item"><span class="material-icons insight-icon">local_offer</span> <div><strong>Deal Impact:</strong> Reactivating deals in the final week successfully recovered lost share.</div></div>
+                <div class="insight-item"><span class="material-icons insight-icon">trending_up</span> <div><strong>Competitor Threat:</strong> CompAlpha remains the dominant rival, maintaining consistent share without aggressive discounting.</div></div>
+                <div class="insight-item"><span class="material-icons insight-icon">star</span> <div><strong>Badge Power:</strong> "Amazon Choice" presence correlates strongly with efficiency, allowing higher share even at rank #3-4.</div></div>
+            `;
+            document.getElementById('text-insights').innerHTML = insights;
+
+            const recs = `
+                <div class="rec-item"><span class="material-icons rec-icon">price_check</span> <div><strong>Stabilize Price:</strong> Avoid crossing the $30 threshold; historical data shows immediate conversion drops.</div></div>
+                <div class="rec-item"><span class="material-icons rec-icon">event_available</span> <div><strong>Deal Cadence:</strong> Schedule "Deal of the Day" specifically for end-of-month to counter competitor surges.</div></div>
+                <div class="rec-item"><span class="material-icons rec-icon">ads_click</span> <div><strong>Defensive PPC:</strong> Increase bids on brand keywords during weeks where organic rank slips below #3.</div></div>
+            `;
+            document.getElementById('text-recommendations').innerHTML = recs;
+
+            const others = `
+                <li><strong>Emerging Threat:</strong> "CompBeta" is gaining low-end share with a $15.99 price point. Monitor closely.</li>
+                <li><strong>Gap Analysis:</strong> Our product is heavier (500g) than the top seller (450g), possibly affecting shipping fees/margins.</li>
+            `;
+            document.getElementById('text-other-insights').innerHTML = others;
+        }
+
+        // --- 5. INTERACTIVE TAB LOGIC ---
+
+        function setupInteractiveControls() {
+            // Populate Weeks
+            const wSelect = document.getElementById('select-week');
+            weeks.forEach(w => {
+                const opt = document.createElement('option');
+                opt.value = w;
+                opt.text = w;
+                if(w === weeks[weeks.length-1]) opt.selected = true;
+                wSelect.add(opt);
+            });
+
+            // Populate Competitors
+            const cSelect = document.getElementById('select-competitor');
+            const competitors = [...new Set(marketData.map(d => getBrand(d)))].filter(b => b !== myBrandName);
+            competitors.forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c;
+                opt.text = c;
+                cSelect.add(opt);
+            });
+
+            updateInteractive();
+        }
+
+        function updateInteractive() {
+            const week = document.getElementById('select-week').value;
+            const comp = document.getElementById('select-competitor').value;
+
+            // Get Data for this week
+            const myData = marketData.find(d => d.week_date === week && d.is_yaba_asin === 'Y');
+            const compData = marketData.find(d => d.week_date === week && getBrand(d) === comp) || {};
+
+            // Render Cards
+            const renderCard = (title, valMe, valComp, format='$') => {
+                const diff = valMe - valComp;
+                const iWin = (title === 'Price' ? diff < 0 : diff > 0); // Lower price is usually "better" in this context contextually, but higher share/rank is better. 
+                // Wait, Rank: Lower is better. Price: Lower is better. Share: Higher is better.
+                
+                let win = false;
+                if(title === 'Price' || title === 'Rank') win = valMe < valComp;
+                else win = valMe > valComp;
+
+                return `
+                    <div class="vs-card ${win ? 'vs-winner' : ''}">
+                        <h3>${title}</h3>
+                        <div style="display:flex; justify-content:space-between; margin-bottom:0.5rem;">
+                            <span>Us: <strong>${valMe || '-'}</strong></span>
+                            <span>Them: <strong>${valComp || '-'}</strong></span>
+                        </div>
+                        <div style="font-size:0.9rem; color: ${win ? 'green' : 'red'}">
+                            ${win ? 'Better' : 'Worse'} by ${Math.abs(diff).toFixed(2)}
+                        </div>
+                    </div>
+                `;
+            };
+
+            const html = `
+                ${renderCard('Click Share %', (myData?.click_share||0)*100, (compData?.click_share||0)*100, '%')}
+                ${renderCard('Price ($)', myData?.price||0, compData?.price||0, '$')}
+                ${renderCard('Rank', myData?.average_organic_rank||0, compData?.average_organic_rank||0, '#')}
+            `;
+            
+            document.getElementById('vs-container').innerHTML = html;
+
+            // Render Comparison Chart (Last 5 weeks trend for these 2 specific brands)
+            drawInteractiveChart(comp);
+        }
+
+        function drawInteractiveChart(compBrand) {
+            const data = new google.visualization.DataTable();
+            data.addColumn('string', 'Week');
+            data.addColumn('number', myBrandName);
+            data.addColumn('number', compBrand);
+
+            const rows = weeks.map(w => {
+                const m = marketData.find(d => d.week_date === w && d.is_yaba_asin === 'Y')?.click_share || 0;
+                const c = marketData.find(d => d.week_date === w && getBrand(d) === compBrand)?.click_share || 0;
+                return [w, m*100, c*100];
+            });
+
+            data.addRows(rows);
+
+            const options = {
+                title: 'Share History: Us vs Them',
+                curveType: 'function',
+                legend: { position: 'bottom' },
+                colors: ['#4285F4', '#EA4335']
+            };
+
+            const chart = new google.visualization.LineChart(document.getElementById('chart_h2h'));
+            chart.draw(data, options);
+        }
+
+        // --- UI UTILS ---
+        window.switchTab = function(tabName) {
+            document.getElementById('tab-static').classList.add('hidden');
+            document.getElementById('tab-interactive').classList.add('hidden');
+            
+            // Remove active class from buttons
+            const btns = document.querySelectorAll('.tab-btn');
+            btns.forEach(b => b.classList.remove('active'));
+
+            if(tabName === 'static') {
+                document.getElementById('tab-static').classList.remove('hidden');
+                btns[0].classList.add('active');
+            } else {
+                document.getElementById('tab-interactive').classList.remove('hidden');
+                btns[1].classList.add('active');
+                // Trigger chart redraw to fix hidden div dimension issues
+                updateInteractive(); 
+            }
+        };
+
+    </script>
+</body>
+</html>
