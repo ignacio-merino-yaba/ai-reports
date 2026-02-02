@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reporte de Inteligencia de Mercado - Parent ASIN</title>
+    <!-- Google Fonts & Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <!-- Google Charts -->
+    <script src="https://www.gstatic.com/charts/loader.js"></script>
+
+    <style>
+        :root {
+            --primary: #4285F4; /* Google Blue */
+            --success: #34A853; /* Google Green */
+            --warning: #FBBC05; /* Google Yellow */
+            --danger: #EA4335; /* Google Red */
+            --gray-100: #f8f9fa;
+            --gray-200: #e9ecef;
+            --gray-800: #343a40;
+            --surface: #ffffff;
+            --shadow-sm: 0 1px 2px 0 rgba(60,64,67,0.3), 0 1px 3px 1px rgba(60,64,67,0.15);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --radius: 16px;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--gray-100);
+            color: var(--gray-800);
+            margin: 0;
+            padding: 20px;
+            font-size: 14px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        header {
+            background: var(--surface);
+            padding: 20px 30px;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-sm);
+            margin-bottom: 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        h1 { margin: 0; font-size: 24px; font-weight: 700; color: #202124; }
+        .subtitle { color: #5f6368; font-size: 14px; margin-top: 4px; }
+        .badge {
+            background: #e8f0fe; color: var(--primary);
+            padding: 6px 12px; border-radius: 20px;
+            font-weight: 600; font-size: 12px;
+        }
+
+        /* Tabs */
+        .tabs { display: flex; gap: 12px; margin-bottom: 20px; }
+        .tab-btn {
+            background: transparent; border: none;
+            padding: 10px 24px; border-radius: 24px;
+            cursor: pointer; font-weight: 600; color: #5f6368;
+            transition: all 0.2s;
+        }
+        .tab-btn.active {
+            background: var(--primary); color: white;
+            box-shadow: 0 2px 4px rgba(66, 133, 244, 0.3);
+        }
+
+        /* Cards & Layout */
+        .grid { display: grid; gap: 20px; }
+        .grid-2 { grid-template-columns: 1fr 1fr; }
+        .grid-3 { grid-template-columns: repeat(3, 1fr); }
+        .card {
+            background: var(--surface);
+            padding: 24px;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-sm);
+            transition: transform 0.2s;
+        }
+        .card:hover { box-shadow: var(--shadow-md); }
+        .card-title {
+            font-size: 16px; font-weight: 600; margin-bottom: 16px;
+            display: flex; align-items: center; gap: 8px; color: #202124;
+        }
+
+        /* Metrics */
+        .metric-big { font-size: 32px; font-weight: 700; color: var(--primary); }
+        .metric-label { color: #5f6368; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .trend { font-size: 13px; font-weight: 500; margin-left: 8px; }
+        .trend.up { color: var(--success); }
+        .trend.down { color: var(--danger); }
+
+        /* Insights Box */
+        .insight-box {
+            background: #f8f9fa; border-left: 4px solid var(--primary);
+            padding: 16px; margin-bottom: 12px; border-radius: 0 8px 8px 0;
+        }
+        .insight-box h4 { margin: 0 0 8px 0; font-size: 14px; color: #202124; }
+        .insight-box p { margin: 0; color: #5f6368; line-height: 1.5; }
+
+        /* Interactive Section */
+        .controls { display: flex; gap: 16px; margin-bottom: 20px; align-items: center; background: white; padding: 16px; border-radius: 12px; }
+        select {
+            padding: 10px 16px; border-radius: 8px; border: 1px solid #dadce0;
+            font-family: 'Inter'; font-size: 14px; color: #3c4043; outline: none;
+        }
+        .vs-card { text-align: center; padding: 20px; background: #fff; border: 1px solid #f1f3f4; border-radius: 12px; }
+        .vs-val { font-size: 20px; font-weight: 700; margin: 8px 0; }
+
+        /* Utility */
+        .hidden { display: none !important; }
+        .w-full { width: 100%; }
+        .h-300 { height: 300px; }
+        .h-400 { height: 400px; }
+
+        /* Recharts simulated tooltip style for Google Charts */
+        .google-visualization-tooltip { 
+            border-radius: 8px; border: none; box-shadow: 0 2px 10px rgba(0,0,0,0.2); 
+            padding: 12px; font-family: 'Inter';
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <div>
+            <h1>Análisis de Parent ASIN</h1>
+            <div class="subtitle" id="headerSub">Cargando datos...</div>
+        </div>
+        <div class="badge" id="ourBrandBadge">Identificando Marca...</div>
+    </header>
+
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('static')">Reporte Estratégico</button>
+        <button class="tab-btn" onclick="switchTab('interactive')">Comparador Interactivo</button>
+    </div>
+
+    <!-- PESTAÑA 1: REPORTE ESTÁTICO -->
+    <div id="tab-static">
+        <!-- Section 1: Global Trend -->
+        <div class="grid grid-2" style="margin-bottom: 20px;">
+            <div class="card">
+                <div class="card-title">
+                    <span class="material-icons" style="color:var(--primary)">show_chart</span>
+                    Tendencia de Volumen (Clicks)
+                </div>
+                <div id="chart_clicks" class="h-300"></div>
+                <div id="trend_insight_1" class="insight-box" style="margin-top:10px;"></div>
+            </div>
+            <div class="card">
+                <div class="card-title">
+                    <span class="material-icons" style="color:var(--primary)">pie_chart</span>
+                    Click Share Total
+                </div>
+                <div id="chart_share_trend" class="h-300"></div>
+                <div id="trend_insight_2" class="insight-box" style="margin-top:10px;"></div>
+            </div>
+        </div>
+
+        <!-- Section 2: Competitiveness -->
+        <div class="card" style="margin-bottom: 20px;">
+            <div class="card-title">
+                <span class="material-icons" style="color:var(--danger)">ssid_chart</span>
+                Competitividad de Marca (Click Share Semana a Semana)
+            </div>
+            <div id="chart_competitiveness" class="h-400"></div>
+            <div class="grid grid-3" id="comp_metrics" style="margin-top: 16px;">
+                <!-- Filled by JS -->
+            </div>
+        </div>
+
+        <!-- Section 3 & 4: Efficiency & Levers -->
+        <div class="grid grid-2" style="margin-bottom: 20px;">
+            <!-- Efficiency Scatter -->
+            <div class="card">
+                <div class="card-title">
+                    <span class="material-icons" style="color:var(--warning)">scatter_plot</span>
+                    Eficiencia: Organic Rank vs Click Share
+                </div>
+                <div id="chart_efficiency" class="h-300"></div>
+                <div style="font-size: 12px; color: #666; text-align: center; margin-top: 8px;">
+                    Eje X: Ranking Orgánico (Inverso) | Eje Y: Click Share<br>
+                    <span style="color:var(--success)">●</span> Nosotros <span style="color:var(--gray-800)">●</span> Competencia
+                </div>
+            </div>
+
+            <!-- Levers Analysis -->
+            <div class="card">
+                <div class="card-title">
+                    <span class="material-icons" style="color:var(--success)">tune</span>
+                    Palancas de Conversión (Última Semana)
+                </div>
+                <div id="levers_container" style="display: flex; flex-direction: column; gap: 12px;">
+                    <!-- Filled by JS -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 5: Conclusions -->
+        <div class="card" style="border-top: 5px solid var(--primary);">
+            <div class="card-title">
+                <span class="material-icons">lightbulb</span>
+                Conclusiones y Recomendaciones Accionables
+            </div>
+            <div class="grid grid-2">
+                <div>
+                    <h3 style="margin-top:0;">Insights Clave</h3>
+                    <div id="insights_list"></div>
+                </div>
+                <div>
+                    <h3 style="margin-top:0; color: var(--primary);">Plan de Acción</h3>
+                    <div id="actions_list"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Section 6: Other Insights -->
+        <div class="card" style="margin-top: 20px;">
+            <div class="card-title">
+                 <span class="material-icons">manage_search</span>
+                 Other Insights
+            </div>
+             <div id="other_insights_content" style="color:#5f6368;"></div>
+        </div>
+    </div>
+
+    <!-- PESTAÑA 2: INTERACTIVO -->
+    <div id="tab-interactive" class="hidden">
+        <div class="controls">
+            <div>
+                <label style="display:block; font-size:12px; margin-bottom:4px;">Semana</label>
+                <select id="sel_week" onchange="updateComparator()"></select>
+            </div>
+            <div>
+                <label style="display:block; font-size:12px; margin-bottom:4px;">Competidor</label>
+                <select id="sel_comp" onchange="updateComparator()"></select>
+            </div>
+        </div>
+
+        <div class="grid grid-3">
+            <!-- Our ASIN -->
+            <div class="card" style="border-top: 4px solid var(--primary);">
+                <div class="card-title" id="comp_us_title">Nosotros</div>
+                <div class="vs-card">
+                    <div class="metric-label">Precio</div>
+                    <div class="vs-val" id="us_price">-</div>
+                </div>
+                <div class="vs-card" style="margin-top:12px;">
+                    <div class="metric-label">Click Share</div>
+                    <div class="vs-val" id="us_share">-</div>
+                </div>
+                <div class="vs-card" style="margin-top:12px;">
+                    <div class="metric-label">Avg Rank</div>
+                    <div class="vs-val" id="us_rank">-</div>
+                </div>
+                <div id="us_badges" style="margin-top:16px; display:flex; gap:8px; justify-content:center; flex-wrap:wrap;"></div>
+            </div>
+
+            <!-- VS Icon -->
+            <div style="display:flex; align-items:center; justify-content:center; font-size:48px; color:#dadce0; font-weight:900;">
+                VS
+            </div>
+
+            <!-- Competitor -->
+            <div class="card" style="border-top: 4px solid var(--danger);">
+                <div class="card-title" id="comp_them_title">Competidor</div>
+                <div class="vs-card">
+                    <div class="metric-label">Precio</div>
+                    <div class="vs-val" id="them_price">-</div>
+                </div>
+                <div class="vs-card" style="margin-top:12px;">
+                    <div class="metric-label">Click Share</div>
+                    <div class="vs-val" id="them_share">-</div>
+                </div>
+                <div class="vs-card" style="margin-top:12px;">
+                    <div class="metric-label">Avg Rank</div>
+                    <div class="vs-val" id="them_rank">-</div>
+                </div>
+                <div id="them_badges" style="margin-top:16px; display:flex; gap:8px; justify-content:center; flex-wrap:wrap;"></div>
+            </div>
+        </div>
+        
+        <div class="card" style="margin-top: 20px;">
+             <div class="card-title">Evolución de Precio: Nosotros vs Competidor Seleccionado</div>
+             <div id="chart_price_compare" class="h-300"></div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    // -------------------------------------------------------------------------
+    // 1. DATA INJECTION (Synthesized from Python step)
+    // -------------------------------------------------------------------------
+    const marketData = [{"brand_aggregation": "Tech Category", "parent_asin": "PARENT123", "reporting_date": "2023-10-01", "week_date": "2023-10-01", "keywords": "wireless headphones", "competitor_brand": "TechNova", "asin": "B00OURASIN1", "product_title": "TechNova Wireless Headphones Premium", "country_code": "US", "average_organic_rank": 4, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.15, "impression_share": 0.18, "price": 29.99, "click_share_rank": 2, "weekly_search_volume": 10000, "is_yaba_asin": "Y", "keywords_link": "http://amazon...", "grams": 200, "organic_or_not": "Organic", "container": "Standard"}, {"brand_aggregation": "Tech Category", "parent_asin": "PARENT123", "reporting_date": "2023-10-01", "week_date": "2023-10-01", "keywords": "wireless headphones", "competitor_brand": "CompOne", "asin": "B00COMP1", "product_title": "CompOne Sound Bass", "country_code": "US", "average_organic_rank": 2, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7, "weekly_number_of_days_with_coupon": 0, "click_share": 0.2, "impression_share": 0.25, "price": 32.99, "click_share_rank": 1, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "http://amazon...", "grams": 210, "organic_or_not": "Organic", "container": "Standard"}, {"brand_aggregation": "Tech Category", "parent_asin": "PARENT123", "reporting_date": "2023-10-01", "week_date": "2023-10-01", "keywords": "wireless headphones", "competitor_brand": "RivalPro", "asin": "B00COMP2", "product_title": "RivalPro Budget Buds", "country_code": "US", "average_organic_rank": 12, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.08, "impression_share": 0.08, "price": 19.99, "click_share_rank": 3, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "http://amazon...", "grams": 180, "organic_or_not": "Organic", "container": "Standard"}, {"brand_aggregation": "Tech Category", "parent_asin": "PARENT123", "reporting_date": "2023-10-01", "week_date": "2023-10-01", "keywords": "wireless headphones", "competitor_brand": null, "asin": "B00UNK", "product_title": "MysteryAudio Hidden Gem", "country_code": "US", "average_organic_rank": 20, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.02, "impression_share": 0.02, "price": 25.0, "click_share_rank": 10, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "http://amazon...", "grams": 190, "organic_or_not": "Organic", "container": "Standard"}, {"brand_aggregation": "Tech Category", "parent_asin": "PARENT123", "reporting_date": "2023-10-08", "week_date": "2023-10-08", "keywords": "wireless headphones", "competitor_brand": "TechNova", "asin": "B00OURASIN1", "product_title": "TechNova Wireless Headphones Premium", "country_code": "US", "average_organic_rank": 4, "weekly_number_of_days_with_deal": 7, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.15, "impression_share": 0.18, "price": 29.99, "click_share_rank": 2, "weekly_search_volume": 10000, "is_yaba_asin": "Y", "keywords_link": "http://amazon...", "grams": 200, "organic_or_not": "Organic", "container": "Standard"}, {"brand_aggregation": "Tech Category", "parent_asin": "PARENT123", "reporting_date": "2023-10-08", "week_date": "2023-10-08", "keywords": "wireless headphones", "competitor_brand": "CompOne", "asin": "B00COMP1", "product_title": "CompOne Sound Bass", "country_code": "US", "average_organic_rank": 2, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7, "weekly_number_of_days_with_coupon": 0, "click_share": 0.2, "impression_share": 0.25, "price": 32.99, "click_share_rank": 1, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "http://amazon...", "grams": 210, "organic_or_not": "Organic", "container": "Standard"}, {"brand_aggregation": "Tech Category", "parent_asin": "PARENT123", "reporting_date": "2023-10-08", "week_date": "2023-10-08", "keywords": "wireless headphones", "competitor_brand": "RivalPro", "asin": "B00COMP2", "product_title": "RivalPro Budget Buds", "country_code": "US", "average_organic_rank": 12, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.08, "impression_share": 0.08, "price": 19.99, "click_share_rank": 3, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "http://amazon...", "grams": 180, "organic_or_not": "Organic", "container": "Standard"}, {"brand_aggregation": "Tech Category", "parent_asin": "PARENT123", "reporting_date": "2023-10-08", "week_date": "2023-10-08", "keywords": "wireless headphones", "competitor_brand": null, "asin": "B00UNK", "product_title": "MysteryAudio Hidden Gem", "country_code": "US", "average_organic_rank": 20, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.02, "impression_share": 0.02, "price": 25.0, "click_share_rank": 10, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "http://amazon...", "grams": 190, "organic_or_not": "Organic", "container": "Standard"}, {"brand_aggregation": "Tech Category", "parent_asin": "PARENT123", "reporting_date": "2023-10-15", "week_date": "2023-10-15", "keywords": "wireless headphones", "competitor_brand": "TechNova", "asin": "B00OURASIN1", "product_title": "TechNova Wireless Headphones Premium", "country_code": "US", "average_organic_rank": 4, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.15, "impression_share": 0.18, "price": 29.99, "click_share_rank": 2, "weekly_search_volume": 10000, "is_yaba_asin": "Y", "keywords_link": "http://amazon...", "grams": 200, "organic_or_not": "Organic", "container": "Standard"}, {"brand_aggregation": "Tech Category", "parent_asin": "PARENT123", "reporting_date": "2023-10-15", "week_date": "2023-10-15", "keywords": "wireless headphones", "competitor_brand": "CompOne", "asin": "B00COMP1", "product_title": "CompOne Sound Bass", "country_code": "US", "average_organic_rank": 2, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7, "weekly_number_of_days_with_coupon": 0, "click_share": 0.2, "impression_share": 0.25, "price": 32.99, "click_share_rank": 1, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "http://amazon...", "grams": 210, "organic_or_not": "Organic", "container": "Standard"}, {"brand_aggregation": "Tech Category", "parent_asin": "PARENT123", "reporting_date": "2023-10-15", "week_date": "2023-10-15", "keywords": "wireless headphones", "competitor_brand": "RivalPro", "asin": "B00COMP2", "product_title": "RivalPro Budget Buds", "country_code": "US", "average_organic_rank": 12, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.08, "impression_share": 0.08, "price": 19.99, "click_share_rank": 3, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "http://amazon...", "grams": 180, "organic_or_not": "Organic", "container": "Standard"}, {"brand_aggregation": "Tech Category", "parent_asin": "PARENT123", "reporting_date": "2023-10-15", "week_date": "2023-10-15", "keywords": "wireless headphones", "competitor_brand": null, "asin": "B00UNK", "product_title": "MysteryAudio Hidden Gem", "country_code": "US", "average_organic_rank": 20, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.02, "impression_share": 0.02, "price": 25.0, "click_share_rank": 10, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "http://amazon...", "grams": 190, "organic_or_not": "Organic", "container": "Standard"}, {"brand_aggregation": "Tech Category", "parent_asin": "PARENT123", "reporting_date": "2023-10-22", "week_date": "2023-10-22", "keywords": "wireless headphones", "competitor_brand": "TechNova", "asin": "B00OURASIN1", "product_title": "TechNova Wireless Headphones Premium", "country_code": "US", "average_organic_rank": 8, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.1, "impression_share": 0.12, "price": 34.99, "click_share_rank": 2, "weekly_search_volume": 10000, "is_yaba_asin": "Y", "keywords_link": "http://amazon...", "grams": 200, "organic_or_not": "Organic", "container": "Standard"}, {"brand_aggregation": "Tech Category", "parent_asin": "PARENT123", "reporting_date": "2023-10-22", "week_date": "2023-10-22", "keywords": "wireless headphones", "competitor_brand": "CompOne", "asin": "B00COMP1", "product_title": "CompOne Sound Bass", "country_code": "US", "average_organic_rank": 2, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7, "weekly_number_of_days_with_coupon": 0, "click_share": 0.2, "impression_share": 0.25, "price": 32.99, "click_share_rank": 1, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "http://amazon...", "grams": 210, "organic_or_not": "Organic", "container": "Standard"}, {"brand_aggregation": "Tech Category", "parent_asin": "PARENT123", "reporting_date": "2023-10-22", "week_date": "2023-10-22", "keywords": "wireless headphones", "competitor_brand": "RivalPro", "asin": "B00COMP2", "product_title": "RivalPro Budget Buds", "country_code": "US", "average_organic_rank": 12, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.08, "impression_share": 0.08, "price": 19.99, "click_share_rank": 3, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "http://amazon...", "grams": 180, "organic_or_not": "Organic", "container": "Standard"}, {"brand_aggregation": "Tech Category", "parent_asin": "PARENT123", "reporting_date": "2023-10-22", "week_date": "2023-10-22", "keywords": "wireless headphones", "competitor_brand": null, "asin": "B00UNK", "product_title": "MysteryAudio Hidden Gem", "country_code": "US", "average_organic_rank": 20, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.02, "impression_share": 0.02, "price": 25.0, "click_share_rank": 10, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "http://amazon...", "grams": 190, "organic_or_not": "Organic", "container": "Standard"}, {"brand_aggregation": "Tech Category", "parent_asin": "PARENT123", "reporting_date": "2023-10-29", "week_date": "2023-10-29", "keywords": "wireless headphones", "competitor_brand": "TechNova", "asin": "B00OURASIN1", "product_title": "TechNova Wireless Headphones Premium", "country_code": "US", "average_organic_rank": 8, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.1, "impression_share": 0.12, "price": 34.99, "click_share_rank": 2, "weekly_search_volume": 10000, "is_yaba_asin": "Y", "keywords_link": "http://amazon...", "grams": 200, "organic_or_not": "Organic", "container": "Standard"}, {"brand_aggregation": "Tech Category", "parent_asin": "PARENT123", "reporting_date": "2023-10-29", "week_date": "2023-10-29", "keywords": "wireless headphones", "competitor_brand": "CompOne", "asin": "B00COMP1", "product_title": "CompOne Sound Bass", "country_code": "US", "average_organic_rank": 2, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7, "weekly_number_of_days_with_coupon": 0, "click_share": 0.2, "impression_share": 0.25, "price": 32.99, "click_share_rank": 1, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "http://amazon...", "grams": 210, "organic_or_not": "Organic", "container": "Standard"}, {"brand_aggregation": "Tech Category", "parent_asin": "PARENT123", "reporting_date": "2023-10-29", "week_date": "2023-10-29", "keywords": "wireless headphones", "competitor_brand": "RivalPro", "asin": "B00COMP2", "product_title": "RivalPro Budget Buds", "country_code": "US", "average_organic_rank": 12, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 7, "click_share": 0.14, "impression_share": 0.14, "price": 19.99, "click_share_rank": 3, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "http://amazon...", "grams": 180, "organic_or_not": "Organic", "container": "Standard"}, {"brand_aggregation": "Tech Category", "parent_asin": "PARENT123", "reporting_date": "2023-10-29", "week_date": "2023-10-29", "keywords": "wireless headphones", "competitor_brand": null, "asin": "B00UNK", "product_title": "MysteryAudio Hidden Gem", "country_code": "US", "average_organic_rank": 20, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.02, "impression_share": 0.02, "price": 25.0, "click_share_rank": 10, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "http://amazon...", "grams": 190, "organic_or_not": "Organic", "container": "Standard"}];
+
+    // -------------------------------------------------------------------------
+    // 2. CORE LOGIC & PROCESSING
+    // -------------------------------------------------------------------------
+    
+    // Global State
+    let processedData = {};
+    let ourBrandName = "";
+    let weeks = [];
+    let topCompetitors = [];
+
+    google.charts.load('current', {'packages':['corechart', 'table', 'bar']});
+    google.charts.setOnLoadCallback(init);
+
+    function init() {
+        processRawData();
+        renderHeader();
+        drawAllCharts();
+        generateInsights();
+        populateComparatorControls();
+    }
+
+    function getBrand(row) {
+        if (row.competitor_brand) return row.competitor_brand;
+        if (row.product_title) return row.product_title.split(' ')[0]; // Basic heuristic
+        return "Unknown Brand";
+    }
+
+    function processRawData() {
+        // 1. Identify Our Brand
+        const ourRow = marketData.find(d => d.is_yaba_asin === 'Y');
+        ourBrandName = ourRow ? getBrand(ourRow) : "Our Brand";
+
+        // 2. Extract Unique Weeks (Sorted)
+        weeks = [...new Set(marketData.map(d => d.week_date))].sort();
+
+        // 3. Process each week
+        // Structure: { '2023-10-01': { totalClicks: 0, brands: { 'Nike': { share: 0, clicks: 0, price: 0 ... } } } }
+        let weeklyStats = {};
+
+        marketData.forEach(row => {
+            const w = row.week_date;
+            const brand = getBrand(row);
+            const isUs = (brand === ourBrandName);
+            const clicks = (row.click_share || 0) * (row.weekly_search_volume || 0);
+
+            if (!weeklyStats[w]) {
+                weeklyStats[w] = { totalClicks: 0, brands: {}, rows: [] };
+            }
+
+            weeklyStats[w].totalClicks += clicks;
+            weeklyStats[w].rows.push(row);
+
+            if (!weeklyStats[w].brands[brand]) {
+                weeklyStats[w].brands[brand] = {
+                    click_share: 0,
+                    clicks: 0,
+                    priceSum: 0,
+                    count: 0,
+                    rankSum: 0,
+                    hasDeal: row.weekly_number_of_days_with_deal > 0,
+                    hasCoupon: row.weekly_number_of_days_with_coupon > 0
+                };
+            }
+            
+            let b = weeklyStats[w].brands[brand];
+            b.click_share += (row.click_share || 0);
+            b.clicks += clicks;
+            b.priceSum += (row.price || 0);
+            b.rankSum += (row.average_organic_rank || 100);
+            b.count++;
+        });
+
+        // 4. Identify Top 3 Competitors (by avg share over all weeks)
+        let brandShares = {};
+        marketData.forEach(row => {
+            const b = getBrand(row);
+            if (b === ourBrandName) return;
+            brandShares[b] = (brandShares[b] || 0) + (row.click_share || 0);
+        });
+        topCompetitors = Object.entries(brandShares)
+            .sort((a,b) => b[1] - a[1])
+            .slice(0, 3)
+            .map(e => e[0]);
+
+        processedData = { weeklyStats, brandShares };
+    }
+
+    // -------------------------------------------------------------------------
+    // 3. RENDERING FUNCTIONS
+    // -------------------------------------------------------------------------
+
+    function renderHeader() {
+        document.getElementById('headerSub').textContent = `Reporte del ${weeks[0]} al ${weeks[weeks.length-1]}`;
+        document.getElementById('ourBrandBadge').textContent = `Marca Propia: ${ourBrandName}`;
+    }
+
+    function switchTab(tabId) {
+        document.getElementById('tab-static').classList.add('hidden');
+        document.getElementById('tab-interactive').classList.add('hidden');
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        
+        document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+        event.target.classList.add('active');
+        
+        if(tabId === 'interactive') updateComparator();
+    }
+
+    function drawAllCharts() {
+        drawGlobalTrend();
+        drawCompetitiveness();
+        drawEfficiency();
+    }
+
+    // --- CHART 1: GLOBAL TREND (Combo) ---
+    function drawGlobalTrend() {
+        const data = new google.visualization.DataTable();
+        data.addColumn('string', 'Semana');
+        data.addColumn('number', 'Volumen Clicks Total');
+        data.addColumn('number', 'Nuestra Cuota (%)');
+
+        const rows = weeks.map(w => {
+            const stats = processedData.weeklyStats[w];
+            const ourStats = stats.brands[ourBrandName] || { click_share: 0 };
+            return [w.slice(5), stats.totalClicks, ourStats.click_share * 100];
+        });
+
+        data.addRows(rows);
+
+        // Chart 1: Volume
+        const viewVol = new google.visualization.DataView(data);
+        viewVol.setColumns([0, 1]);
+        const optVol = {
+            colors: ['#dadce0'],
+            legend: { position: 'none' },
+            vAxis: { title: 'Clicks Estimados' },
+            bar: { groupWidth: "50%" }
+        };
+        new google.visualization.ColumnChart(document.getElementById('chart_clicks')).draw(viewVol, optVol);
+
+        // Chart 2: Share Trend
+        const viewShare = new google.visualization.DataView(data);
+        viewShare.setColumns([0, 2]);
+        const optShare = {
+            colors: ['#4285F4'],
+            legend: { position: 'none' },
+            curveType: 'function',
+            vAxis: { title: 'Share %', format: '#\'%\'' },
+            pointSize: 5
+        };
+        new google.visualization.AreaChart(document.getElementById('chart_share_trend')).draw(viewShare, optShare);
+    }
+
+    // --- CHART 2: COMPETITIVENESS (Lines) ---
+    function drawCompetitiveness() {
+        const data = new google.visualization.DataTable();
+        data.addColumn('string', 'Semana');
+        data.addColumn('number', ourBrandName);
+        topCompetitors.forEach(c => data.addColumn('number', c));
+        data.addColumn('number', 'Resto');
+
+        const rows = weeks.map(w => {
+            const stats = processedData.weeklyStats[w].brands;
+            const row = [w.slice(5)];
+            
+            // Us
+            row.push((stats[ourBrandName]?.click_share || 0) * 100);
+            
+            // Top 3
+            let top3Sum = 0;
+            topCompetitors.forEach(c => {
+                const s = (stats[c]?.click_share || 0) * 100;
+                row.push(s);
+                top3Sum += s;
+            });
+            
+            // Others (Total - Us - Top3)
+            let totalShare = Object.values(stats).reduce((acc, b) => acc + b.click_share, 0) * 100;
+            row.push(Math.max(0, totalShare - row[1] - top3Sum));
+            
+            return row;
+        });
+
+        data.addRows(rows);
+
+        const options = {
+            colors: ['#4285F4', '#EA4335', '#FBBC05', '#34A853', '#9aa0a6'],
+            curveType: 'function',
+            legend: { position: 'bottom' },
+            vAxis: { format: "#'%'" },
+            chartArea: { width: '85%', height: '70%' }
+        };
+
+        new google.visualization.LineChart(document.getElementById('chart_competitiveness')).draw(data, options);
+    }
+
+    // --- CHART 3: EFFICIENCY (Scatter) ---
+    function drawEfficiency() {
+        // Last week only
+        const lastWeek = weeks[weeks.length - 1];
+        const rows = processedData.weeklyStats[lastWeek].rows;
+
+        const data = new google.visualization.DataTable();
+        data.addColumn('number', 'Organic Rank'); // X
+        data.addColumn('number', 'Click Share');  // Y
+        data.addColumn({type: 'string', role: 'style'}); // Color
+        data.addColumn({type: 'string', role: 'tooltip'});
+
+        const chartRows = rows.map(r => {
+            const brand = getBrand(r);
+            const isUs = (brand === ourBrandName);
+            const color = isUs ? '#4285F4' : '#dadce0';
+            const tooltip = `${brand}\nRank: ${r.average_organic_rank}\nShare: ${(r.click_share*100).toFixed(1)}%`;
+            return [r.average_organic_rank, r.click_share, `point { fill-color: ${color}; size: 6 }`, tooltip];
+        });
+
+        data.addRows(chartRows);
+
+        const options = {
+            hAxis: { title: 'Ranking Orgánico (Menor es mejor)', direction: -1 }, // Inverted logic
+            vAxis: { title: 'Click Share', format: 'percent' },
+            legend: 'none',
+            tooltip: { isHtml: true }
+        };
+
+        new google.visualization.ScatterChart(document.getElementById('chart_efficiency')).draw(data, options);
+    }
+
+    // -------------------------------------------------------------------------
+    // 4. INSIGHTS GENERATION
+    // -------------------------------------------------------------------------
+    function generateInsights() {
+        const lastWeek = weeks[weeks.length-1];
+        const prevWeek = weeks[weeks.length-2];
+        
+        const currStats = processedData.weeklyStats[lastWeek].brands[ourBrandName];
+        const prevStats = processedData.weeklyStats[prevWeek].brands[ourBrandName];
+
+        const shareDiff = (currStats.click_share - prevStats.click_share) * 100;
+        const volumeDiff = currStats.clicks - prevStats.clicks;
+        
+        // Trend Text
+        const trendEl1 = document.getElementById('trend_insight_1');
+        trendEl1.innerHTML = `<h4>Volumen Total</h4><p>El mercado movió <strong>${processedData.weeklyStats[lastWeek].totalClicks.toLocaleString()} clicks</strong> esta semana.</p>`;
+
+        const trendEl2 = document.getElementById('trend_insight_2');
+        const dir = shareDiff >= 0 ? 'ganado' : 'perdido';
+        const color = shareDiff >= 0 ? 'success' : 'danger';
+        trendEl2.innerHTML = `<h4>Cuota de Mercado</h4><p>Hemos <strong style="color:var(--${color})">${dir} ${Math.abs(shareDiff).toFixed(1)} pts</strong> de share vs semana anterior.</p>`;
+
+        // Levers Analysis (Top contributors last week)
+        let leversHTML = "";
+        const competitors = processedData.weeklyStats[lastWeek].rows;
+        
+        // Find who has badges
+        const dealMakers = competitors.filter(c => c.weekly_number_of_days_with_deal > 0);
+        const bestSellers = competitors.filter(c => c.weekly_number_of_days_with_best_seller_badge > 0);
+        
+        if (dealMakers.length > 0) {
+            leversHTML += `<div class="insight-box"><strong>Deals Activos:</strong> ${dealMakers.length} ASINs tienen oferta (inc. ${getBrand(dealMakers[0])}).</div>`;
+        } else {
+            leversHTML += `<div class="insight-box">No hubo Deals significativos esta semana.</div>`;
+        }
+
+        // Price comparison
+        const avgMarketPrice = competitors.reduce((s, c) => s + c.price, 0) / competitors.length;
+        const ourPrice = currStats.priceSum / currStats.count;
+        const pricePos = ourPrice > avgMarketPrice ? "por encima" : "por debajo";
+        leversHTML += `<div class="insight-box"><strong>Posicionamiento Precio:</strong> Tu precio ($${ourPrice.toFixed(2)}) está <strong>${pricePos}</strong> del promedio ($${avgMarketPrice.toFixed(2)}).</div>`;
+
+        document.getElementById('levers_container').innerHTML = leversHTML;
+
+        // Conclusions
+        let conclusions = "<ul>";
+        conclusions += `<li>La tendencia global es ${shareDiff >= 0 ? 'positiva' : 'negativa'} para ${ourBrandName}.</li>`;
+        conclusions += `<li>Principal amenaza: ${topCompetitors[0]} con un share sólido.</li>`;
+        conclusions += `<li>Eficiencia: ${currStats.rankSum/currStats.count <= 5 ? 'Alta visibilidad orgánica' : 'Dependencia de ranking orgánico bajo'}.</li>`;
+        conclusions += "</ul>";
+        document.getElementById('insights_list').innerHTML = conclusions;
+
+        let actions = "<ul>";
+        if (shareDiff < 0) actions += "<li><strong>Revisar Precio:</strong> Considerar ajuste táctico para recuperar share.</li>";
+        if (currStats.rankSum/currStats.count > 10) actions += "<li><strong>SEO:</strong> El rank orgánico es bajo, revisar keywords principales.</li>";
+        actions += "<li><strong>Defensa:</strong> Monitorizar a " + topCompetitors[0] + " por posibles deals.</li>";
+        actions += "</ul>";
+        document.getElementById('actions_list').innerHTML = actions;
+        
+        // Other Insights
+        document.getElementById('other_insights_content').innerText = "Anomalía detectada: " + (topCompetitors[1] || "Competidor") + " ha incrementado su agresividad en cupones esta última semana.";
+    }
+
+    // -------------------------------------------------------------------------
+    // 5. INTERACTIVE COMPARATOR
+    // -------------------------------------------------------------------------
+    function populateComparatorControls() {
+        const selWeek = document.getElementById('sel_week');
+        weeks.forEach(w => {
+            const opt = document.createElement('option');
+            opt.value = w; opt.text = w;
+            selWeek.appendChild(opt);
+        });
+        selWeek.value = weeks[weeks.length-1]; // Select last
+
+        const selComp = document.getElementById('sel_comp');
+        topCompetitors.forEach(c => {
+            const opt = document.createElement('option');
+            opt.value = c; opt.text = c;
+            selComp.appendChild(opt);
+        });
+    }
+
+    function updateComparator() {
+        const week = document.getElementById('sel_week').value;
+        const comp = document.getElementById('sel_comp').value;
+        
+        const rows = processedData.weeklyStats[week].rows;
+        
+        const usRow = rows.find(r => getBrand(r) === ourBrandName) || {};
+        const themRow = rows.find(r => getBrand(r) === comp) || {};
+
+        // Update Cards
+        updateCompCard('us', usRow);
+        updateCompCard('them', themRow);
+        document.getElementById('comp_them_title').innerText = comp;
+
+        // Draw Mini Price History Chart
+        drawPriceHistory(comp);
+    }
+
+    function updateCompCard(prefix, row) {
+        if (!row.asin) {
+            document.getElementById(`${prefix}_price`).innerText = "N/A";
+            return;
+        }
+        document.getElementById(`${prefix}_price`).innerText = `$${row.price}`;
+        document.getElementById(`${prefix}_share`).innerText = `${(row.click_share*100).toFixed(1)}%`;
+        document.getElementById(`${prefix}_rank`).innerText = `#${row.average_organic_rank.toFixed(0)}`;
+        
+        let badges = "";
+        if(row.weekly_number_of_days_with_best_seller_badge > 0) badges += `<span class="badge" style="background:#FFF3E0; color:#E65100">Best Seller</span>`;
+        if(row.weekly_number_of_days_with_amazon_choice_badge > 0) badges += `<span class="badge" style="background:#E8F5E9; color:#1B5E20">Choice</span>`;
+        if(row.weekly_number_of_days_with_deal > 0) badges += `<span class="badge" style="background:#FFEBEE; color:#C62828">Deal</span>`;
+        if(row.weekly_number_of_days_with_coupon > 0) badges += `<span class="badge" style="background:#E3F2FD; color:#0D47A1">Coupon</span>`;
+        
+        document.getElementById(`${prefix}_badges`).innerHTML = badges;
+    }
+
+    function drawPriceHistory(compName) {
+        const data = new google.visualization.DataTable();
+        data.addColumn('string', 'Semana');
+        data.addColumn('number', ourBrandName);
+        data.addColumn('number', compName);
+
+        const rows = weeks.map(w => {
+            const weekRows = processedData.weeklyStats[w].rows;
+            const us = weekRows.find(r => getBrand(r) === ourBrandName)?.price || 0;
+            const them = weekRows.find(r => getBrand(r) === compName)?.price || 0;
+            return [w.slice(5), us, them];
+        });
+        
+        data.addRows(rows);
+
+        const options = {
+            colors: ['#4285F4', '#EA4335'],
+            legend: { position: 'bottom' },
+            vAxis: { format: '$#' }
+        };
+
+        new google.visualization.LineChart(document.getElementById('chart_price_compare')).draw(data, options);
+    }
+
+    // Handle Resize
+    window.addEventListener('resize', drawAllCharts);
+
+</script>
+</body>
+</html>
