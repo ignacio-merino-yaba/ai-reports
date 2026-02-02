@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Amazon Parent ASIN Intelligence Report</title>
+    
+    <!-- Google Native Ecosystem Dependencies -->
+    <script src="https://www.gstatic.com/charts/loader.js"></script>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --primary: #4285F4; /* Google Blue */
+            --success: #34A853; /* Google Green */
+            --warning: #FBBC05; /* Google Yellow */
+            --danger: #EA4335; /* Google Red */
+            --gray-50: #F8F9FA;
+            --gray-100: #F1F3F4;
+            --gray-200: #E8EAED;
+            --gray-700: #5F6368;
+            --gray-900: #202124;
+            --surface: #FFFFFF;
+            --shadow: 0 1px 2px 0 rgba(60,64,67,0.3), 0 1px 3px 1px rgba(60,64,67,0.15);
+            --radius: 16px;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--gray-50);
+            color: var(--gray-900);
+            margin: 0;
+            padding: 20px;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* Header & Tabs */
+        header {
+            margin-bottom: 24px;
+        }
+        
+        h1 {
+            font-size: 24px;
+            font-weight: 600;
+            margin: 0 0 8px 0;
+        }
+
+        .subtitle {
+            color: var(--gray-700);
+            font-size: 14px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 12px;
+            margin-top: 20px;
+            border-bottom: 1px solid var(--gray-200);
+            padding-bottom: 0;
+        }
+
+        .tab-btn {
+            background: none;
+            border: none;
+            padding: 12px 24px;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--gray-700);
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .tab-btn.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+
+        /* Cards & Layout */
+        .card {
+            background: var(--surface);
+            border-radius: var(--radius);
+            padding: 24px;
+            box-shadow: var(--shadow);
+            margin-bottom: 24px;
+        }
+
+        .card h2 {
+            font-size: 18px;
+            margin: 0 0 20px 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .card h2 .material-icons {
+            font-size: 20px;
+            color: var(--gray-700);
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+        }
+
+        /* Insights Specific */
+        .insight-item {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 16px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--gray-100);
+        }
+
+        .insight-item:last-child {
+            border-bottom: none;
+        }
+
+        .insight-icon {
+            color: var(--primary);
+            background: #E8F0FE;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .insight-icon.warning { color: var(--warning); background: #FEF7E0; }
+        .insight-icon.danger { color: var(--danger); background: #FCE8E6; }
+        .insight-icon.success { color: var(--success); background: #E6F4EA; }
+
+        .insight-content h4 { margin: 0 0 4px 0; font-size: 14px; font-weight: 600; }
+        .insight-content p { margin: 0; font-size: 13px; color: var(--gray-700); line-height: 1.5; }
+
+        /* KPI Chips */
+        .kpi-row {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+        .kpi-chip {
+            padding: 8px 16px;
+            background: var(--gray-100);
+            border-radius: 50px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+        .kpi-chip span { font-weight: 700; color: var(--gray-900); }
+
+        /* Interactive Controls */
+        .controls {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+        select {
+            padding: 10px 16px;
+            border-radius: 8px;
+            border: 1px solid var(--gray-200);
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+            min-width: 200px;
+            background-color: var(--surface);
+        }
+
+        /* Chart Containers */
+        .chart-box {
+            width: 100%;
+            height: 300px;
+        }
+
+        /* Helper Classes */
+        .hidden { display: none; }
+        .text-us { color: var(--primary); font-weight: bold; }
+        .text-them { color: var(--danger); font-weight: bold; }
+
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>Intelligence Report: Parent ASIN Performance</h1>
+        <div class="subtitle" id="reportSubtitle">Analyzing period: Loading...</div>
+        
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('static')">Strategic Report</button>
+            <button class="tab-btn" onclick="switchTab('interactive')">Interactive Comparator</button>
+        </div>
+    </header>
+
+    <!-- TAB 1: STRATEGIC REPORT -->
+    <div id="tab-static">
+        
+        <!-- Section 1: Global Trend -->
+        <div class="card">
+            <h2><span class="material-icons">trending_up</span> 1. Global Parent Trend (Us vs. Competition)</h2>
+            <div class="kpi-row" id="globalKpis"></div>
+            <div id="chart_global_trend" class="chart-box"></div>
+            <div class="insight-item" style="margin-top: 16px; border:none; background: var(--gray-50); padding: 16px; border-radius: 8px;">
+                <div class="insight-icon"><span class="material-icons">info</span></div>
+                <div class="insight-content">
+                    <h4>Trend Analysis</h4>
+                    <p id="globalTrendText">Loading analysis...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 2: Brand Competitiveness -->
+        <div class="card">
+            <h2><span class="material-icons">pie_chart</span> 2. Brand Competitiveness (Share of Voice)</h2>
+            <div id="chart_brand_comp" class="chart-box"></div>
+            <p style="font-size:12px; color:var(--gray-700); margin-top:8px;">*Showing Our Brand vs Top 3 Competitors vs Rest of Market</p>
+        </div>
+
+        <!-- Section 3 & 4: Levers & Efficiency -->
+        <div class="grid-2">
+            <div class="card">
+                <h2><span class="material-icons">tune</span> 3. Conversion Levers</h2>
+                <div id="chart_levers" class="chart-box"></div>
+                <div style="margin-top:12px; font-size:13px;">
+                    <strong>Impact of Deal Days:</strong> <span id="dealImpactText">...</span>
+                </div>
+            </div>
+            <div class="card">
+                <h2><span class="material-icons">scatter_plot</span> 4. Efficiency (Rank vs Share)</h2>
+                <div id="chart_efficiency" class="chart-box"></div>
+                <p style="font-size:12px; color:var(--gray-700); text-align: center;">Y-Axis: Click Share | X-Axis: Organic Rank (Lower is Better)</p>
+            </div>
+        </div>
+
+        <!-- Section 5: Conclusions & Recs -->
+        <div class="grid-2">
+            <div class="card">
+                <h2><span class="material-icons">lightbulb</span> 5. Key Insights</h2>
+                <div id="insightsContainer">
+                    <!-- Dynamic Insights -->
+                </div>
+            </div>
+            <div class="card">
+                <h2><span class="material-icons">assignment_turned_in</span> Recommendations</h2>
+                <div id="recommendationsContainer">
+                    <!-- Dynamic Recommendations -->
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- TAB 2: INTERACTIVE COMPARATOR -->
+    <div id="tab-interactive" class="hidden">
+        <div class="card">
+            <h2><span class="material-icons">compare_arrows</span> Head-to-Head Comparator</h2>
+            <div class="controls">
+                <select id="selectWeek" onchange="updateComparator()"></select>
+                <select id="selectCompetitor" onchange="updateComparator()"></select>
+            </div>
+            
+            <div class="grid-3" style="margin-top:24px;">
+                <!-- Metric 1: Share -->
+                <div style="text-align:center; padding: 16px; background: var(--gray-50); border-radius: 12px;">
+                    <div style="font-size:12px; color:var(--gray-700);">Click Share</div>
+                    <div style="font-size:24px; font-weight:bold; margin: 8px 0;">
+                        <span class="text-us" id="compUsShare">-%</span> vs <span class="text-them" id="compThemShare">-%</span>
+                    </div>
+                    <div id="chart_comp_share" style="height:100px;"></div>
+                </div>
+
+                <!-- Metric 2: Price -->
+                <div style="text-align:center; padding: 16px; background: var(--gray-50); border-radius: 12px;">
+                    <div style="font-size:12px; color:var(--gray-700);">Avg Price</div>
+                    <div style="font-size:24px; font-weight:bold; margin: 8px 0;">
+                        <span class="text-us" id="compUsPrice">$-</span> vs <span class="text-them" id="compThemPrice">$-</span>
+                    </div>
+                    <div id="chart_comp_price" style="height:100px;"></div>
+                </div>
+
+                <!-- Metric 3: Rank -->
+                <div style="text-align:center; padding: 16px; background: var(--gray-50); border-radius: 12px;">
+                    <div style="font-size:12px; color:var(--gray-700);">Avg Organic Rank</div>
+                    <div style="font-size:24px; font-weight:bold; margin: 8px 0;">
+                        <span class="text-us" id="compUsRank">-</span> vs <span class="text-them" id="compThemRank">-</span>
+                    </div>
+                    <div style="font-size:12px; color: var(--gray-700); margin-top:4px;">(Lower is better)</div>
+                </div>
+            </div>
+
+            <div style="margin-top: 24px; padding-top: 24px; border-top: 1px solid var(--gray-200);">
+                <h3>Detailed Attribute Comparison</h3>
+                <div id="table_comp_details"></div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    // -------------------------------------------------------------------------
+    // 1. DATA INJECTION (Generated by Python)
+    // -------------------------------------------------------------------------
+    const rawData = [{"parent_asin":"PARENT123","week_date":"2023-10-01","keyword":"protein powder","is_yaba_asin":"N","competitor_brand":"Unknown","asin":"B004732","product_title":"Unknown Premium Protein 0","clicks":62,"click_share":0.0062492163,"organic_rank":62,"price":37.74,"weekly_number_of_days_with_deal":7,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":7,"keyword_link":"http://amazon.com/..."},{"parent_asin":"PARENT123","week_date":"2023-10-01","keyword":"protein powder","is_yaba_asin":"N","competitor_brand":"CompA","asin":"B008603","product_title":"CompA Premium Protein 1","clicks":507,"click_share":0.0507204481,"organic_rank":41,"price":34.464,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"keyword_link":"http://amazon.com/..."},{"parent_asin":"PARENT123","week_date":"2023-10-01","keyword":"protein powder","is_yaba_asin":"N","competitor_brand":"CompC","asin":"B001402","product_title":"CompC Premium Protein 2","clicks":91,"click_share":0.0091370213,"organic_rank":15,"price":47.88,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"keyword_link":"http://amazon.com/..."},{"parent_asin":"PARENT123","week_date":"2023-10-01","keyword":"protein powder","is_yaba_asin":"N","competitor_brand":"CompB","asin":"B001859","product_title":"CompB Premium Protein 3","clicks":150,"click_share":0.015091722,"organic_rank":64,"price":49.33,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"keyword_link":"http://amazon.com/..."},{"parent_asin":"PARENT123","week_date":"2023-10-01","keyword":"protein powder","is_yaba_asin":"Y","competitor_brand":"YabaBrand","asin":"B005477","product_title":"YabaBrand Premium Protein 4","clicks":525,"click_share":0.0525287714,"organic_rank":46,"price":21.5,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"keyword_link":"http://amazon.com/..."},{"parent_asin":"PARENT123","week_date":"2023-10-01","keyword":"protein powder","is_yaba_asin":"N","competitor_brand":"CompA","asin":"B001925","product_title":"CompA Premium Protein 5","clicks":428,"click_share":0.042857434,"organic_rank":55,"price":19.264,"weekly_number_of_days_with_deal":7,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":7,"keyword_link":"http://amazon.com/..."},{"parent_asin":"PARENT123","week_date":"2023-10-01","keyword":"protein powder","is_yaba_asin":"N","competitor_brand":"CompA","asin":"B009139","product_title":"CompA Premium Protein 6","clicks":107,"click_share":0.010787355,"organic_rank":27,"price":26.04,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"keyword_link":"http://amazon.com/..."},{"parent_asin":"PARENT123","week_date":"2023-10-01","keyword":"protein powder","is_yaba_asin":"N","competitor_brand":"CompB","asin":"B009384","product_title":"CompB Premium Protein 7","clicks":105,"click_share":0.0105307524,"organic_rank":59,"price":36.19,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"keyword_link":"http://amazon.com/..."},{"parent_asin":"PARENT123","week_date":"2023-10-01","keyword":"protein powder","is_yaba_asin":"N","competitor_brand":"CompB","asin":"B007621","product_title":"CompB Premium Protein 8","clicks":945,"click_share":0.0945958564,"organic_rank":15,"price":49.88,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"keyword_link":"http://amazon.com/..."},{"parent_asin":"PARENT123","week_date":"2023-10-01","keyword":"protein powder","is_yaba_asin":"Y","competitor_brand":"YabaBrand","asin":"B009890","product_title":"YabaBrand Premium Protein 9","clicks":864,"click_share":0.0864388887,"organic_rank":8,"price":27.3,"weekly_number_of_days_with_deal":7,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":7,"weekly_number_of_days_with_coupon":0,"keyword_link":"http://amazon.com/..."},{"parent_asin":"PARENT123","week_date":"2023-10-01","keyword":"protein powder","is_yaba_asin":"Y","competitor_brand":"YabaBrand","asin":"B002497","product_title":"YabaBrand Premium Protein 10","clicks":993,"click_share":0.0993072233,"organic_rank":6,"price":49.03,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":7,"weekly_number_of_days_with_coupon":0,"keyword_link":"http://amazon.com/..."},{"parent_asin":"PARENT123","week_date":"2023-10-01","keyword":"protein powder","is_yaba_asin":"Y","competitor_brand":"YabaBrand","asin":"B004746","product_title":"YabaBrand Premium Protein 11","clicks":523,"click_share":0.0523000639,"organic_rank":42,"price":37.56,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"keyword_link":"http://amazon.com/..."},{"parent_asin":"PARENT123","week_date":"2023-10-01","keyword":"protein powder","is_yaba_asin":"N","competitor_brand":"CompA","asin":"B007786","product_title":"CompA Premium Protein 12","clicks":833,"click_share":0.0833215903,"organic_rank":27,"price":21.928,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"keyword_link":"http://amazon.com/..."},{"parent_asin":"PARENT123","week_date":"2023-10-01","keyword":"protein powder","is_yaba_asin":"N","competitor_brand":"CompA","asin":"B002167","product_title":"CompA Premium Protein 13","clicks":71,"click_share":0.0071378121,"organic_rank":90,"price":29.216,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"keyword_link":"http://amazon.com/..."},{"parent_asin":"PARENT123","week_date":"2023-10-01","keyword":"protein powder","is_yaba_asin":"N","competitor_brand":"CompA","asin":"B002931","product_title":"CompA Premium Protein 14","clicks":591,"click_share":0.0591016597,"organic_rank":32,"price":27.288,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":7,"keyword_link":"http://amazon.com/..."},{"parent_asin":"PARENT123","week_date":"2023-10-01","keyword":"protein powder","is_yaba_asin":"N","competitor_brand":"CompA","asin":"B006856","product_title":"CompA Premium Protein 15","clicks":693,"click_share":0.0693526363,"organic_rank":33,"price":16.88,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"keyword_link":"http://amazon.com/..."},{"parent_asin":"PARENT123","week_date":"2023-10-01","keyword":"protein powder","is_yaba_asin":"N","competitor_brand":"CompB","asin":"B001712","product_title":"CompB Premium Protein 16","clicks":608,"click_share":0.0608552638,"organic_rank":37,"price":49.88,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"keyword_link":"http://amazon.com/..."},{"parent_asin":"PARENT123","week_date":"2023-10-01","keyword":"protein powder","is_yaba_asin":"N","competitor_brand":"CompB","asin":"B008677","product_title":"CompB Premium Protein 17","clicks":71,"click_share":0.0071374526,"organic_rank":81,"price":37.58,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":7,"keyword_link":"http://amazon.com/..."},{"parent_asin":"PARENT123","week_date":"2023-10-01","keyword":"protein powder","is_yaba_asin":"N","competitor_brand":"CompB","asin":"B005470","product_title":"CompB Premium Protein 18","clicks":89,"click_share":0.0089849204,"organic_rank":83,"price":32.22,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"keyword_link":"http://amazon.com/..."},{"parent_asin":"PARENT123","week_date":"2023-10-01","keyword":"protein powder","is_yaba_asin":"N","competitor_brand":"CompA","asin":"B002773","product_title":"CompA Premium Protein 19","clicks":897,"click_share":0.0897127976,"organic_rank":8,"price":35.2,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":7,"weekly_number_of_days_with_coupon":0,"keyword_link":"http://amazon.com/..."},{"parent_asin":"PARENT123","week_date":"2023-10-01","keyword":"protein powder","is_yaba_asin":"N","competitor_brand":"CompA","asin":"B005898","product_title":"CompA Premium Protein 20","clicks":97,"click_share":0.0097722744,"organic_rank":83,"price":36.216,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"keyword_link":"http://amazon.com/..."},{"parent_asin":"PARENT123","week_date":"2023-10-01","keyword":"protein powder","is_yaba_asin":"N","competitor_brand":"CompB","asin":"B008580","product_title":"CompB Premium Protein 21","clicks":71,"click_share":0.0071373977,"organic_rank":71,"price":32.55,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"keyword_link":"http://amazon.com/..."},{"parent_asin":"PARENT123","week_date":"2023-10-01","keyword":"protein powder","is_yaba_asin":"N","competitor_brand":"CompA","asin":"B004732","product_title":"CompA Premium Protein 22","clicks":185,"click_share":0.0185191264,"organic_rank":74,"price":16.792,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"keyword_link":"http://amazon.com/..."},{"parent_asin":"PARENT123","week_date":"2023-10-01","keyword":"protein powder","is_yaba_asin":"N","competitor_brand":"CompA","asin":"B002495","product_title":"CompA Premium Protein 23","clicks":216,"click_share":0.0216149455,"organic_rank":74,"price":16.328,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"keyword_link":"http://amazon.com/..."},{"parent_asin":"PARENT123","week_date":"2023-10-01","keyword":"protein powder","is_yaba_asin":"Y","competitor_brand":"YabaBrand","asin":"B001712","product_title":"YabaBrand Premium Protein 24","clicks":732,"click_share":0.073280549,"organic_rank":15,"price":49.4,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"keyword_link":"http://amazon.com/..."},{"parent_asin":"PARENT123","week_date":"2023-10-01","keyword":"protein powder","is_yaba_asin":"Y","competitor_brand":"YabaBrand","asin":"B006830","product_title":"YabaBrand Premium Protein 25","clicks":448,"click_share":0.0448259063,"organic_rank":53,"price":42.76,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"keyword_link":"http://amazon.com/..."},{"parent_asin":"PARENT123","week_date":"2023-10-01","keyword":"protein powder","is_yaba_asin":"N","competitor_brand":"CompB","asin":"B001726","product_title":"CompB Premium Protein 26","clicks":624,"click_share":0.062494576,"organic_rank":41,"price":37.59,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"keyword_link":"http://amazon.com/..."},{"parent_asin":"PARENT123","week_date":"2023-10-01","keyword":"protein powder","is_yaba_asin":"N","competitor_brand":"CompC","asin":"B006351","product_title":"CompC Premium Protein 27","clicks":150,"click_share":0.015091722,"organic_rank":43,"price":21.84,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"keyword_link":"http://amazon.com/..."},{"parent_asin":"PARENT123","week_date":"2023-10-01","keyword":"protein powder","is_yaba_asin":"Y","competitor_brand":"YabaBrand","asin":"B002621","product_title":"YabaBrand Premium Protein 28","clicks":88,"click_share":0.008851724,"organic_rank":88,"price":28.09,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":7,"keyword_link":"http://amazon.com/..."},{"parent_asin":"PARENT123","week_date":"2023-10-01","keyword":"protein powder","is_yaba_asin":"Y","competitor_brand":"YabaBrand","asin":"B002495","product_title":"YabaBrand Premium Protein 29","clicks":105,"click_share":0.0105307524,"organic_rank":55,"price":44.57,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"keyword_link":"http://amazon.com/..."},{"parent_asin":"PARENT123","week_date":"2023-10-01","keyword":"protein powder","is_yaba_asin":"N","competitor_brand":"CompC","asin":"B002167","product_title":"CompC Premium Protein 30","clicks":525,"click_share":0.0525287714,"organic_rank":32,"price":37.56,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"keyword_link":"http://amazon.com/..."},{"parent_asin":"PARENT123","week_date":"2023-10-01","keyword":"protein powder","is_yaba_asin":"Y","competitor_brand":"YabaBrand","asin":"B004732","product_title":"YabaBrand Premium Protein 31","clicks":56,"click_share":0.0056973653,"organic_rank":90,"price":21.4,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"keyword_link":"http://amazon.com/..."},{"parent_asin":"PARENT123","week_date":"2023-10-01","keyword":"protein powder","is_yaba_asin":"N","competitor_brand":"CompA","asin":"B005470","product_title":"CompA Premium Protein 32","clicks":828,"click_share":0.0828456256,"organic_rank":24,"price":37.472,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"keyword_link":"http://amazon.com/..."},{"parent_asin":"PARENT123","week_date":"2023-10-01","keyword":"protein powder","is_yaba_asin":"N","competitor_brand":"CompA","asin":"B006856","product_title":"CompA Premium Protein 33","clicks":440,"click_share":0.0440331003,"organic_rank":41,"price":32.176,"weekly_number_of_days_with_deal":7,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"keyword_link":"http://amazon.com/..."},{"parent_asin":"PARENT123","week_date":"2023-10-01","keyword":"protein powder","is_yaba_asin":"N","competitor_brand":"Unknown","asin":"B006830","product_title":"Unknown Premium Protein 34","clicks":89,"click_share":0.0089849204,"organic_rank":91,"price":31.25,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":7,"keyword_link":"http://amazon.com/..."},{"parent_asin":"PARENT123","week_date":"2023-10-01","keyword":"protein powder","is_yaba_asin":"N","competitor_brand":"CompC","asin":"B007786","product_title":"CompC Premium Protein 35","clicks":487,"click_share":0.0487019685,"organic_rank":55,"price":32.74,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"keyword_link":"http://amazon.com/..."},{"parent_asin":"PARENT123","week_date":"2023-10-01","keyword":"protein powder","is_yaba_asin":"N","competitor_brand":"CompA","asin":"B009384","product_title":"CompA Premium Protein 36","clicks":699,"click_share":0.0699298457,"organic_rank":21,"price":33.056,"weekly_number_of_days_with_deal":7,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"keyword_link":"http://amazon.com/..."},{"parent_asin":"PARENT123","week_date":"2023-10-01","keyword":"protein powder","is_yaba_asin":"N","competitor_brand":"CompA","asin":"B007621","product_title":"CompA Premium Protein 37","clicks":486,"click_share":0.048600109,"organic_rank":56,"price":35.48,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"keyword_link":"http://amazon.com/..."},{"parent_asin":"PARENT123","week_date":"2023-10-01","keyword":"protein powder","is_yaba_asin":"N","competitor_brand":"CompC","asin":"B009139","product_title":"CompC Premium Protein 38","clicks":941,"click_share":0.0941198652,"organic_rank":15,"price":47.24,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":7,"keyword_link":"http://amazon.com/..."},{"parent_asin":"PARENT123","week_date":"2023-10-01","keyword":"protein powder","is_yaba_asin":"N","competitor_brand":"CompA","asin":"B004732","product_title":"CompA Premium Protein 39","clicks":803,"click_share":0.0803561657,"organic_rank":27,"price":21.576,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"keyword_link":"http://amazon.com/..."},{"parent_asin":"PARENT123","week_date":"2023-10-01","keyword":"protein powder","is_yaba_asin":"N","competitor_brand":"Unknown","asin":"B008677","product_title":"Unknown Premium Protein 40","clicks":941,"click_share":0.0941097258,"organic_rank":15,"price":29.14,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"keyword_link":"http://amazon.com/..."},{"parent_asin":"PARENT123","week_date":"2023-10-01","keyword":"protein powder","is_yaba_asin":"Y","competitor_brand":"YabaBrand","asin":"B002497","product_title":"YabaBrand Premium Protein 41","clicks":440,"click_share":0.0440331003,"organic_rank":55,"price":49.03,"weekly_number_of_days_with_deal":7,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":7,"keyword_link":"http://amazon.com/..."},{"parent_asin":"PARENT123","week_date":"2023-10-01","keyword":"protein powder","is_yaba_asin":"N","competitor_brand":"Unknown","asin":"B001712","product_title":"Unknown Premium Protein 42","clicks":828,"click_share":0.0828456256,"organic_rank":20,"price":22.1,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"keyword_link":"http://amazon.com/..."},{"parent_asin":"PARENT123","week_date":"2023-10-01","keyword":"protein powder","is_yaba_asin":"N","competitor_brand":"CompA","asin":"B008677","product_title":"CompA Premium Protein 43","clicks":693,"click_share":0.0693526363,"organic_rank":39,"price":16.48,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"keyword_link":"http://amazon.com/..."},{"parent_asin":"PARENT123","week_date":"2023-10-01","keyword":"protein powder","is_yaba_asin":"N","competitor_brand":"CompA","asin":"B006856","product_title":"CompA Premium Protein 44","clicks":525,"click_share":0.0525287714,"organic_rank":49,"price":37.568,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":7,"keyword_link":"http://amazon.com/..."},{"parent_asin":"PARENT123","week_date":"2023-10-01","keyword":"protein powder","is_yaba_asin":"N","competitor_brand":"CompA","asin":"B001925","product_title":"CompA Premium Protein 45","clicks":941,"click_share":0.0941198652,"organic_rank":15,"price":36.216,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"keyword_link":"http://amazon.com/..."},{"parent_asin":"PARENT123","week_date":"2023-10-01","keyword":"protein powder","is_yaba_asin":"N","competitor_brand":"CompC","asin":"B002931","product_title":"CompC Premium Protein 46","clicks":608,"click_share":0.0608552638,"organic_rank":32,"price":34.33,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"keyword_link":"http://amazon.com/..."},{"parent_asin":"PARENT123","week_date":"2023-10-01","keyword":"protein powder","is_yaba_asin":"N","competitor_brand":"CompC","asin":"B008677","product_title":"CompC Premium Protein 47","clicks":150,"click_share":0.015091722,"organic_rank":88,"price":38.25,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"keyword_link":"http://amazon.com/..."},{"parent_asin":"PARENT123","week_date":"2023-10-01","keyword":"protein powder","is_yaba_asin":"Y","competitor_brand":"YabaBrand","asin":"B002167","product_title":"YabaBrand Premium Protein 48","clicks":640,"click_share":0.0640326462,"organic_rank":27,"price":49.03,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"keyword_link":"http://amazon.com/..."},{"parent_asin":"PARENT123","week_date":"2023-10-01","keyword":"protein powder","is_yaba_asin":"Y","competitor_brand":"YabaBrand","asin":"B009890","product_title":"YabaBrand Premium Protein 49","clicks":89,"click_share":0.0089849204,"organic_rank":71,"price":36.94,"weekly_number_of_days_with_deal":7,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"keyword_link":"http://amazon.com/..."},{"parent_asin":"PARENT123","week_date":"2023-10-08","keyword":"protein powder","is_yaba_asin":"N","competitor_brand":"CompA","asin":"B005898","product_title":"CompA Premium Protein 0","clicks":608,"click_share":0.0608552638,"organic_rank":36,"price":29.352,"weekly_number_of_days_with_deal":7,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"keyword_link":"http://amazon.com/..."},{"parent_asin":"PARENT123","week_date":"2023-10-08","keyword":"protein powder","is_yaba_asin":"N","competitor_brand":"CompA","asin":"B004732","product_title":"CompA Premium Protein 1","clicks":507,"click_share":0.0507204481,"organic_rank":41,"price":36.176,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"keyword_link":"http://amazon.com/..."},{"parent_asin":"PARENT123","week_date":"2023-10-08","keyword":"protein powder","is_yaba_asin":"N","competitor_brand":"CompB","asin":"B004746","product_title":"CompB Premium Protein 2","clicks":941,"click_share":0.0941097258,"organic_rank":15,"price":30.9,"weekly_number_of_days_with_deal":7,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":7,"keyword_link":"http://amazon.com/..."},{"parent_asin":"PARENT123","week_date":"2023-10-08","keyword":"protein powder","is_yaba_asin":"N","competitor_brand":"CompC","asin":"B009384","product_title":"CompC Premium Protein 3","clicks":185,"click_share":0.0185191264,"organic_rank":62,"price":32.74,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"keyword_link":"http://amazon.com/..."},{"parent_asin":"PARENT123","week_date":"2023-10-08","keyword":"protein powder","is_yaba_asin":"N","competitor_brand":"CompA","asin":"B001402","product_title":"CompA Premium Protein 4","clicks":525,"click_share":0.0525287714,"organic_rank":33,"price":16.328,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"keyword_link":"http://amazon.com/..."},{"parent_asin":"PARENT123","week_date":"2023-10-08","keyword":"protein powder","is_yaba_asin":"N","competitor_brand":"CompB","asin":"B002167","product_title":"CompB Premium Protein 5","clicks":440,"click_share":0.0440331003,"organic_rank":33,"price":49.33,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"keyword_link":"http://amazon.com/..."},{"parent_asin":"PARENT123","week_date":"2023-10-08","keyword":"protein powder","is_yaba_asin":"Y","competitor_brand":"YabaBrand","asin":"B006830","product_title":"YabaBrand Premium Protein 6","clicks":150,"click_share":0.015091722,"organic_rank":55,"price":37.56,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"keyword_link":"http://amazon.com/..."},{"parent_asin":"PARENT123","week_date":"2023-10-08","keyword":"protein powder","is_yaba_asin":"N","competitor_brand":"CompA","asin":"B002773","product_title":"CompA Premium Protein 7","clicks":448,"click_share":0.0448259063,"organic_rank":46,"price":21.576,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"keyword_link":"http://amazon.com/..."},{"parent_asin":"PARENT123","week_date":"2023-10-08","keyword":"protein powder","is_yaba_asin":"N","competitor_brand":"CompB","asin":"B002495","product_title":"CompB Premium Protein 8","clicks":89,"click_share":0.0089849204,"organic_rank":81,"price":30.9,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"keyword_link":"http://amazon.com/..."},{"parent_asin":"PARENT123","week_date":"2023-10-08","keyword":"protein powder","is_yaba_asin":"N","competitor_brand":"CompB","asin":"B005470","product_title":"CompB Premium Protein 9","clicks":864,"click_share":0.0864388887,"organic_rank":15,"price":32.22,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":7,"weekly_number_of_days_with_coupon":0,"keyword_link":"http://amazon.com/..."},{"parent_asin":"PARENT123","week_date":"2023-10-08","keyword":"protein powder","is_yaba_asin":"N","competitor_brand":"CompC","asin":"B002931","product_title":"CompC Premium Protein 10","clicks":993,"click_share":0.0993072233,"organic_rank":6,"price":47.24,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":7,"weekly_number_of_days_with_coupon":0,"keyword_link":"http://amazon.com/..."},{"parent_asin":"PARENT123","week_date":"2023-10-08","keyword":"protein powder","is_yaba_asin":"N","competitor_brand":"CompB","asin":"B001712","product_title":"CompB Premium Protein 11","clicks":523,"click_share":0.0523000639,"organic_rank":27,"price":49.33,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"keyword_link":"http://amazon.com/..."},{"parent_asin":"PARENT123","week_date":"2023-10-08","keyword":"protein powder","is_yaba_asin":"N","competitor_brand":"CompA","asin":"B008603","product_title":"CompA Premium Protein 12","clicks":833,"click_share":0.0833215903,"organic_rank":24,"price":16.792,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"keyword_link":"http://amazon.com/..."},{"parent_asin":"PARENT123","week_date":"2023-10-08","keyword":"protein powder","is_yaba_asin":"N","competitor_brand":"CompB","asin":"B004732","product_title":"CompB Premium Protein 13","clicks":71,"click_share":0.0071378121,"organic_rank":64,"price":49.33,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"keyword_link":"http://amazon.com/..."},{"parent_asin":"PARENT123","week_date":"2023-10-08","keyword":"protein powder","is_yaba_asin":"Y","competitor_brand":"YabaBrand","asin":"B001726","product_title":"YabaBrand Premium Protein 14","clicks":591,"click_share":0.0591016597,"organic_rank":33,"price":21.5,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":7,"keyword_link":"http://amazon.com/..."},{"parent_asin":"PARENT123","week_date":"2023-10-08","keyword":"protein powder","is_yaba_asin":"N","competitor_brand":"CompA","asin":"B002497","product_title":"CompA Premium Protein 15","clicks":693,"click_share":0.0693526363,"organic_rank":24,"price":26.04,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"keyword_link":"http://amazon.com/..."},{"parent_asin":"PARENT123","week_date":"2023-10-08","keyword":"protein powder","is_yaba_asin":"N","competitor_brand":"CompA","asin":"B009139","product_title":"CompA Premium Protein 16","clicks":608,"click_share":0.0608552638,"organic_rank":36,"price":37.568,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"keyword_link":"http://amazon.com/..."},{"parent_asin":"PARENT123","week_date":"2023-10-08","keyword":"protein powder","is_yaba_asin":"N","competitor_brand":"CompC","asin":"B002167","product_title":"CompC Premium Protein 17","clicks":71,"click_share":0.0071374526,"organic_rank":62,"price":34.33,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":7,"keyword_link":"http://amazon.com/..."},{"parent_asin":"PARENT123","week_date":"2023-10-08","keyword":"protein powder","is_yaba_asin":"N","competitor_brand":"CompA","asin":"B001859","product_title":"CompA Premium Protein 18","clicks":89,"click_share":0.0089849204,"organic_rank":88,"price":29.352,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"keyword_link":"http://amazon.com/..."},{"parent_asin":"PARENT123","week_date":"2023-10-08","keyword":"protein powder","is_yaba_asin":"N","competitor_brand":"CompB","asin":"B007786","product_title":"CompB Premium Protein 19","clicks":897,"click_share":0.0897127976,"organic_rank":27,"price":49.33,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":7,"weekly_number_of_days_with_coupon":0,"keyword_link":"http://amazon.com/..."},{"parent_asin":"PARENT123","week_date":"2023-10-08","keyword":"protein powder","is_yaba_asin":"N","competitor_brand":"Unknown","asin":"B001925","product_title":"Unknown Premium Protein 20","clicks":97,"click_share":0.0097722744,"organic_rank":71,"price":37.74,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"keyword_link":"http://amazon.com/..."},{"parent_asin":"PARENT123","week_date":"2023-10-08","keyword":"protein powder","is_yaba_asin":"Y","competitor_brand":"YabaBrand","asin":"B002495","product_title":"YabaBrand Premium Protein 21","clicks":71,"click_share":0.0071373977,"organic_rank":71,"price":37.56,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"keyword_link":"http://amazon.com/..."},{"parent_asin":"PARENT123","week_date":"2023-10-08","keyword":"protein powder","is_yaba_asin":"Y","competitor_brand":"YabaBrand","asin":"B009890","product_title":"YabaBrand Premium Protein 22","clicks":185,"click_share":0.0185191264,"organic_rank":46,"price":21.5,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"keyword_link":"http://amazon.com/..."},{"parent_asin":"PARENT123","week_date":"2023-10-08","keyword":"protein powder","is_yaba_asin":"N","competitor_brand":"CompB","asin":"B009384","product_title":"CompB Premium Protein 23","clicks":216,"click_share":0.0216149455,"organic_rank":56,"price":37.58,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"keyword_link":"http://amazon.com/..."},{"parent_asin":"PARENT123","week_date":"2023-10-08","keyword":"protein powder","is_yaba_asin":"N","competitor_brand":"CompA","asin":"B002931","product_title":"CompA Premium Protein 24","clicks":732,"click_share":0.073280549,"organic_rank":15,"price":37.744,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"keyword_link":"http://amazon.com/..."},{"parent_asin":"PARENT123","week_date":"2023-10-08","keyword":"protein powder","is_yaba_asin":"N","competitor_brand":"CompC","asin":"B008677","product_title":"CompC Premium Protein 25","clicks":448,"click_share":0.0448259063,"organic_rank":39,"price":32.74,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"keyword_link":"http://amazon.com/..."},{"parent_asin":"PARENT123","week_date":"2023-10-08","keyword":"protein powder","is_yaba_asin":"Y","competitor_brand":"YabaBrand","asin":"B005477","product_title":"YabaBrand Premium Protein 26","clicks":624,"click_share":0.062494576,"organic_rank":24,"price":49.4,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"keyword_link":"http://amazon.com/..."},{"parent_asin":"PARENT123","week_date":"2023-10-08","keyword":"protein powder","is_yaba_asin":"N","competitor_brand":"CompA","asin":"B007786","product_title":"CompA Premium Protein 27","clicks":150,"click_share":0.015091722,"organic_rank":88,"price":21.576,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"keyword_link":"http://amazon.com/..."},{"parent_asin":"PARENT123","week_date":"2023-10-08","keyword":"protein powder","is_yaba_asin":"Y","competitor_brand":"YabaBrand","asin":"B004732","product_title":"YabaBrand Premium Protein 28","clicks":88,"click_share":0.008851724,"organic_rank":59,"price":42.76,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":7,"keyword_link":"http://amazon.com/..."},{"parent_asin":"PARENT123","week_date":"2023-10-08","keyword":"protein powder","is_yaba_asin":"N","competitor_brand":"CompA","asin":"B002495","product_title":"CompA Premium Protein 29","clicks":105,"click_share":0.0105307524,"organic_rank":62,"price":37.568,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"keyword_link":"http://amazon.com/..."},{"parent_asin":"PARENT123","week_date":"2023-10-08","keyword":"protein powder","is_yaba_asin":"N","competitor_brand":"CompB","asin":"B006856","product_title":"CompB Premium Protein 30","clicks":525,"click_share":0.0525287714,"organic_rank":32,"price":32.55,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"keyword_link":"http://amazon.com/..."},{"parent_asin":"PARENT123","week_date":"2023-10-08","keyword":"protein powder","is_yaba_asin":"N","competitor_brand":"Unknown","asin":"B005898","product_title":"Unknown Premium Protein 31","clicks":56,"click_share":0.0056973653,"organic_rank":90,"price":22.1,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"keyword_link":"http://amazon.com/..."},{"parent_asin":"PARENT123","week_date":"2023-10-08","keyword":"protein powder","is_yaba_asin":"N","competitor_brand":"CompA","asin":"B008580","product_title":"CompA Premium Protein 32","clicks":828,"click_share":0.0828456256,"organic_rank":20,"price":36.216,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"keyword_link":"http://amazon.com/..."},{"parent_asin":"PARENT123","week_date":"2023-10-08","keyword":"protein powder","is_yaba_asin":"N","competitor_brand":"Unknown","asin":"B008677","product_title":"Unknown Premium Protein 33","clicks":440,"click_share":0.0440331003,"organic_rank":27,"price":37.74,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"keyword_link":"http://amazon.com/..."},{"parent_asin":"PARENT123","week_date":"2023-10-08","keyword":"protein powder","is_yaba_asin":"N","competitor_brand":"CompA","asin":"B006856","product_title":"CompA Premium Protein 34","clicks":89,"click_share":0.0089849204,"organic_rank":88,"price":21.576,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":7,"keyword_link":"http://amazon.com/..."},{"parent_asin":"PARENT123","week_date":"2023-10-08","keyword":"protein powder","is_yaba_asin":"N","competitor_brand":"CompB","asin":"B007621","product_title":"CompB Premium Protein 35","clicks":487,"click_share":0.0487019685,"organic_rank":49,"price":49.33,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"keyword_link":"http://amazon.com/..."},{"parent_asin":"PARENT123","week_date":"2023-10-08","keyword":"protein powder","is_yaba_asin":"N","competitor_brand":"CompB","asin":"B007786","product_title":"CompB Premium Protein 36","clicks":699,"click_share":0.0699298457,"organic_rank":27,"price":49.88,"weekly_number_of_days_with_deal":7,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"keyword_link":"http://amazon.com/..."},{"parent_asin":"PARENT123","week_date":"2023-10-08","keyword":"protein powder","is_yaba_asin":"N","competitor_brand":"Unknown","asin":"B001712","product_title":"Unknown Premium Protein 37","clicks":486,"click_share":0.048600109,"organic_rank":41,"price":32.22,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"keyword_link":"http://amazon.com/..."},{"parent_asin":"PARENT123","week_date":"2023-10-08","keyword":"protein powder","is_yaba_asin":"N","competitor_brand":"CompB","asin":"B006830","product_title":"CompB Premium Protein 38","clicks":941,"click_share":0.0941198652,"organic_rank":24,"price":49.88,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":7,"keyword_link":"http://amazon.com/..."},{"parent_asin":"PARENT123","week_date":"2023-10-08","keyword":"protein powder","is_yaba_asin":"N","competitor_brand":"CompA","asin":"B009139","product_title":"CompA Premium Protein 39","clicks":803,"click_share":0.0803561657,"organic_rank":33,"price":36.216,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"keyword_link":"http://amazon.com/..."},{"parent_asin":"PARENT123","week_date":"2023-10-08","keyword":"protein powder","is_yaba_asin":"Y","competitor_brand":"YabaBrand","asin":"B005898","product_title":"YabaBrand Premium Protein 40","clicks":941,"click_share":0.0941097258,"organic_rank":15,"price":49.4,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"keyword_link":"http://amazon.com/..."},{"parent_asin":"PARENT123","week_date":"2023-10-08","keyword":"protein powder","is_yaba_asin":"N","competitor_brand":"CompA","asin":"B006856","product_title":"CompA Premium Protein 41","clicks":440,"click_share":0.0440331003,"organic_rank":21,"price":35.2,"weekly_number_of_days_with_deal":7,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":7,"keyword_link":"http://amazon.com/..."},{"parent_asin":"PARENT123","week_date":"2023-10-08","keyword":"protein powder","is_yaba_asin":"N","competitor_brand":"CompC","asin":"B005470","product_title":"CompC Premium Protein 42","clicks":828,"click_share":0.0828456256,"organic_rank":21,"price":32.74,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"keyword_link":"http://amazon.com/..."},{"parent_asin":"PARENT123","week_date":"2023-10-08","keyword":"protein powder","is_yaba_asin":"N","competitor_brand":"CompA","asin":"B001925","product_title":"CompA Premium Protein 43","clicks":693,"click_share":0.0693526363,"organic_rank":33,"price":22.104,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"keyword_link":"http://amazon.com/..."},{"parent_asin":"PARENT123","week_date":"2023-10-08","keyword":"protein powder","is_yaba_asin":"N","competitor_brand":"CompC","asin":"B004746","product_title":"CompC Premium Protein 44","clicks":525,"click_share":0.0525287714,"organic_rank":41,"price":32.74,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":7,"keyword_link":"http://amazon.com/..."},{"parent_asin":"PARENT123","week_date":"2023-10-08","keyword":"protein powder","is_yaba_asin":"N","competitor_brand":"CompA","asin":"B004732","product_title":"CompA Premium Protein 45","clicks":941,"click_share":0.0941198652,"organic_rank":15,"price":33.056,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"keyword_link":"http://amazon.com/..."},{"parent_asin":"PARENT123","week_date":"2023-10-08","keyword":"protein powder","is_yaba_asin":"N","competitor_brand":"CompB","asin":"B006856","product_title":"CompB Premium Protein 46","clicks":608,"click_share":0.0608552638,"organic_rank":32,"price":37.58,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"keyword_link":"http://amazon.com/..."},{"parent_asin":"PARENT123","week_date":"2023-10-08","keyword":"protein powder","is_yaba_asin":"N","competitor_brand":"CompB","asin":"B002931","product_title":"CompB Premium Protein 47","clicks":150,"click_share":0.015091722,"organic_rank":90,"price":32.22,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"keyword_link":"http://amazon.com/..."},{"parent_asin":"PARENT123","week_date":"2023-10-08","keyword":"protein powder","is_yaba_asin":"N","competitor_brand":"CompB","asin":"B001402","product_title":"CompB Premium Protein 48","clicks":640,"click_share":0.0640326462,"organic_rank":27,"price":49.33,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"keyword_link":"http://amazon.com/..."},{"parent_asin":"PARENT123","week_date":"2023-10-08","keyword":"protein powder","is_yaba_asin":"Y","competitor_brand":"YabaBrand","asin":"B008677","product_title":"YabaBrand Premium Protein 49","clicks":89,"click_share":0.0089849204,"organic_rank":83,"price":49.03,"weekly_number_of_days_with_deal":7,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"keyword_link":"http://amazon.com/..."}];
+
+    // -------------------------------------------------------------------------
+    // 2. DATA PROCESSING
+    // -------------------------------------------------------------------------
+    google.charts.load('current', {'packages':['corechart', 'bar', 'table']});
+    google.charts.setOnLoadCallback(initDashboard);
+
+    let processedData = [];
+    let ourBrand = "";
+    let topCompetitors = [];
+
+    function initDashboard() {
+        processRawData();
+        drawGlobalTrend();
+        drawCompetitiveness();
+        drawLevers();
+        drawEfficiency();
+        generateInsights();
+        setupInteractiveControls();
+    }
+
+    function processRawData() {
+        // 1. Identify Our Brand
+        const yabaAsin = rawData.find(d => d.is_yaba_asin === 'Y');
+        ourBrand = yabaAsin ? yabaAsin.competitor_brand : "Our Brand";
+
+        // 2. Normalize and Enrich
+        processedData = rawData.map(d => {
+            let brand = d.competitor_brand;
+            if (!brand) {
+                // Heuristic to extract brand if null
+                brand = d.product_title.split(' ')[0] || "Unknown";
+            }
+            return {
+                ...d,
+                brand: brand,
+                isUs: d.is_yaba_asin === 'Y',
+                date: d.week_date,
+                clicks: Number(d.clicks),
+                share: Number(d.click_share),
+                price: Number(d.price),
+                rank: Number(d.organic_rank),
+                dealDays: Number(d.weekly_number_of_days_with_deal || 0)
+            };
+        });
+
+        // 3. Identify Top 3 Competitors
+        const brandShares = {};
+        processedData.forEach(d => {
+            if (!d.isUs) {
+                brandShares[d.brand] = (brandShares[d.brand] || 0) + d.share;
+            }
+        });
+        topCompetitors = Object.entries(brandShares)
+            .sort((a,b) => b[1] - a[1])
+            .slice(0, 3)
+            .map(x => x[0]);
+            
+        // Update subtitle
+        const dates = [...new Set(processedData.map(d => d.date))].sort();
+        const range = `${dates[0]} to ${dates[dates.length-1]}`;
+        document.getElementById('reportSubtitle').innerText = `Analyzing period: ${range} | Brand: ${ourBrand}`;
+    }
+
+    // -------------------------------------------------------------------------
+    // 3. CHARTING FUNCTIONS
+    // -------------------------------------------------------------------------
+
+    function drawGlobalTrend() {
+        // Aggregating by Week + Us/Them
+        const weeklyStats = {};
+        processedData.forEach(d => {
+            if (!weeklyStats[d.date]) weeklyStats[d.date] = { usClicks: 0, themClicks: 0, usShare: 0, themShare: 0, total: 0 };
+            
+            if (d.isUs) {
+                weeklyStats[d.date].usClicks += d.clicks;
+                weeklyStats[d.date].usShare += d.share;
+            } else {
+                weeklyStats[d.date].themClicks += d.clicks;
+                weeklyStats[d.date].themShare += d.share;
+            }
+            weeklyStats[d.date].total += d.share;
+        });
+
+        const dataTable = [['Week', 'Our Clicks', 'Comp Clicks', 'Our Share %']];
+        const dates = Object.keys(weeklyStats).sort();
+        
+        // Metrics for Insights
+        let lastWeek = weeklyStats[dates[dates.length-1]];
+        let prevWeek = weeklyStats[dates[dates.length-2]] || lastWeek;
+
+        dates.forEach(date => {
+            const w = weeklyStats[date];
+            // Normalize share to 100% relative for the chart or keep absolute? Prompt says "Click Share Total".
+            // Let's use absolute aggregated share (sum of click_share).
+            dataTable.push([date, w.usClicks, w.themClicks, w.usShare]);
+        });
+
+        const data = google.visualization.arrayToDataTable(dataTable);
+        const options = {
+            seriesType: 'bars',
+            series: { 2: { type: 'line', targetAxisIndex: 1 } },
+            vAxes: { 0: { title: 'Clicks' }, 1: { title: 'Share', format: 'percent' } },
+            colors: ['#4285F4', '#EA4335', '#34A853'],
+            legend: { position: 'bottom' },
+            chartArea: { width: '85%', height: '70%' }
+        };
+
+        const chart = new google.visualization.ComboChart(document.getElementById('chart_global_trend'));
+        chart.draw(data, options);
+
+        // Fill KPIs
+        const shareChange = ((lastWeek.usShare - prevWeek.usShare) / prevWeek.usShare * 100).toFixed(1);
+        const clickChange = ((lastWeek.usClicks - prevWeek.usClicks) / prevWeek.usClicks * 100).toFixed(1);
+        
+        document.getElementById('globalKpis').innerHTML = `
+            <div class="kpi-chip">Clicks (Last Week): <span>${lastWeek.usClicks}</span> (${clickChange > 0 ? '+' : ''}${clickChange}%)</div>
+            <div class="kpi-chip">Share (Last Week): <span>${(lastWeek.usShare*100).toFixed(2)}%</span></div>
+        `;
+        
+        document.getElementById('globalTrendText').innerText = 
+            `Global clicks are ${clickChange > 0 ? 'growing' : 'declining'}. Our share moved by ${shareChange}% compared to previous week. ` +
+            `Competition volume is ${lastWeek.themClicks > prevWeek.themClicks ? 'increasing' : 'stable'}.`;
+    }
+
+    function drawCompetitiveness() {
+        const weeks = [...new Set(processedData.map(d => d.date))].sort();
+        const header = ['Week', 'Our Brand', ...topCompetitors, 'Rest of Market'];
+        const rows = [];
+
+        weeks.forEach(week => {
+            const weekData = processedData.filter(d => d.date === week);
+            const row = [week, 0, 0, 0, 0, 0]; // Init
+            
+            weekData.forEach(d => {
+                if (d.isUs) row[1] += d.share;
+                else if (d.brand === topCompetitors[0]) row[2] += d.share;
+                else if (d.brand === topCompetitors[1]) row[3] += d.share;
+                else if (d.brand === topCompetitors[2]) row[4] += d.share;
+                else row[5] += d.share;
+            });
+            rows.push(row);
+        });
+
+        const data = google.visualization.arrayToDataTable([header, ...rows]);
+        const options = {
+            curveType: 'function',
+            legend: { position: 'bottom' },
+            colors: ['#4285F4', '#EA4335', '#FBBC05', '#34A853', '#9AA0A6'],
+            vAxis: { format: 'percent' },
+            chartArea: { width: '85%', height: '70%' }
+        };
+
+        const chart = new google.visualization.LineChart(document.getElementById('chart_brand_comp'));
+        chart.draw(data, options);
+    }
+
+    function drawLevers() {
+        // Analysis: Click Share when Deal > 0 vs Deal = 0
+        const usData = processedData.filter(d => d.isUs);
+        
+        let dealShareSum = 0, dealCount = 0;
+        let noDealShareSum = 0, noDealCount = 0;
+
+        usData.forEach(d => {
+            if (d.dealDays > 0) {
+                dealShareSum += d.share;
+                dealCount++;
+            } else {
+                noDealShareSum += d.share;
+                noDealCount++;
+            }
+        });
+
+        const avgDealShare = dealCount ? dealShareSum / dealCount : 0;
+        const avgNoDealShare = noDealCount ? noDealShareSum / noDealCount : 0;
+        const uplift = avgNoDealShare ? ((avgDealShare - avgNoDealShare) / avgNoDealShare * 100).toFixed(1) : 0;
+
+        const data = google.visualization.arrayToDataTable([
+            ['State', 'Avg Share', { role: 'style' }],
+            ['No Deal', avgNoDealShare, 'color: #9AA0A6'],
+            ['Active Deal', avgDealShare, 'color: #34A853']
+        ]);
+
+        const options = {
+            legend: { position: 'none' },
+            vAxis: { format: 'percent' },
+            chartArea: { width: '80%', height: '70%' }
+        };
+
+        const chart = new google.visualization.ColumnChart(document.getElementById('chart_levers'));
+        chart.draw(data, options);
+
+        document.getElementById('dealImpactText').innerText = 
+            `Deals provide a ${uplift}% uplift in Click Share compared to regular days.`;
+    }
+
+    function drawEfficiency() {
+        // Scatter: Rank (X) vs Share (Y)
+        // Filter mainly for last week to be relevant
+        const dates = [...new Set(processedData.map(d => d.date))].sort();
+        const lastWeek = dates[dates.length-1];
+        
+        const chartData = [['Rank', 'Share', { role: 'style' }, { role: 'tooltip' }]];
+        
+        processedData.filter(d => d.date === lastWeek).forEach(d => {
+            const color = d.isUs ? '#4285F4' : '#EA4335';
+            chartData.push([d.rank, d.share, color, `${d.brand}: Rank ${d.rank}, Share ${(d.share*100).toFixed(2)}%`]);
+        });
+
+        const data = google.visualization.arrayToDataTable(chartData);
+        const options = {
+            hAxis: { title: 'Organic Rank (Lower is better)', direction: 1 },
+            vAxis: { title: 'Click Share', format: 'percent' },
+            legend: 'none',
+            chartArea: { width: '85%', height: '70%' },
+            colors: ['#4285F4']
+        };
+
+        const chart = new google.visualization.ScatterChart(document.getElementById('chart_efficiency'));
+        chart.draw(data, options);
+    }
+
+    // -------------------------------------------------------------------------
+    // 4. INSIGHTS GENERATOR (LOGIC)
+    // -------------------------------------------------------------------------
+    function generateInsights() {
+        // Logic to generate HTML strings based on data
+        const dates = [...new Set(processedData.map(d => d.date))].sort();
+        const lastWeek = dates[dates.length-1];
+        const prevWeek = dates[dates.length-2];
+
+        // 1. Price Competitiveness
+        const usData = processedData.filter(d => d.isUs && d.date === lastWeek);
+        const compData = processedData.filter(d => !d.isUs && d.date === lastWeek && topCompetitors.includes(d.brand));
+        
+        const avgUsPrice = usData.reduce((s,c) => s+c.price,0) / (usData.length||1);
+        const avgCompPrice = compData.reduce((s,c) => s+c.price,0) / (compData.length||1);
+        
+        const priceInsight = avgUsPrice > avgCompPrice 
+            ? { type: 'warning', text: `Our average price ($${avgUsPrice.toFixed(2)}) is higher than top competitors ($${avgCompPrice.toFixed(2)}).` }
+            : { type: 'success', text: `We are priced competitively ($${avgUsPrice.toFixed(2)}) vs top competitors ($${avgCompPrice.toFixed(2)}).` };
+
+        // 2. Rank Efficiency
+        const highRankLowShare = usData.filter(d => d.rank < 10 && d.share < 0.05).length;
+        const effInsight = highRankLowShare > 0 
+            ? { type: 'danger', text: `${highRankLowShare} of our ASINs have Top 10 rank but low share (<5%). Check main image or title relevance.` }
+            : { type: 'success', text: `Top ranked ASINs are converting visibility to share effectively.` };
+
+        // 3. Dominance
+        const usTotalShare = usData.reduce((s,c) => s+c.share, 0);
+        const leader = topCompetitors[0]; // Simplified
+        
+        const domInsight = { type: 'info', text: `Our total Brand Share is ${(usTotalShare*100).toFixed(1)}%.` };
+
+        // HTML Injection
+        const container = document.getElementById('insightsContainer');
+        container.innerHTML = `
+            <div class="insight-item">
+                <div class="insight-icon ${priceInsight.type}"><span class="material-icons">attach_money</span></div>
+                <div class="insight-content"><h4>Pricing Strategy</h4><p>${priceInsight.text}</p></div>
+            </div>
+            <div class="insight-item">
+                <div class="insight-icon ${effInsight.type}"><span class="material-icons">visibility</span></div>
+                <div class="insight-content"><h4>Rank Efficiency</h4><p>${effInsight.text}</p></div>
+            </div>
+            <div class="insight-item">
+                <div class="insight-icon info"><span class="material-icons">analytics</span></div>
+                <div class="insight-content"><h4>Market Position</h4><p>${domInsight.text}</p></div>
+            </div>
+        `;
+
+        // Recommendations
+        const recContainer = document.getElementById('recommendationsContainer');
+        recContainer.innerHTML = `
+            <div class="insight-item">
+                <div class="insight-icon"><span class="material-icons">check_circle</span></div>
+                <div class="insight-content">
+                    <h4>Review Underperforming Badges</h4>
+                    <p>For ASINs with Rank < 15 but low share, A/B test the main image to improve CTR.</p>
+                </div>
+            </div>
+            <div class="insight-item">
+                <div class="insight-icon"><span class="material-icons">check_circle</span></div>
+                <div class="insight-content">
+                    <h4>Defensive Ads</h4>
+                    <p>Target keywords where Competitor ${topCompetitors[0]} is gaining Rank to protect share.</p>
+                </div>
+            </div>
+             <div class="insight-item">
+                <div class="insight-icon"><span class="material-icons">check_circle</span></div>
+                <div class="insight-content">
+                    <h4>Price Elasticity</h4>
+                    <p>Consider a coupon on Week ${lastWeek} for ASINs over $${avgUsPrice.toFixed(0)} to regain volume.</p>
+                </div>
+            </div>
+        `;
+    }
+
+    // -------------------------------------------------------------------------
+    // 5. INTERACTIVE TAB LOGIC
+    // -------------------------------------------------------------------------
+
+    function switchTab(tabName) {
+        document.getElementById('tab-static').style.display = tabName === 'static' ? 'block' : 'none';
+        document.getElementById('tab-interactive').style.display = tabName === 'interactive' ? 'block' : 'none';
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        event.target.classList.add('active');
+        if(tabName === 'interactive') updateComparator();
+    }
+
+    function setupInteractiveControls() {
+        const weeks = [...new Set(processedData.map(d => d.date))].sort().reverse();
+        const wSelect = document.getElementById('selectWeek');
+        weeks.forEach(w => {
+            const opt = document.createElement('option');
+            opt.value = w;
+            opt.innerText = w;
+            wSelect.appendChild(opt);
+        });
+
+        const cSelect = document.getElementById('selectCompetitor');
+        topCompetitors.forEach(c => {
+            const opt = document.createElement('option');
+            opt.value = c;
+            opt.innerText = c;
+            cSelect.appendChild(opt);
+        });
+    }
+
+    function updateComparator() {
+        const week = document.getElementById('selectWeek').value;
+        const comp = document.getElementById('selectCompetitor').value;
+
+        // Filter Data
+        const usData = processedData.filter(d => d.isUs && d.date === week);
+        const themData = processedData.filter(d => d.brand === comp && d.date === week);
+
+        // Aggregates
+        const usShare = usData.reduce((a,b)=>a+b.share,0);
+        const themShare = themData.reduce((a,b)=>a+b.share,0);
+        
+        const usPrice = usData.length ? usData.reduce((a,b)=>a+b.price,0)/usData.length : 0;
+        const themPrice = themData.length ? themData.reduce((a,b)=>a+b.price,0)/themData.length : 0;
+
+        const usRank = usData.length ? usData.reduce((a,b)=>a+b.rank,0)/usData.length : 0;
+        const themRank = themData.length ? themData.reduce((a,b)=>a+b.rank,0)/themData.length : 0;
+
+        // Render Values
+        document.getElementById('compUsShare').innerText = (usShare*100).toFixed(1) + '%';
+        document.getElementById('compThemShare').innerText = (themShare*100).toFixed(1) + '%';
+        
+        document.getElementById('compUsPrice').innerText = '$' + usPrice.toFixed(2);
+        document.getElementById('compThemPrice').innerText = '$' + themPrice.toFixed(2);
+
+        document.getElementById('compUsRank').innerText = usRank.toFixed(1);
+        document.getElementById('compThemRank').innerText = themRank.toFixed(1);
+
+        // Mini Charts (Bar comparison)
+        drawMiniChart('chart_comp_share', usShare, themShare, true);
+        drawMiniChart('chart_comp_price', usPrice, themPrice, false);
+
+        // Detailed Table
+        const tableData = [['ASIN', 'Product', 'Brand', 'Price', 'Rank', 'Share']];
+        [...usData, ...themData].sort((a,b) => b.share - a.share).slice(0, 10).forEach(d => {
+            tableData.push([d.asin, d.product_title.substring(0,30)+'...', d.brand, d.price, d.rank, d.share]);
+        });
+
+        const data = google.visualization.arrayToDataTable(tableData);
+        const table = new google.visualization.Table(document.getElementById('table_comp_details'));
+        table.draw(data, {showRowNumber: true, width: '100%', height: '100%'});
+    }
+
+    function drawMiniChart(id, val1, val2, isPercent) {
+        const data = google.visualization.arrayToDataTable([
+            ['Brand', 'Value', {role:'style'}],
+            ['Us', val1, '#4285F4'],
+            ['Them', val2, '#EA4335']
+        ]);
+        const options = {
+            legend: 'none',
+            vAxis: { format: isPercent ? 'percent' : 'currency' },
+            chartArea: { width: '80%', height: '80%' }
+        };
+        const chart = new google.visualization.ColumnChart(document.getElementById(id));
+        chart.draw(data, options);
+    }
+
+</script>
+
+</body>
+</html>
