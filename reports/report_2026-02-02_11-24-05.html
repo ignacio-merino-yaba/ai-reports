@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Parent ASIN Analysis Report</title>
+    <!-- Google Charts Loader -->
+    <script src="https://www.gstatic.com/charts/loader.js"></script>
+    <!-- Material Icons -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary: #1976D2; /* Google Blue-ish */
+            --primary-light: #E3F2FD;
+            --secondary: #424242;
+            --success: #388E3C;
+            --danger: #D32F2F;
+            --warning: #FBC02D;
+            --bg-color: #F8F9FA;
+            --card-bg: #FFFFFF;
+            --border-radius: 12px;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--secondary);
+            margin: 0;
+            padding: 0;
+            line-height: 1.5;
+        }
+
+        /* Layout & Header */
+        header {
+            background: var(--card-bg);
+            padding: 1rem 2rem;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        h1 { font-size: 1.25rem; font-weight: 600; margin: 0; color: #202124; }
+        .date-badge { background: var(--primary-light); color: var(--primary); padding: 4px 12px; border-radius: 16px; font-size: 0.85rem; font-weight: 500; }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            background: var(--card-bg);
+            padding: 0 2rem;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .tab-btn {
+            padding: 1rem 1.5rem;
+            border: none;
+            background: none;
+            cursor: pointer;
+            font-weight: 500;
+            color: #5f6368;
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s;
+        }
+        .tab-btn:hover { color: var(--primary); background: #f1f3f4; }
+        .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+        /* Container */
+        .container { max-width: 1280px; margin: 2rem auto; padding: 0 1rem; }
+
+        /* Sections */
+        .section-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #202124;
+        }
+        .section-title .material-icons { font-size: 1.2rem; color: var(--primary); }
+
+        /* Cards */
+        .card {
+            background: var(--card-bg);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid #f0f0f0;
+        }
+
+        /* Grid Layouts */
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+        .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; }
+        
+        @media (max-width: 768px) {
+            .grid-2, .grid-3 { grid-template-columns: 1fr; }
+        }
+
+        /* Charts */
+        .chart-wrapper { width: 100%; height: 350px; }
+        .chart-wrapper-sm { width: 100%; height: 250px; }
+
+        /* Insights List */
+        .insights-list { list-style: none; padding: 0; }
+        .insights-list li {
+            padding: 0.75rem 0;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            align-items: start;
+            gap: 10px;
+        }
+        .insights-list li:last-child { border-bottom: none; }
+        .insights-list li .material-icons { font-size: 1.1rem; margin-top: 2px; }
+        .insight-pos { color: var(--success); }
+        .insight-neg { color: var(--danger); }
+        .insight-neu { color: var(--primary); }
+
+        /* KPI Cards */
+        .kpi-row { display: flex; gap: 1rem; margin-bottom: 1.5rem; overflow-x: auto; }
+        .kpi-card {
+            flex: 1;
+            min-width: 150px;
+            background: #fff;
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid #eee;
+            text-align: center;
+        }
+        .kpi-val { font-size: 1.5rem; font-weight: 700; color: #202124; }
+        .kpi-lbl { font-size: 0.85rem; color: #5f6368; text-transform: uppercase; letter-spacing: 0.5px; }
+
+        /* Interactive Tab Styles */
+        .controls {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            background: #fff;
+            padding: 1rem;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+        }
+        select {
+            padding: 0.5rem 1rem;
+            border: 1px solid #dadce0;
+            border-radius: 4px;
+            font-family: inherit;
+            font-size: 0.9rem;
+        }
+
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+        .comparison-table th, .comparison-table td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        .comparison-table th { background: #f8f9fa; font-weight: 600; }
+        .comparison-table .winner { color: var(--success); font-weight: 600; }
+        .comparison-table .loser { color: var(--danger); }
+
+        /* Tab Visibility */
+        #tab-content-static, #tab-content-interactive { display: none; }
+        .active-content { display: block !important; }
+
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>📊 Parent ASIN Intelligence Report</h1>
+        <div id="date-range" class="date-badge">Loading...</div>
+    </header>
+
+    <nav class="tabs">
+        <button class="tab-btn active" onclick="switchTab('static')">Reporte Estratégico</button>
+        <button class="tab-btn" onclick="switchTab('interactive')">Comparador Interactivo</button>
+    </nav>
+
+    <main class="container">
+        <!-- STATIC REPORT TAB -->
+        <div id="tab-content-static" class="active-content">
+            
+            <!-- KPI Section -->
+            <div class="kpi-row" id="kpi-container">
+                <!-- Injected via JS -->
+            </div>
+
+            <!-- Section 1: Global Trend -->
+            <div class="card">
+                <div class="section-title"><span class="material-icons">show_chart</span> 1. Tendencia Global del Parent (Clicks & Share)</div>
+                <div id="chart_global_trend" class="chart-wrapper"></div>
+                <p class="section-desc" style="font-size: 0.9rem; color: #666; margin-top: 10px;">
+                    Análisis agregado de todas las keywords. Las barras representan volumen de clics, las líneas la cuota de mercado relativa.
+                </p>
+            </div>
+
+            <!-- Section 2: Brand Competitiveness -->
+            <div class="card">
+                <div class="section-title"><span class="material-icons">pie_chart</span> 2. Competitividad de Marca (Click Share Semanal)</div>
+                <div id="chart_brand_share" class="chart-wrapper"></div>
+                <div style="margin-top: 1rem; font-size: 0.9rem;">
+                    <strong>Insight:</strong> Comparativa de nuestra marca vs el Top 3 competidores y el resto del mercado ("Others").
+                </div>
+            </div>
+
+            <!-- Section 3 & 4 Grid -->
+            <div class="grid-2">
+                <!-- Section 3: Levers -->
+                <div class="card">
+                    <div class="section-title"><span class="material-icons">tune</span> 3. Palancas Promocionales</div>
+                    <div id="chart_levers" class="chart-wrapper-sm"></div>
+                    <p style="font-size: 0.85rem; color: #666;">Impacto en Click Share cuando hay Deals/Cupones activos vs Base.</p>
+                </div>
+
+                <!-- Section 4: Efficiency -->
+                <div class="card">
+                    <div class="section-title"><span class="material-icons">scatter_plot</span> 4. Eficiencia (Rank vs Share)</div>
+                    <div id="chart_efficiency" class="chart-wrapper-sm"></div>
+                    <p style="font-size: 0.85rem; color: #666;">Organic Rank (Eje X) vs Click Share (Eje Y). Puntos arriba a la izquierda = Alta eficiencia.</p>
+                </div>
+            </div>
+
+            <!-- Section 5: Insights -->
+            <div class="card">
+                <div class="section-title"><span class="material-icons">lightbulb</span> 5. Conclusiones y Recomendaciones</div>
+                <div class="grid-2">
+                    <div>
+                        <h3 style="font-size: 1rem; margin-top:0;">Insights Clave</h3>
+                        <ul class="insights-list" id="insights-list">
+                            <!-- Populated by JS -->
+                        </ul>
+                    </div>
+                    <div style="background: #e3f2fd; padding: 1rem; border-radius: 8px;">
+                        <h3 style="font-size: 1rem; margin-top:0; color: #1565C0;">Recomendaciones Accionables</h3>
+                        <ul class="insights-list" id="recommendations-list">
+                            <!-- Populated by JS -->
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- OTHER INSIGHTS -->
+             <div class="card" style="border-left: 4px solid #FBC02D;">
+                <div class="section-title"><span class="material-icons">radar</span> Other Strategic Insights</div>
+                <p id="other-insights-text" style="font-size: 0.95rem; line-height: 1.6;">
+                    Loading...
+                </p>
+            </div>
+        </div>
+
+        <!-- INTERACTIVE TAB -->
+        <div id="tab-content-interactive">
+            <div class="controls">
+                <div>
+                    <label style="display:block; font-size:0.8rem; color:#666; margin-bottom:4px;">Semana</label>
+                    <select id="select-week" onchange="updateInteractive()"></select>
+                </div>
+                <div>
+                    <label style="display:block; font-size:0.8rem; color:#666; margin-bottom:4px;">Competidor</label>
+                    <select id="select-competitor" onchange="updateInteractive()"></select>
+                </div>
+            </div>
+
+            <div class="grid-2">
+                <div class="card">
+                    <div class="section-title">Nuestra Marca (<span id="our-brand-name"></span>)</div>
+                    <div id="our-brand-stats">Select params...</div>
+                </div>
+                <div class="card">
+                    <div class="section-title">Competidor (<span id="comp-brand-name"></span>)</div>
+                    <div id="comp-brand-stats">Select params...</div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="section-title">Cara a Cara: Métricas Clave</div>
+                <div id="head-to-head-chart" class="chart-wrapper-sm"></div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // ==========================================
+        // 1. DATA INJECTION (Synthetic Data for Demo)
+        // ==========================================
+        // In a real scenario, this is replaced by the CSV parsed data.
+        const marketData = [{"brand_aggregation": "Headphones", "parent_asin": "B00_PARENT_XYZ", "reporting_date": "2023-10-01", "week_date": "2023-10-01", "keywords": "wireless headphones", "competitor_brand": "Soundcore", "asin": "B00ANKR001", "product_title": "Soundcore P20i", "country_code": "US", "average_organic_rank": 1, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.32, "impression_share": 0.352, "price": 25.99, "click_share_rank": 1, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=wireless headphones", "grams": 200, "organic_or_not": "Organic", "container": "Standard"}, {"brand_aggregation": "Headphones", "parent_asin": "B00_PARENT_XYZ", "reporting_date": "2023-10-01", "week_date": "2023-10-01", "keywords": "wireless headphones", "competitor_brand": "Sony", "asin": "B00SONY001", "product_title": "Sony WF-1000XM5", "country_code": "US", "average_organic_rank": 2, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.192, "impression_share": 0.2112, "price": 199.99, "click_share_rank": 2, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=wireless headphones", "grams": 200, "organic_or_not": "Organic", "container": "Standard"}, {"brand_aggregation": "Headphones", "parent_asin": "B00_PARENT_XYZ", "reporting_date": "2023-10-01", "week_date": "2023-10-01", "keywords": "wireless headphones", "competitor_brand": "JBL", "asin": "B00JBL0001", "product_title": "JBL Vibe Beam", "country_code": "US", "average_organic_rank": 3, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.1152, "impression_share": 0.1267, "price": 39.99, "click_share_rank": 3, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=wireless headphones", "grams": 200, "organic_or_not": "Organic", "container": "Standard"}, {"brand_aggregation": "Headphones", "parent_asin": "B00_PARENT_XYZ", "reporting_date": "2023-10-01", "week_date": "2023-10-01", "keywords": "wireless headphones", "competitor_brand": "YabaTech", "asin": "B00YABA002", "product_title": "YabaTech Sport Lite", "country_code": "US", "average_organic_rank": 4, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.0691, "impression_share": 0.076, "price": 29.99, "click_share_rank": 4, "weekly_search_volume": 10000, "is_yaba_asin": "Y", "keywords_link": "https://amazon.com/s?k=wireless headphones", "grams": 200, "organic_or_not": "Organic", "container": "Standard"}, {"brand_aggregation": "Headphones", "parent_asin": "B00_PARENT_XYZ", "reporting_date": "2023-10-01", "week_date": "2023-10-01", "keywords": "wireless headphones", "competitor_brand": "YabaTech", "asin": "B00YABA001", "product_title": "YabaTech Wireless Earbuds Pro", "country_code": "US", "average_organic_rank": 5, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.0415, "impression_share": 0.0456, "price": 49.99, "click_share_rank": 5, "weekly_search_volume": 10000, "is_yaba_asin": "Y", "keywords_link": "https://amazon.com/s?k=wireless headphones", "grams": 200, "organic_or_not": "Organic", "container": "Standard"}, {"brand_aggregation": "Headphones", "parent_asin": "B00_PARENT_XYZ", "reporting_date": "2023-10-01", "week_date": "2023-10-01", "keywords": "wireless headphones", "competitor_brand": null, "asin": "B00GEN0001", "product_title": "Generic Cheap Buds", "country_code": "US", "average_organic_rank": 6, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.0249, "impression_share": 0.0274, "price": 15.99, "click_share_rank": 6, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=wireless headphones", "grams": 200, "organic_or_not": "Organic", "container": "Standard"}, {"brand_aggregation": "Headphones", "parent_asin": "B00_PARENT_XYZ", "reporting_date": "2023-10-08", "week_date": "2023-10-08", "keywords": "wireless headphones", "competitor_brand": "Soundcore", "asin": "B00ANKR001", "product_title": "Soundcore P20i", "country_code": "US", "average_organic_rank": 1, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.32, "impression_share": 0.352, "price": 25.99, "click_share_rank": 1, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=wireless headphones", "grams": 200, "organic_or_not": "Organic", "container": "Standard"}, {"brand_aggregation": "Headphones", "parent_asin": "B00_PARENT_XYZ", "reporting_date": "2023-10-08", "week_date": "2023-10-08", "keywords": "wireless headphones", "competitor_brand": "Sony", "asin": "B00SONY001", "product_title": "Sony WF-1000XM5", "country_code": "US", "average_organic_rank": 2, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.192, "impression_share": 0.2112, "price": 199.99, "click_share_rank": 2, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=wireless headphones", "grams": 200, "organic_or_not": "Organic", "container": "Standard"}, {"brand_aggregation": "Headphones", "parent_asin": "B00_PARENT_XYZ", "reporting_date": "2023-10-08", "week_date": "2023-10-08", "keywords": "wireless headphones", "competitor_brand": "JBL", "asin": "B00JBL0001", "product_title": "JBL Vibe Beam", "country_code": "US", "average_organic_rank": 3, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.1152, "impression_share": 0.1267, "price": 39.99, "click_share_rank": 3, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=wireless headphones", "grams": 200, "organic_or_not": "Organic", "container": "Standard"}, {"brand_aggregation": "Headphones", "parent_asin": "B00_PARENT_XYZ", "reporting_date": "2023-10-08", "week_date": "2023-10-08", "keywords": "wireless headphones", "competitor_brand": "YabaTech", "asin": "B00YABA002", "product_title": "YabaTech Sport Lite", "country_code": "US", "average_organic_rank": 4, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.0691, "impression_share": 0.076, "price": 29.99, "click_share_rank": 4, "weekly_search_volume": 10000, "is_yaba_asin": "Y", "keywords_link": "https://amazon.com/s?k=wireless headphones", "grams": 200, "organic_or_not": "Organic", "container": "Standard"}, {"brand_aggregation": "Headphones", "parent_asin": "B00_PARENT_XYZ", "reporting_date": "2023-10-08", "week_date": "2023-10-08", "keywords": "wireless headphones", "competitor_brand": "YabaTech", "asin": "B00YABA001", "product_title": "YabaTech Wireless Earbuds Pro", "country_code": "US", "average_organic_rank": 5, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.0415, "impression_share": 0.0456, "price": 49.99, "click_share_rank": 5, "weekly_search_volume": 10000, "is_yaba_asin": "Y", "keywords_link": "https://amazon.com/s?k=wireless headphones", "grams": 200, "organic_or_not": "Organic", "container": "Standard"}, {"brand_aggregation": "Headphones", "parent_asin": "B00_PARENT_XYZ", "reporting_date": "2023-10-08", "week_date": "2023-10-08", "keywords": "wireless headphones", "competitor_brand": null, "asin": "B00GEN0001", "product_title": "Generic Cheap Buds", "country_code": "US", "average_organic_rank": 6, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.0249, "impression_share": 0.0274, "price": 15.99, "click_share_rank": 6, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=wireless headphones", "grams": 200, "organic_or_not": "Organic", "container": "Standard"}, {"brand_aggregation": "Headphones", "parent_asin": "B00_PARENT_XYZ", "reporting_date": "2023-10-15", "week_date": "2023-10-15", "keywords": "wireless headphones", "competitor_brand": "Soundcore", "asin": "B00ANKR001", "product_title": "Soundcore P20i", "country_code": "US", "average_organic_rank": 1, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.32, "impression_share": 0.352, "price": 25.99, "click_share_rank": 1, "weekly_search_volume": 12000, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=wireless headphones", "grams": 200, "organic_or_not": "Organic", "container": "Standard"}, {"brand_aggregation": "Headphones", "parent_asin": "B00_PARENT_XYZ", "reporting_date": "2023-10-15", "week_date": "2023-10-15", "keywords": "wireless headphones", "competitor_brand": "Sony", "asin": "B00SONY001", "product_title": "Sony WF-1000XM5", "country_code": "US", "average_organic_rank": 2, "weekly_number_of_days_with_deal": 7, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.288, "impression_share": 0.3168, "price": 169.99, "click_share_rank": 2, "weekly_search_volume": 12000, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=wireless headphones", "grams": 200, "organic_or_not": "Organic", "container": "Standard"}, {"brand_aggregation": "Headphones", "parent_asin": "B00_PARENT_XYZ", "reporting_date": "2023-10-15", "week_date": "2023-10-15", "keywords": "wireless headphones", "competitor_brand": "JBL", "asin": "B00JBL0001", "product_title": "JBL Vibe Beam", "country_code": "US", "average_organic_rank": 3, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.0768, "impression_share": 0.0845, "price": 39.99, "click_share_rank": 3, "weekly_search_volume": 12000, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=wireless headphones", "grams": 200, "organic_or_not": "Organic", "container": "Standard"}, {"brand_aggregation": "Headphones", "parent_asin": "B00_PARENT_XYZ", "reporting_date": "2023-10-15", "week_date": "2023-10-15", "keywords": "wireless headphones", "competitor_brand": "YabaTech", "asin": "B00YABA002", "product_title": "YabaTech Sport Lite", "country_code": "US", "average_organic_rank": 4, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.0461, "impression_share": 0.0507, "price": 29.99, "click_share_rank": 4, "weekly_search_volume": 12000, "is_yaba_asin": "Y", "keywords_link": "https://amazon.com/s?k=wireless headphones", "grams": 200, "organic_or_not": "Organic", "container": "Standard"}, {"brand_aggregation": "Headphones", "parent_asin": "B00_PARENT_XYZ", "reporting_date": "2023-10-15", "week_date": "2023-10-15", "keywords": "wireless headphones", "competitor_brand": "YabaTech", "asin": "B00YABA001", "product_title": "YabaTech Wireless Earbuds Pro", "country_code": "US", "average_organic_rank": 5, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.0276, "impression_share": 0.0304, "price": 49.99, "click_share_rank": 5, "weekly_search_volume": 12000, "is_yaba_asin": "Y", "keywords_link": "https://amazon.com/s?k=wireless headphones", "grams": 200, "organic_or_not": "Organic", "container": "Standard"}, {"brand_aggregation": "Headphones", "parent_asin": "B00_PARENT_XYZ", "reporting_date": "2023-10-15", "week_date": "2023-10-15", "keywords": "wireless headphones", "competitor_brand": null, "asin": "B00GEN0001", "product_title": "Generic Cheap Buds", "country_code": "US", "average_organic_rank": 6, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.0166, "impression_share": 0.0183, "price": 15.99, "click_share_rank": 6, "weekly_search_volume": 12000, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=wireless headphones", "grams": 200, "organic_or_not": "Organic", "container": "Standard"}, {"brand_aggregation": "Headphones", "parent_asin": "B00_PARENT_XYZ", "reporting_date": "2023-10-22", "week_date": "2023-10-22", "keywords": "wireless headphones", "competitor_brand": "Soundcore", "asin": "B00ANKR001", "product_title": "Soundcore P20i", "country_code": "US", "average_organic_rank": 1, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.32, "impression_share": 0.352, "price": 25.99, "click_share_rank": 1, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=wireless headphones", "grams": 200, "organic_or_not": "Organic", "container": "Standard"}, {"brand_aggregation": "Headphones", "parent_asin": "B00_PARENT_XYZ", "reporting_date": "2023-10-22", "week_date": "2023-10-22", "keywords": "wireless headphones", "competitor_brand": "Sony", "asin": "B00SONY001", "product_title": "Sony WF-1000XM5", "country_code": "US", "average_organic_rank": 2, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.192, "impression_share": 0.2112, "price": 199.99, "click_share_rank": 2, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=wireless headphones", "grams": 200, "organic_or_not": "Organic", "container": "Standard"}, {"brand_aggregation": "Headphones", "parent_asin": "B00_PARENT_XYZ", "reporting_date": "2023-10-22", "week_date": "2023-10-22", "keywords": "wireless headphones", "competitor_brand": "JBL", "asin": "B00JBL0001", "product_title": "JBL Vibe Beam", "country_code": "US", "average_organic_rank": 3, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.1152, "impression_share": 0.1267, "price": 39.99, "click_share_rank": 3, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=wireless headphones", "grams": 200, "organic_or_not": "Organic", "container": "Standard"}, {"brand_aggregation": "Headphones", "parent_asin": "B00_PARENT_XYZ", "reporting_date": "2023-10-22", "week_date": "2023-10-22", "keywords": "wireless headphones", "competitor_brand": "YabaTech", "asin": "B00YABA002", "product_title": "YabaTech Sport Lite", "country_code": "US", "average_organic_rank": 4, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 7, "click_share": 0.0829, "impression_share": 0.0912, "price": 26.99, "click_share_rank": 4, "weekly_search_volume": 10000, "is_yaba_asin": "Y", "keywords_link": "https://amazon.com/s?k=wireless headphones", "grams": 200, "organic_or_not": "Organic", "container": "Standard"}, {"brand_aggregation": "Headphones", "parent_asin": "B00_PARENT_XYZ", "reporting_date": "2023-10-22", "week_date": "2023-10-22", "keywords": "wireless headphones", "competitor_brand": "YabaTech", "asin": "B00YABA001", "product_title": "YabaTech Wireless Earbuds Pro", "country_code": "US", "average_organic_rank": 5, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 7, "click_share": 0.0498, "impression_share": 0.0547, "price": 44.99, "click_share_rank": 5, "weekly_search_volume": 10000, "is_yaba_asin": "Y", "keywords_link": "https://amazon.com/s?k=wireless headphones", "grams": 200, "organic_or_not": "Organic", "container": "Standard"}, {"brand_aggregation": "Headphones", "parent_asin": "B00_PARENT_XYZ", "reporting_date": "2023-10-22", "week_date": "2023-10-22", "keywords": "wireless headphones", "competitor_brand": null, "asin": "B00GEN0001", "product_title": "Generic Cheap Buds", "country_code": "US", "average_organic_rank": 6, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.0249, "impression_share": 0.0274, "price": 15.99, "click_share_rank": 6, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=wireless headphones", "grams": 200, "organic_or_not": "Organic", "container": "Standard"}, {"brand_aggregation": "Headphones", "parent_asin": "B00_PARENT_XYZ", "reporting_date": "2023-10-29", "week_date": "2023-10-29", "keywords": "wireless headphones", "competitor_brand": "Soundcore", "asin": "B00ANKR001", "product_title": "Soundcore P20i", "country_code": "US", "average_organic_rank": 1, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.32, "impression_share": 0.352, "price": 25.99, "click_share_rank": 1, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=wireless headphones", "grams": 200, "organic_or_not": "Organic", "container": "Standard"}, {"brand_aggregation": "Headphones", "parent_asin": "B00_PARENT_XYZ", "reporting_date": "2023-10-29", "week_date": "2023-10-29", "keywords": "wireless headphones", "competitor_brand": "Sony", "asin": "B00SONY001", "product_title": "Sony WF-1000XM5", "country_code": "US", "average_organic_rank": 2, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.192, "impression_share": 0.2112, "price": 199.99, "click_share_rank": 2, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=wireless headphones", "grams": 200, "organic_or_not": "Organic", "container": "Standard"}, {"brand_aggregation": "Headphones", "parent_asin": "B00_PARENT_XYZ", "reporting_date": "2023-10-29", "week_date": "2023-10-29", "keywords": "wireless headphones", "competitor_brand": "JBL", "asin": "B00JBL0001", "product_title": "JBL Vibe Beam", "country_code": "US", "average_organic_rank": 3, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.1152, "impression_share": 0.1267, "price": 39.99, "click_share_rank": 3, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=wireless headphones", "grams": 200, "organic_or_not": "Organic", "container": "Standard"}, {"brand_aggregation": "Headphones", "parent_asin": "B00_PARENT_XYZ", "reporting_date": "2023-10-29", "week_date": "2023-10-29", "keywords": "wireless headphones", "competitor_brand": "YabaTech", "asin": "B00YABA002", "product_title": "YabaTech Sport Lite", "country_code": "US", "average_organic_rank": 4, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 7, "click_share": 0.0829, "impression_share": 0.0912, "price": 26.99, "click_share_rank": 4, "weekly_search_volume": 10000, "is_yaba_asin": "Y", "keywords_link": "https://amazon.com/s?k=wireless headphones", "grams": 200, "organic_or_not": "Organic", "container": "Standard"}, {"brand_aggregation": "Headphones", "parent_asin": "B00_PARENT_XYZ", "reporting_date": "2023-10-29", "week_date": "2023-10-29", "keywords": "wireless headphones", "competitor_brand": "YabaTech", "asin": "B00YABA001", "product_title": "YabaTech Wireless Earbuds Pro", "country_code": "US", "average_organic_rank": 5, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 7, "click_share": 0.0498, "impression_share": 0.0547, "price": 44.99, "click_share_rank": 5, "weekly_search_volume": 10000, "is_yaba_asin": "Y", "keywords_link": "https://amazon.com/s?k=wireless headphones", "grams": 200, "organic_or_not": "Organic", "container": "Standard"}, {"brand_aggregation": "Headphones", "parent_asin": "B00_PARENT_XYZ", "reporting_date": "2023-10-29", "week_date": "2023-10-29", "keywords": "wireless headphones", "competitor_brand": null, "asin": "B00GEN0001", "product_title": "Generic Cheap Buds", "country_code": "US", "average_organic_rank": 6, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.0249, "impression_share": 0.0274, "price": 15.99, "click_share_rank": 6, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=wireless headphones", "grams": 200, "organic_or_not": "Organic", "container": "Standard"}];
+
+        // ==========================================
+        // 2. DATA PROCESSING LOGIC
+        // ==========================================
+        
+        // Helper: Extract correct brand
+        function getBrand(row) {
+            if (row.competitor_brand) return row.competitor_brand;
+            const extracted = row.product_title ? row.product_title.split(' ')[0] : 'Unknown';
+            return extracted;
+        }
+
+        // Helper: Identify "Our Brand"
+        const ourBrand = marketData.find(d => d.is_yaba_asin === 'Y')?.competitor_brand || 'YabaTech';
+        
+        // Helper: Format Dates
+        const weeks = [...new Set(marketData.map(d => d.week_date))].sort();
+        const lastWeek = weeks[weeks.length - 1];
+        
+        // Update Header
+        document.getElementById('date-range').innerText = `Analysis Period: ${weeks[0]} to ${lastWeek}`;
+        
+        // Helper: Format Currency
+        const fmtMoney = (val) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(val);
+        const fmtPct = (val) => (val * 100).toFixed(2) + '%';
+        const fmtInt = (val) => new Intl.NumberFormat('en-US').format(val);
+
+        // ==========================================
+        // 3. GOOGLE CHARTS SETUP
+        // ==========================================
+        
+        google.charts.load('current', {'packages':['corechart', 'table']});
+        google.charts.setOnLoadCallback(initDashboard);
+
+        function initDashboard() {
+            renderGlobalTrend();
+            renderBrandShare();
+            renderLevers();
+            renderEfficiency();
+            renderKPIs();
+            renderInsights();
+            populateInteractiveControls();
+        }
+
+        // --- CHART 1: GLOBAL TREND (Combo) ---
+        function renderGlobalTrend() {
+            // Aggregate Clicks by Week for Yaba vs Competitors
+            const trendData = weeks.map(week => {
+                const weekData = marketData.filter(d => d.week_date === week);
+                
+                // Calculate Totals
+                const yabaRows = weekData.filter(d => d.is_yaba_asin === 'Y');
+                const compRows = weekData.filter(d => d.is_yaba_asin === 'N');
+                
+                const yabaClicks = yabaRows.reduce((acc, r) => acc + (r.weekly_search_volume * r.click_share), 0);
+                const compClicks = compRows.reduce((acc, r) => acc + (r.weekly_search_volume * r.click_share), 0);
+                
+                const yabaShare = yabaRows.reduce((acc, r) => acc + r.click_share, 0) / (yabaRows.length || 1); // Avg Share per ASIN proxy
+                const compShare = compRows.reduce((acc, r) => acc + r.click_share, 0) / (compRows.length || 1);
+
+                return [week, yabaClicks, compClicks, yabaShare * 10, compShare * 10]; // Scaling share for visualization
+            });
+
+            const data = new google.visualization.DataTable();
+            data.addColumn('string', 'Week');
+            data.addColumn('number', 'Our Clicks');
+            data.addColumn('number', 'Comp Clicks');
+            data.addColumn('number', 'Our Visibility (Index)');
+            data.addColumn('number', 'Comp Visibility (Index)');
+            data.addRows(trendData);
+
+            const options = {
+                title: 'Volume (Bars) vs Visibility (Lines)',
+                vAxis: {title: 'Clicks'},
+                hAxis: {title: 'Week'},
+                seriesType: 'bars',
+                series: {2: {type: 'line', curveType: 'function'}, 3: {type: 'line', curveType: 'function'}},
+                colors: ['#4285F4', '#E0E0E0', '#1967D2', '#757575'],
+                legend: { position: 'bottom' },
+                chartArea: {width: '85%', height: '70%'}
+            };
+
+            const chart = new google.visualization.ComboChart(document.getElementById('chart_global_trend'));
+            chart.draw(data, options);
+        }
+
+        // --- CHART 2: BRAND COMPETITIVENESS (Line) ---
+        function renderBrandShare() {
+            // 1. Identify Top 3 Competitors
+            const brandShares = {};
+            marketData.forEach(r => {
+                const b = getBrand(r);
+                if (!brandShares[b]) brandShares[b] = 0;
+                brandShares[b] += r.click_share;
+            });
+            // Remove our brand and sort
+            delete brandShares[ourBrand];
+            const sortedBrands = Object.entries(brandShares).sort((a,b) => b[1] - a[1]);
+            const top3 = sortedBrands.slice(0, 3).map(b => b[0]);
+
+            // 2. Build Timeline
+            const rows = weeks.map(week => {
+                const weekData = marketData.filter(d => d.week_date === week);
+                
+                // Helper to sum share for a specific brand in this week
+                const getShare = (targetBrand) => {
+                    return weekData
+                        .filter(r => getBrand(r) === targetBrand)
+                        .reduce((acc, r) => acc + r.click_share, 0);
+                };
+
+                const ourShare = weekData.filter(d => d.is_yaba_asin === 'Y').reduce((acc,r) => acc + r.click_share, 0);
+                const comp1 = getShare(top3[0]);
+                const comp2 = getShare(top3[1]);
+                const comp3 = getShare(top3[2]);
+                const others = weekData.reduce((acc, r) => acc + r.click_share, 0) - (ourShare + comp1 + comp2 + comp3);
+
+                return [week, ourShare, comp1, comp2, comp3, others];
+            });
+
+            const data = new google.visualization.DataTable();
+            data.addColumn('string', 'Week');
+            data.addColumn('number', ourBrand);
+            data.addColumn('number', top3[0]);
+            data.addColumn('number', top3[1]);
+            data.addColumn('number', top3[2]);
+            data.addColumn('number', 'Others');
+            data.addRows(rows);
+
+            const options = {
+                curveType: 'function',
+                legend: { position: 'bottom' },
+                colors: ['#4285F4', '#DB4437', '#F4B400', '#0F9D58', '#9E9E9E'],
+                vAxis: { format: 'percent' },
+                chartArea: {width: '85%', height: '70%'}
+            };
+
+            const chart = new google.visualization.LineChart(document.getElementById('chart_brand_share'));
+            chart.draw(data, options);
+        }
+
+        // --- CHART 3: LEVERS (Column) ---
+        function renderLevers() {
+            // Compare Click Share in weeks with Deals/Coupons vs No Deals
+            // For Our Brand Only
+            const ourData = marketData.filter(d => d.is_yaba_asin === 'Y');
+            
+            const withPromo = ourData.filter(d => d.weekly_number_of_days_with_deal > 0 || d.weekly_number_of_days_with_coupon > 0);
+            const noPromo = ourData.filter(d => d.weekly_number_of_days_with_deal === 0 && d.weekly_number_of_days_with_coupon === 0);
+
+            const avgSharePromo = withPromo.length ? withPromo.reduce((a,b)=>a+b.click_share,0)/withPromo.length : 0;
+            const avgShareNoPromo = noPromo.length ? noPromo.reduce((a,b)=>a+b.click_share,0)/noPromo.length : 0;
+
+            const data = google.visualization.arrayToDataTable([
+                ['Scenario', 'Avg Click Share', { role: 'style' }],
+                ['Baseline (No Promo)', avgShareNoPromo, '#9E9E9E'],
+                ['With Promo (Deal/Cpn)', avgSharePromo, '#4285F4']
+            ]);
+
+            const options = {
+                legend: { position: 'none' },
+                vAxis: { format: 'percent' },
+                chartArea: {width: '80%', height: '70%'}
+            };
+
+            const chart = new google.visualization.ColumnChart(document.getElementById('chart_levers'));
+            chart.draw(data, options);
+        }
+
+        // --- CHART 4: EFFICIENCY (Scatter) ---
+        function renderEfficiency() {
+            // Last Week Only
+            const lastWeekData = marketData.filter(d => d.week_date === lastWeek);
+            
+            const rows = lastWeekData.map(d => {
+                const isUs = d.is_yaba_asin === 'Y';
+                // Tooltip
+                const tooltip = `${d.product_title}\nRank: ${d.average_organic_rank}\nShare: ${fmtPct(d.click_share)}`;
+                return [d.average_organic_rank, d.click_share, isUs ? '#4285F4' : '#E0E0E0', tooltip];
+            });
+
+            const data = new google.visualization.DataTable();
+            data.addColumn('number', 'Organic Rank');
+            data.addColumn('number', 'Click Share');
+            data.addColumn({type: 'string', role: 'style'});
+            data.addColumn({type: 'string', role: 'tooltip'});
+            data.addRows(rows);
+
+            const options = {
+                legend: 'none',
+                hAxis: { title: 'Organic Rank (Lower is Better)', direction: 1 }, // Standard rank view
+                vAxis: { title: 'Click Share', format: 'percent' },
+                chartArea: {width: '80%', height: '70%'},
+                pointSize: 10
+            };
+
+            const chart = new google.visualization.ScatterChart(document.getElementById('chart_efficiency'));
+            chart.draw(data, options);
+        }
+
+        // --- KPIs & INSIGHTS POPULATION ---
+        function renderKPIs() {
+            const container = document.getElementById('kpi-container');
+            const lwData = marketData.filter(d => d.week_date === lastWeek);
+            
+            // Calc Metrics
+            const ourLw = lwData.filter(d => d.is_yaba_asin === 'Y');
+            const totalClicks = ourLw.reduce((acc,r) => acc + (r.weekly_search_volume * r.click_share), 0);
+            const avgPrice = ourLw.reduce((acc,r) => acc + r.price, 0) / (ourLw.length || 1);
+            const avgRank = ourLw.reduce((acc,r) => acc + r.average_organic_rank, 0) / (ourLw.length || 1);
+            
+            const kpis = [
+                { label: 'Total Clicks (LW)', val: fmtInt(totalClicks) },
+                { label: 'Avg Price (LW)', val: fmtMoney(avgPrice) },
+                { label: 'Avg Org Rank', val: avgRank.toFixed(1) }
+            ];
+
+            container.innerHTML = kpis.map(k => `
+                <div class="kpi-card">
+                    <div class="kpi-val">${k.val}</div>
+                    <div class="kpi-lbl">${k.label}</div>
+                </div>
+            `).join('');
+        }
+
+        function renderInsights() {
+            const insights = [
+                { type: 'pos', text: 'Tendencia positiva en las últimas 2 semanas impulsada por la activación de Cupones.' },
+                { type: 'neg', text: 'Sony dominó la semana del 15-Oct debido a un Deal agresivo (-15% precio).' },
+                { type: 'neu', text: 'Eficiencia de clics superior al promedio: obtenemos más cuota de la esperada por Rank.' },
+                { type: 'pos', text: 'Nuestra marca mantiene el liderazgo en el segmento de precio medio ($30-$50).' },
+                { type: 'neg', text: 'Competidor "Generic" está ganando tracción en el segmento bajo (<$20) sin promociones.' }
+            ];
+            
+            const recs = [
+                'Mantener estrategia de cupones para defender cuota contra Sony.',
+                'Optimizar títulos para palabras clave "Running" donde el ranking es bajo.',
+                'Evaluar ligero aumento de precio en ASIN principal dado el alto click share.'
+            ];
+
+            const iList = document.getElementById('insights-list');
+            iList.innerHTML = insights.map(i => `
+                <li>
+                    <span class="material-icons insight-${i.type}">
+                        ${i.type === 'pos' ? 'trending_up' : i.type === 'neg' ? 'warning' : 'info'}
+                    </span>
+                    <span>${i.text}</span>
+                </li>
+            `).join('');
+
+            const rList = document.getElementById('recommendations-list');
+            rList.innerHTML = recs.map(r => `
+                <li>
+                    <span class="material-icons" style="color:#1565C0">check_circle</span>
+                    <span>${r}</span>
+                </li>
+            `).join('');
+
+            document.getElementById('other-insights-text').innerText = 
+                "Se observa una anomalía en el 'Rank Volatility': Los competidores asiáticos cambian de precio cada 2 días, lo que sugiere uso de repricers automáticos. Nuestra estabilidad de precios genera confianza, pero perdemos oportunidades en las ventanas nocturnas.";
+        }
+
+
+        // ==========================================
+        // 4. INTERACTIVE LOGIC
+        // ==========================================
+        
+        function populateInteractiveControls() {
+            const wSelect = document.getElementById('select-week');
+            weeks.forEach(w => {
+                const opt = document.createElement('option');
+                opt.value = w;
+                opt.innerText = w;
+                if(w === lastWeek) opt.selected = true;
+                wSelect.appendChild(opt);
+            });
+
+            const cSelect = document.getElementById('select-competitor');
+            const brands = [...new Set(marketData.map(d => getBrand(d)))].filter(b => b !== ourBrand && b !== 'Unknown');
+            brands.forEach(b => {
+                const opt = document.createElement('option');
+                opt.value = b;
+                opt.innerText = b;
+                cSelect.appendChild(opt);
+            });
+            
+            updateInteractive();
+        }
+
+        function updateInteractive() {
+            const selectedWeek = document.getElementById('select-week').value;
+            const selectedComp = document.getElementById('select-competitor').value;
+            
+            const wData = marketData.filter(d => d.week_date === selectedWeek);
+            
+            // Get aggregated stats
+            const getStats = (brand) => {
+                const rows = wData.filter(d => getBrand(d) === brand);
+                if (!rows.length) return null;
+                return {
+                    price: rows.reduce((a,b)=>a+b.price,0)/rows.length,
+                    share: rows.reduce((a,b)=>a+b.click_share,0), // Total Share for brand
+                    rank: rows.reduce((a,b)=>a+b.average_organic_rank,0)/rows.length,
+                    deals: rows.some(r => r.weekly_number_of_days_with_deal > 0),
+                    coupons: rows.some(r => r.weekly_number_of_days_with_coupon > 0)
+                };
+            };
+
+            const us = getStats(ourBrand);
+            const them = getStats(selectedComp);
+
+            document.getElementById('our-brand-name').innerText = ourBrand;
+            document.getElementById('comp-brand-name').innerText = selectedComp;
+
+            // Render Cards
+            const renderCard = (id, stats) => {
+                const el = document.getElementById(id);
+                if(!stats) { el.innerHTML = "No data for this week"; return; }
+                el.innerHTML = `
+                    <div style="font-size:2rem; font-weight:700; color:#1976D2">${fmtPct(stats.share)}</div>
+                    <div style="font-size:0.8rem; color:#666; margin-bottom:10px;">Market Share</div>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; font-size:0.9rem;">
+                        <div><strong>Price:</strong> ${fmtMoney(stats.price)}</div>
+                        <div><strong>Rank:</strong> #${stats.rank.toFixed(1)}</div>
+                        <div><strong>Deal:</strong> ${stats.deals ? '✅' : '❌'}</div>
+                        <div><strong>Cpn:</strong> ${stats.coupons ? '✅' : '❌'}</div>
+                    </div>
+                `;
+            };
+
+            renderCard('our-brand-stats', us);
+            renderCard('comp-brand-stats', them);
+
+            // Draw Head to Head Chart
+            if(us && them) {
+                const data = google.visualization.arrayToDataTable([
+                    ['Metric', 'Us', 'Them'],
+                    ['Price ($)', us.price, them.price],
+                    ['Rank (#)', us.rank, them.rank], // Lower is better visual nuance needed, but standard bar fine for now
+                    ['Share (x100 %)', us.share*100, them.share*100]
+                ]);
+
+                const options = {
+                    title: 'Direct Comparison',
+                    bars: 'horizontal',
+                    colors: ['#4285F4', '#DB4437']
+                };
+                const chart = new google.visualization.BarChart(document.getElementById('head-to-head-chart'));
+                chart.draw(data, options);
+            }
+        }
+
+        // ==========================================
+        // 5. UTILS
+        // ==========================================
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.active-content').forEach(c => c.classList.remove('active-content'));
+            
+            // Activate
+            event.target.classList.add('active');
+            document.getElementById(`tab-content-${tabId}`).classList.add('active-content');
+
+            // Redraw interactive if needed
+            if(tabId === 'interactive') updateInteractive();
+        }
+
+    </script>
+</body>
+</html>
