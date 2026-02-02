@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Amazon Parent ASIN Intelligence Report</title>
+    
+    <!-- Google Fonts & Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    
+    <!-- Google Charts Loader -->
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+
+    <style>
+        :root {
+            --bg-color: #F5F5F7;
+            --card-bg: #FFFFFF;
+            --text-primary: #1D1D1F;
+            --text-secondary: #86868B;
+            --brand-color: #0071E3; /* Apple/Amazon Blue */
+            --accent-green: #34C759;
+            --accent-red: #FF3B30;
+            --border-radius: 16px;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            margin: 0;
+            padding: 20px;
+            line-height: 1.5;
+        }
+
+        /* Layout */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        h1 { font-weight: 600; font-size: 28px; margin-bottom: 8px; }
+        .subtitle { color: var(--text-secondary); font-size: 14px; }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 30px;
+            background: #E8E8ED;
+            padding: 4px;
+            border-radius: 99px;
+            width: fit-content;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        
+        .tab-btn {
+            padding: 10px 24px;
+            border: none;
+            background: transparent;
+            border-radius: 99px;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 14px;
+            color: var(--text-secondary);
+            transition: all 0.2s ease;
+        }
+
+        .tab-btn.active {
+            background: var(--card-bg);
+            color: var(--text-primary);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        /* Sections */
+        .dashboard-section { display: none; }
+        .dashboard-section.active { display: block; }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: var(--border-radius);
+            padding: 24px;
+            box-shadow: var(--shadow);
+            margin-bottom: 20px;
+        }
+
+        .card h2 {
+            font-size: 18px;
+            font-weight: 600;
+            margin-top: 0;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Charts */
+        .chart-container {
+            width: 100%;
+            height: 350px;
+        }
+
+        /* Insights List */
+        ul.insights-list {
+            padding-left: 20px;
+            margin: 0;
+        }
+        ul.insights-list li {
+            margin-bottom: 12px;
+            color: #333;
+        }
+        .highlight-positive { color: var(--accent-green); font-weight: 600; }
+        .highlight-negative { color: var(--accent-red); font-weight: 600; }
+
+        /* Table */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        .data-table th { text-align: left; color: var(--text-secondary); padding: 8px; border-bottom: 1px solid #eee; }
+        .data-table td { padding: 8px; border-bottom: 1px solid #eee; }
+
+        /* Controls */
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        select {
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+            font-family: 'Inter', sans-serif;
+        }
+
+        /* Badges */
+        .badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        .badge-our { background: #E1F0FF; color: #0071E3; }
+        .badge-comp { background: #F5F5F7; color: #666; }
+
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <h1>Market Intelligence: Parent ASIN Analysis</h1>
+            <div class="subtitle" id="report-meta">Loading data...</div>
+        </header>
+
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('static')">Strategic Report</button>
+            <button class="tab-btn" onclick="switchTab('interactive')">Interactive Comparator</button>
+        </div>
+
+        <!-- ================= STATIC REPORT TAB ================= -->
+        <div id="static" class="dashboard-section active">
+            
+            <!-- Section 1: Global Trend -->
+            <div class="card">
+                <h2><span class="material-icons">show_chart</span> 1. Global Trend (Clicks & Share)</h2>
+                <div id="trend_chart" class="chart-container"></div>
+                <div id="trend_insights" class="subtitle" style="margin-top:10px; font-style:italic;"></div>
+            </div>
+
+            <!-- Section 2: Competitiveness -->
+            <div class="card">
+                <h2><span class="material-icons">pie_chart</span> 2. Brand Competitiveness (Share of Voice)</h2>
+                <div id="comp_chart" class="chart-container"></div>
+                <p class="subtitle">Comparing Our Brand vs. Top 3 Competitors vs. Rest of Market</p>
+            </div>
+
+            <div class="grid-2">
+                <!-- Section 3: Levers -->
+                <div class="card">
+                    <h2><span class="material-icons">tune</span> 3. Growth Levers (Impact Analysis)</h2>
+                    <div id="levers_table"></div>
+                </div>
+
+                <!-- Section 4: Efficiency -->
+                <div class="card">
+                    <h2><span class="material-icons">scatter_plot</span> 4. Efficiency (Rank vs. Share)</h2>
+                    <div id="eff_chart" class="chart-container"></div>
+                    <p class="subtitle">Above line = Overperforming | Below line = Underperforming</p>
+                </div>
+            </div>
+
+            <!-- Section 5: Insights & Recommendations -->
+            <div class="grid-2">
+                <div class="card">
+                    <h2><span class="material-icons">lightbulb</span> 5. Key Insights</h2>
+                    <ul id="insights_list" class="insights-list"></ul>
+                </div>
+                <div class="card">
+                    <h2><span class="material-icons">task_alt</span> Recommendations</h2>
+                    <ul id="recommendations_list" class="insights-list"></ul>
+                </div>
+            </div>
+            
+            <!-- Section 6: Other -->
+            <div class="card">
+                <h2><span class="material-icons">info</span> Other Observations</h2>
+                <div id="other_insights">No significant anomalies detected in keyword patterns outside the main analysis.</div>
+            </div>
+        </div>
+
+        <!-- ================= INTERACTIVE TAB ================= -->
+        <div id="interactive" class="dashboard-section">
+            <div class="card">
+                <h2><span class="material-icons">compare_arrows</span> Head-to-Head Comparator</h2>
+                <div class="controls">
+                    <select id="comp_select" onchange="drawInteractiveChart()">
+                        <option value="">Select Competitor...</option>
+                    </select>
+                    <select id="metric_select" onchange="drawInteractiveChart()">
+                        <option value="price">Price Evolution</option>
+                        <option value="click_share">Click Share</option>
+                        <option value="average_organic_rank">Organic Rank</option>
+                    </select>
+                </div>
+                <div id="interactive_chart" class="chart-container"></div>
+            </div>
+        </div>
+
+    </div>
+
+    <script type="text/javascript">
+        // 1. DATA INJECTION (Synthetic Data based on Prompt Structure)
+        // In a real scenario, Python would inject the JSON string here.
+        const marketData = [{"week_date": "2023-10-01", "keywords": "wireless headphones", "competitor_brand": "SoundCore", "product_title": "SoundCore Premium wireless headphones", "is_yaba_asin": "N", "asin": "ASIN_Sou_349", "parent_asin": "PARENT_123", "weekly_search_volume": 6813, "click_share": 0.1345, "price": 49.38, "average_organic_rank": 19, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "grams": 500, "organic_or_not": "organic", "container": "box", "clicks": 916}, {"week_date": "2023-10-01", "keywords": "wireless headphones", "competitor_brand": "Sony", "product_title": "Sony Premium wireless headphones", "is_yaba_asin": "N", "asin": "ASIN_Son_912", "parent_asin": "PARENT_123", "weekly_search_volume": 6813, "click_share": 0.2223, "price": 118.67, "average_organic_rank": 16, "weekly_number_of_days_with_deal": 7, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "grams": 500, "organic_or_not": "organic", "container": "box", "clicks": 1514}, {"week_date": "2023-10-01", "keywords": "wireless headphones", "competitor_brand": "Bose", "product_title": "Bose Premium wireless headphones", "is_yaba_asin": "N", "asin": "ASIN_Bos_836", "parent_asin": "PARENT_123", "weekly_search_volume": 6813, "click_share": 0.2033, "price": 251.69, "average_organic_rank": 17, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "grams": 500, "organic_or_not": "organic", "container": "box", "clicks": 1385}, {"week_date": "2023-10-01", "keywords": "wireless headphones", "competitor_brand": "Unknown Brand", "product_title": "Unknown Brand Premium wireless headphones", "is_yaba_asin": "N", "asin": "ASIN_Unk_227", "parent_asin": "PARENT_123", "weekly_search_volume": 6813, "click_share": 0.0535, "price": 31.42, "average_organic_rank": 21, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "grams": 500, "organic_or_not": "organic", "container": "box", "clicks": 364}, {"week_date": "2023-10-01", "keywords": "wireless headphones", "competitor_brand": "OurBrand", "product_title": "OurBrand Premium wireless headphones", "is_yaba_asin": "Y", "asin": "ASIN_Our_720", "parent_asin": "PARENT_123", "weekly_search_volume": 6813, "click_share": 0.088, "price": 43.18, "average_organic_rank": 19, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7, "weekly_number_of_days_with_coupon": 0, "grams": 500, "organic_or_not": "organic", "container": "box", "clicks": 599}, {"week_date": "2023-10-01", "keywords": "bluetooth earbuds", "competitor_brand": "SoundCore", "product_title": "SoundCore Premium bluetooth earbuds", "is_yaba_asin": "N", "asin": "ASIN_Sou_342", "parent_asin": "PARENT_123", "weekly_search_volume": 12431, "click_share": 0.1691, "price": 48.43, "average_organic_rank": 18, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "grams": 500, "organic_or_not": "organic", "container": "box", "clicks": 2102}, {"week_date": "2023-10-01", "keywords": "bluetooth earbuds", "competitor_brand": "Sony", "product_title": "Sony Premium bluetooth earbuds", "is_yaba_asin": "N", "asin": "ASIN_Son_924", "parent_asin": "PARENT_123", "weekly_search_volume": 12431, "click_share": 0.2222, "price": 147.24, "average_organic_rank": 20, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "grams": 500, "organic_or_not": "organic", "container": "box", "clicks": 2762}, {"week_date": "2023-10-01", "keywords": "bluetooth earbuds", "competitor_brand": "Bose", "product_title": "Bose Premium bluetooth earbuds", "is_yaba_asin": "N", "asin": "ASIN_Bos_404", "parent_asin": "PARENT_123", "weekly_search_volume": 12431, "click_share": 0.1774, "price": 203.88, "average_organic_rank": 21, "weekly_number_of_days_with_deal": 7, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "grams": 500, "organic_or_not": "organic", "container": "box", "clicks": 2205}, {"week_date": "2023-10-01", "keywords": "bluetooth earbuds", "competitor_brand": "Unknown Brand", "product_title": "Unknown Brand Premium bluetooth earbuds", "is_yaba_asin": "N", "asin": "ASIN_Unk_957", "parent_asin": "PARENT_123", "weekly_search_volume": 12431, "click_share": 0.0526, "price": 29.83, "average_organic_rank": 22, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "grams": 500, "organic_or_not": "organic", "container": "box", "clicks": 653}, {"week_date": "2023-10-01", "keywords": "bluetooth earbuds", "competitor_brand": "OurBrand", "product_title": "OurBrand Premium bluetooth earbuds", "is_yaba_asin": "Y", "asin": "ASIN_Our_924", "parent_asin": "PARENT_123", "weekly_search_volume": 12431, "click_share": 0.1011, "price": 46.16, "average_organic_rank": 19, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7, "weekly_number_of_days_with_coupon": 0, "grams": 500, "organic_or_not": "organic", "container": "box", "clicks": 1256}, {"week_date": "2023-10-01", "keywords": "noise cancelling headphones", "competitor_brand": "SoundCore", "product_title": "SoundCore Premium noise cancelling headphones", "is_yaba_asin": "N", "asin": "ASIN_Sou_527", "parent_asin": "PARENT_123", "weekly_search_volume": 12629, "click_share": 0.1345, "price": 49.33, "average_organic_rank": 17, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "grams": 500, "organic_or_not": "organic", "container": "box", "clicks": 1698}, {"week_date": "2023-10-01", "keywords": "noise cancelling headphones", "competitor_brand": "Sony", "product_title": "Sony Premium noise cancelling headphones", "is_yaba_asin": "N", "asin": "ASIN_Son_975", "parent_asin": "PARENT_123", "weekly_search_volume": 12629, "click_share": 0.2223, "price": 144.33, "average_organic_rank": 19, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "grams": 500, "organic_or_not": "organic", "container": "box", "clicks": 2807}, {"week_date": "2023-10-01", "keywords": "noise cancelling headphones", "competitor_brand": "Bose", "product_title": "Bose Premium noise cancelling headphones", "is_yaba_asin": "N", "asin": "ASIN_Bos_492", "parent_asin": "PARENT_123", "weekly_search_volume": 12629, "click_share": 0.2319, "price": 242.04, "average_organic_rank": 17, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "grams": 500, "organic_or_not": "organic", "container": "box", "clicks": 2928}, {"week_date": "2023-10-01", "keywords": "noise cancelling headphones", "competitor_brand": "Unknown Brand", "product_title": "Unknown Brand Premium noise cancelling headphones", "is_yaba_asin": "N", "asin": "ASIN_Unk_950", "parent_asin": "PARENT_123", "weekly_search_volume": 12629, "click_share": 0.0468, "price": 31.06, "average_organic_rank": 20, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "grams": 500, "organic_or_not": "organic", "container": "box", "clicks": 591}, {"week_date": "2023-10-01", "keywords": "noise cancelling headphones", "competitor_brand": "OurBrand", "product_title": "OurBrand Premium noise cancelling headphones", "is_yaba_asin": "Y", "asin": "ASIN_Our_739", "parent_asin": "PARENT_123", "weekly_search_volume": 12629, "click_share": 0.1167, "price": 45.45, "average_organic_rank": 19, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "grams": 500, "organic_or_not": "organic", "container": "box", "clicks": 1473}, {"week_date": "2023-10-08", "keywords": "wireless headphones", "competitor_brand": "SoundCore", "product_title": "SoundCore Premium wireless headphones", "is_yaba_asin": "N", "asin": "ASIN_Sou_364", "parent_asin": "PARENT_123", "weekly_search_volume": 9481, "click_share": 0.1245, "price": 40.55, "average_organic_rank": 22, "weekly_number_of_days_with_deal": 7, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "grams": 500, "organic_or_not": "organic", "container": "box", "clicks": 1180}, {"week_date": "2023-10-08", "keywords": "wireless headphones", "competitor_brand": "Sony", "product_title": "Sony Premium wireless headphones", "is_yaba_asin": "N", "asin": "ASIN_Son_946", "parent_asin": "PARENT_123", "weekly_search_volume": 9481, "click_share": 0.2831, "price": 120.3, "average_organic_rank": 19, "weekly_number_of_days_with_deal": 7, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "grams": 500, "organic_or_not": "organic", "container": "box", "clicks": 2684}, {"week_date": "2023-10-08", "keywords": "wireless headphones", "competitor_brand": "Bose", "product_title": "Bose Premium wireless headphones", "is_yaba_asin": "N", "asin": "ASIN_Bos_962", "parent_asin": "PARENT_123", "weekly_search_volume": 9481, "click_share": 0.2312, "price": 208.57, "average_organic_rank": 16, "weekly_number_of_days_with_deal": 7, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "grams": 500, "organic_or_not": "organic", "container": "box", "clicks": 2192}, {"week_date": "2023-10-08", "keywords": "wireless headphones", "competitor_brand": "Unknown Brand", "product_title": "Unknown Brand Premium wireless headphones", "is_yaba_asin": "N", "asin": "ASIN_Unk_224", "parent_asin": "PARENT_123", "weekly_search_volume": 9481, "click_share": 0.0528, "price": 29.83, "average_organic_rank": 20, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "grams": 500, "organic_or_not": "organic", "container": "box", "clicks": 500}, {"week_date": "2023-10-08", "keywords": "wireless headphones", "competitor_brand": "OurBrand", "product_title": "OurBrand Premium wireless headphones", "is_yaba_asin": "Y", "asin": "ASIN_Our_364", "parent_asin": "PARENT_123", "weekly_search_volume": 9481, "click_share": 0.0898, "price": 45.42, "average_organic_rank": 21, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "grams": 500, "organic_or_not": "organic", "container": "box", "clicks": 851}, {"week_date": "2023-10-08", "keywords": "bluetooth earbuds", "competitor_brand": "SoundCore", "product_title": "SoundCore Premium bluetooth earbuds", "is_yaba_asin": "N", "asin": "ASIN_Sou_410", "parent_asin": "PARENT_123", "weekly_search_volume": 10565, "click_share": 0.1709, "price": 50.19, "average_organic_rank": 19, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "grams": 500, "organic_or_not": "organic", "container": "box", "clicks": 1805}, {"week_date": "2023-10-08", "keywords": "bluetooth earbuds", "competitor_brand": "Sony", "product_title": "Sony Premium bluetooth earbuds", "is_yaba_asin": "N", "asin": "ASIN_Son_702", "parent_asin": "PARENT_123", "weekly_search_volume": 10565, "click_share": 0.2709, "price": 150.39, "average_organic_rank": 16, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "grams": 500, "organic_or_not": "organic", "container": "box", "clicks": 2862}, {"week_date": "2023-10-08", "keywords": "bluetooth earbuds", "competitor_brand": "Bose", "product_title": "Bose Premium bluetooth earbuds", "is_yaba_asin": "N", "asin": "ASIN_Bos_899", "parent_asin": "PARENT_123", "weekly_search_volume": 10565, "click_share": 0.1869, "price": 240.24, "average_organic_rank": 17, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "grams": 500, "organic_or_not": "organic", "container": "box", "clicks": 1974}, {"week_date": "2023-10-08", "keywords": "bluetooth earbuds", "competitor_brand": "Unknown Brand", "product_title": "Unknown Brand Premium bluetooth earbuds", "is_yaba_asin": "N", "asin": "ASIN_Unk_950", "parent_asin": "PARENT_123", "weekly_search_volume": 10565, "click_share": 0.0532, "price": 30.68, "average_organic_rank": 20, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "grams": 500, "organic_or_not": "organic", "container": "box", "clicks": 562}, {"week_date": "2023-10-08", "keywords": "bluetooth earbuds", "competitor_brand": "OurBrand", "product_title": "OurBrand Premium bluetooth earbuds", "is_yaba_asin": "Y", "asin": "ASIN_Our_780", "parent_asin": "PARENT_123", "weekly_search_volume": 10565, "click_share": 0.1068, "price": 45.41, "average_organic_rank": 19, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7, "weekly_number_of_days_with_coupon": 0, "grams": 500, "organic_or_not": "organic", "container": "box", "clicks": 1128}, {"week_date": "2023-10-08", "keywords": "noise cancelling headphones", "competitor_brand": "SoundCore", "product_title": "SoundCore Premium noise cancelling headphones", "is_yaba_asin": "N", "asin": "ASIN_Sou_524", "parent_asin": "PARENT_123", "weekly_search_volume": 8516, "click_share": 0.1878, "price": 38.83, "average_organic_rank": 18, "weekly_number_of_days_with_deal": 7, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "grams": 500, "organic_or_not": "organic", "container": "box", "clicks": 1599}, {"week_date": "2023-10-08", "keywords": "noise cancelling headphones", "competitor_brand": "Sony", "product_title": "Sony Premium noise cancelling headphones", "is_yaba_asin": "N", "asin": "ASIN_Son_935", "parent_asin": "PARENT_123", "weekly_search_volume": 8516, "click_share": 0.2312, "price": 147.16, "average_organic_rank": 17, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "grams": 500, "organic_or_not": "organic", "container": "box", "clicks": 1968}, {"week_date": "2023-10-08", "keywords": "noise cancelling headphones", "competitor_brand": "Bose", "product_title": "Bose Premium noise cancelling headphones", "is_yaba_asin": "N", "asin": "ASIN_Bos_987", "parent_asin": "PARENT_123", "weekly_search_volume": 8516, "click_share": 0.1983, "price": 257.73, "average_organic_rank": 19, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "grams": 500, "organic_or_not": "organic", "container": "box", "clicks": 1688}, {"week_date": "2023-10-08", "keywords": "noise cancelling headphones", "competitor_brand": "Unknown Brand", "product_title": "Unknown Brand Premium noise cancelling headphones", "is_yaba_asin": "N", "asin": "ASIN_Unk_258", "parent_asin": "PARENT_123", "weekly_search_volume": 8516, "click_share": 0.0544, "price": 31.42, "average_organic_rank": 20, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "grams": 500, "organic_or_not": "organic", "container": "box", "clicks": 463}, {"week_date": "2023-10-08", "keywords": "noise cancelling headphones", "competitor_brand": "OurBrand", "product_title": "OurBrand Premium noise cancelling headphones", "is_yaba_asin": "Y", "asin": "ASIN_Our_739", "parent_asin": "PARENT_123", "weekly_search_volume": 8516, "click_share": 0.1264, "price": 37.13, "average_organic_rank": 19, "weekly_number_of_days_with_deal": 7, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "grams": 500, "organic_or_not": "organic", "container": "box", "clicks": 1076}, {"week_date": "2023-10-15", "keywords": "wireless headphones", "competitor_brand": "SoundCore", "product_title": "SoundCore Premium wireless headphones", "is_yaba_asin": "N", "asin": "ASIN_Sou_333", "parent_asin": "PARENT_123", "weekly_search_volume": 14781, "click_share": 0.1479, "price": 50.05, "average_organic_rank": 18, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "grams": 500, "organic_or_not": "organic", "container": "box", "clicks": 2186}, {"week_date": "2023-10-15", "keywords": "wireless headphones", "competitor_brand": "Sony", "product_title": "Sony Premium wireless headphones", "is_yaba_asin": "N", "asin": "ASIN_Son_709", "parent_asin": "PARENT_123", "weekly_search_volume": 14781, "click_share": 0.2505, "price": 119.5, "average_organic_rank": 16, "weekly_number_of_days_with_deal": 7, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "grams": 500, "organic_or_not": "organic", "container": "box", "clicks": 3702}, {"week_date": "2023-10-15", "keywords": "wireless headphones", "competitor_brand": "Bose", "product_title": "Bose Premium wireless headphones", "is_yaba_asin": "N", "asin": "ASIN_Bos_887", "parent_asin": "PARENT_123", "weekly_search_volume": 14781, "click_share": 0.231, "price": 204.66, "average_organic_rank": 17, "weekly_number_of_days_with_deal": 7, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "grams": 500, "organic_or_not": "organic", "container": "box", "clicks": 3414}, {"week_date": "2023-10-15", "keywords": "wireless headphones", "competitor_brand": "Unknown Brand", "product_title": "Unknown Brand Premium wireless headphones", "is_yaba_asin": "N", "asin": "ASIN_Unk_950", "parent_asin": "PARENT_123", "weekly_search_volume": 14781, "click_share": 0.052, "price": 28.52, "average_organic_rank": 23, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "grams": 500, "organic_or_not": "organic", "container": "box", "clicks": 768}, {"week_date": "2023-10-15", "keywords": "wireless headphones", "competitor_brand": "OurBrand", "product_title": "OurBrand Premium wireless headphones", "is_yaba_asin": "Y", "asin": "ASIN_Our_976", "parent_asin": "PARENT_123", "weekly_search_volume": 14781, "click_share": 0.0965, "price": 45.47, "average_organic_rank": 20, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "grams": 500, "organic_or_not": "organic", "container": "box", "clicks": 1426}, {"week_date": "2023-10-15", "keywords": "bluetooth earbuds", "competitor_brand": "SoundCore", "product_title": "SoundCore Premium bluetooth earbuds", "is_yaba_asin": "N", "asin": "ASIN_Sou_349", "parent_asin": "PARENT_123", "weekly_search_volume": 12435, "click_share": 0.1764, "price": 48.06, "average_organic_rank": 20, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "grams": 500, "organic_or_not": "organic", "container": "box", "clicks": 2193}, {"week_date": "2023-10-15", "keywords": "bluetooth earbuds", "competitor_brand": "Sony", "product_title": "Sony Premium bluetooth earbuds", "is_yaba_asin": "N", "asin": "ASIN_Son_935", "parent_asin": "PARENT_123", "weekly_search_volume": 12435, "click_share": 0.2783, "price": 146.36, "average_organic_rank": 15, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "grams": 500, "organic_or_not": "organic", "container": "box", "clicks": 3460}, {"week_date": "2023-10-15", "keywords": "bluetooth earbuds", "competitor_brand": "Bose", "product_title": "Bose Premium bluetooth earbuds", "is_yaba_asin": "N", "asin": "ASIN_Bos_976", "parent_asin": "PARENT_123", "weekly_search_volume": 12435, "click_share": 0.222, "price": 260.67, "average_organic_rank": 19, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "grams": 500, "organic_or_not": "organic", "container": "box", "clicks": 2760}, {"week_date": "2023-10-15", "keywords": "bluetooth earbuds", "competitor_brand": "Unknown Brand", "product_title": "Unknown Brand Premium bluetooth earbuds", "is_yaba_asin": "N", "asin": "ASIN_Unk_950", "parent_asin": "PARENT_123", "weekly_search_volume": 12435, "click_share": 0.0463, "price": 28.52, "average_organic_rank": 20, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "grams": 500, "organic_or_not": "organic", "container": "box", "clicks": 575}, {"week_date": "2023-10-15", "keywords": "bluetooth earbuds", "competitor_brand": "OurBrand", "product_title": "OurBrand Premium bluetooth earbuds", "is_yaba_asin": "Y", "asin": "ASIN_Our_739", "parent_asin": "PARENT_123", "weekly_search_volume": 12435, "click_share": 0.1119, "price": 43.19, "average_organic_rank": 20, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "grams": 500, "organic_or_not": "organic", "container": "box", "clicks": 1391}, {"week_date": "2023-10-15", "keywords": "noise cancelling headphones", "competitor_brand": "SoundCore", "product_title": "SoundCore Premium noise cancelling headphones", "is_yaba_asin": "N", "asin": "ASIN_Sou_492", "parent_asin": "PARENT_123", "weekly_search_volume": 8415, "click_share": 0.134, "price": 38.07, "average_organic_rank": 17, "weekly_number_of_days_with_deal": 7, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "grams": 500, "organic_or_not": "organic", "container": "box", "clicks": 1127}, {"week_date": "2023-10-15", "keywords": "noise cancelling headphones", "competitor_brand": "Sony", "product_title": "Sony Premium noise cancelling headphones", "is_yaba_asin": "N", "asin": "ASIN_Son_946", "parent_asin": "PARENT_123", "weekly_search_volume": 8415, "click_share": 0.2223, "price": 149.02, "average_organic_rank": 16, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "grams": 500, "organic_or_not": "organic", "container": "box", "clicks": 1870}, {"week_date": "2023-10-15", "keywords": "noise cancelling headphones", "competitor_brand": "Bose", "product_title": "Bose Premium noise cancelling headphones", "is_yaba_asin": "N", "asin": "ASIN_Bos_899", "parent_asin": "PARENT_123", "weekly_search_volume": 8415, "click_share": 0.2199, "price": 204.0, "average_organic_rank": 18, "weekly_number_of_days_with_deal": 7, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "grams": 500, "organic_or_not": "organic", "container": "box", "clicks": 1850}, {"week_date": "2023-10-15", "keywords": "noise cancelling headphones", "competitor_brand": "Unknown Brand", "product_title": "Unknown Brand Premium noise cancelling headphones", "is_yaba_asin": "N", "asin": "ASIN_Unk_957", "parent_asin": "PARENT_123", "weekly_search_volume": 8415, "click_share": 0.0535, "price": 31.07, "average_organic_rank": 21, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "grams": 500, "organic_or_not": "organic", "container": "box", "clicks": 450}, {"week_date": "2023-10-15", "keywords": "noise cancelling headphones", "competitor_brand": "OurBrand", "product_title": "OurBrand Premium noise cancelling headphones", "is_yaba_asin": "Y", "asin": "ASIN_Our_739", "parent_asin": "PARENT_123", "weekly_search_volume": 8415, "click_share": 0.0888, "price": 43.13, "average_organic_rank": 22, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "grams": 500, "organic_or_not": "organic", "container": "box", "clicks": 747}, {"week_date": "2023-10-22", "keywords": "wireless headphones", "competitor_brand": "SoundCore", "product_title": "SoundCore Premium wireless headphones", "is_yaba_asin": "N", "asin": "ASIN_Sou_342", "parent_asin": "PARENT_123", "weekly_search_volume": 7617, "click_share": 0.1342, "price": 40.73, "average_organic_rank": 19, "weekly_number_of_days_with_deal": 7, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "grams": 500, "organic_or_not": "organic", "container": "box", "clicks": 1022}, {"week_date": "2023-10-22", "keywords": "wireless headphones", "competitor_brand": "Sony", "product_title": "Sony Premium wireless headphones", "is_yaba_asin": "N", "asin": "ASIN_Son_946", "parent_asin": "PARENT_123", "weekly_search_volume": 7617, "click_share": 0.2312, "price": 147.16, "average_organic_rank": 16, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "grams": 500, "organic_or_not": "organic", "container": "box", "clicks": 1761}, {"week_date": "2023-10-22", "keywords": "wireless headphones", "competitor_brand": "Bose", "product_title": "Bose Premium wireless headphones", "is_yaba_asin": "N", "asin": "ASIN_Bos_976", "parent_asin": "PARENT_123", "weekly_search_volume": 7617, "click_share": 0.2435, "price": 242.02, "average_organic_rank": 17, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "grams": 500, "organic_or_not": "organic", "container": "box", "clicks": 1854}, {"week_date": "2023-10-22", "keywords": "wireless headphones", "competitor_brand": "Unknown Brand", "product_title": "Unknown Brand Premium wireless headphones", "is_yaba_asin": "N", "asin": "ASIN_Unk_950", "parent_asin": "PARENT_123", "weekly_search_volume": 7617, "click_share": 0.0573, "price": 30.68, "average_organic_rank": 21, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "grams": 500, "organic_or_not": "organic", "container": "box", "clicks": 436}, {"week_date": "2023-10-22", "keywords": "wireless headphones", "competitor_brand": "OurBrand", "product_title": "OurBrand Premium wireless headphones", "is_yaba_asin": "Y", "asin": "ASIN_Our_739", "parent_asin": "PARENT_123", "weekly_search_volume": 7617, "click_share": 0.1118, "price": 45.42, "average_organic_rank": 19, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7, "weekly_number_of_days_with_coupon": 0, "grams": 500, "organic_or_not": "organic", "container": "box", "clicks": 851}, {"week_date": "2023-10-22", "keywords": "bluetooth earbuds", "competitor_brand": "SoundCore", "product_title": "SoundCore Premium bluetooth earbuds", "is_yaba_asin": "N", "asin": "ASIN_Sou_333", "parent_asin": "PARENT_123", "weekly_search_volume": 5792, "click_share": 0.1772, "price": 49.69, "average_organic_rank": 17, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "grams": 500, "organic_or_not": "organic", "container": "box", "clicks": 1026}, {"week_date": "2023-10-22", "keywords": "bluetooth earbuds", "competitor_brand": "Sony", "product_title": "Sony Premium bluetooth earbuds", "is_yaba_asin": "N", "asin": "ASIN_Son_912", "parent_asin": "PARENT_123", "weekly_search_volume": 5792, "click_share": 0.287, "price": 147.74, "average_organic_rank": 16, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "grams": 500, "organic_or_not": "organic", "container": "box", "clicks": 1662}, {"week_date": "2023-10-22", "keywords": "bluetooth earbuds", "competitor_brand": "Bose", "product_title": "Bose Premium bluetooth earbuds", "is_yaba_asin": "N", "asin": "ASIN_Bos_899", "parent_asin": "PARENT_123", "weekly_search_volume": 5792, "click_share": 0.2073, "price": 260.67, "average_organic_rank": 19, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "grams": 500, "organic_or_not": "organic", "container": "box", "clicks": 1200}, {"week_date": "2023-10-22", "keywords": "bluetooth earbuds", "competitor_brand": "Unknown Brand", "product_title": "Unknown Brand Premium bluetooth earbuds", "is_yaba_asin": "N", "asin": "ASIN_Unk_224", "parent_asin": "PARENT_123", "weekly_search_volume": 5792, "click_share": 0.0461, "price": 31.42, "average_organic_rank": 20, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "grams": 500, "organic_or_not": "organic", "container": "box", "clicks": 267}, {"week_date": "2023-10-22", "keywords": "bluetooth earbuds", "competitor_brand": "OurBrand", "product_title": "OurBrand Premium bluetooth earbuds", "is_yaba_asin": "Y", "asin": "ASIN_Our_924", "parent_asin": "PARENT_123", "weekly_search_volume": 5792, "click_share": 0.1171, "price": 45.45, "average_organic_rank": 20, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "grams": 500, "organic_or_not": "organic", "container": "box", "clicks": 678}, {"week_date": "2023-10-22", "keywords": "noise cancelling headphones", "competitor_brand": "SoundCore", "product_title": "SoundCore Premium noise cancelling headphones", "is_yaba_asin": "N", "asin": "ASIN_Sou_364", "parent_asin": "PARENT_123", "weekly_search_volume": 8527, "click_share": 0.165, "price": 50.19, "average_organic_rank": 19, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "grams": 500, "organic_or_not": "organic", "container": "box", "clicks": 1406}, {"week_date": "2023-10-22", "keywords": "noise cancelling headphones", "competitor_brand": "Sony", "product_title": "Sony Premium noise cancelling headphones", "is_yaba_asin": "N", "asin": "ASIN_Son_975", "parent_asin": "PARENT_123", "weekly_search_volume": 8527, "click_share": 0.2223, "price": 146.43, "average_organic_rank": 19, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "grams": 500, "organic_or_not": "organic", "container": "box", "clicks": 1895}, {"week_date": "2023-10-22", "keywords": "noise cancelling headphones", "competitor_brand": "Bose", "product_title": "Bose Premium noise cancelling headphones", "is_yaba_asin": "N", "asin": "ASIN_Bos_976", "parent_asin": "PARENT_123", "weekly_search_volume": 8527, "click_share": 0.2443, "price": 242.02, "average_organic_rank": 17, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "grams": 500, "organic_or_not": "organic", "container": "box", "clicks": 2083}, {"week_date": "2023-10-22", "keywords": "noise cancelling headphones", "competitor_brand": "Unknown Brand", "product_title": "Unknown Brand Premium noise cancelling headphones", "is_yaba_asin": "N", "asin": "ASIN_Unk_950", "parent_asin": "PARENT_123", "weekly_search_volume": 8527, "click_share": 0.0526, "price": 29.83, "average_organic_rank": 20, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "grams": 500, "organic_or_not": "organic", "container": "box", "clicks": 448}, {"week_date": "2023-10-22", "keywords": "noise cancelling headphones", "competitor_brand": "OurBrand", "product_title": "OurBrand Premium noise cancelling headphones", "is_yaba_asin": "Y", "asin": "ASIN_Our_924", "parent_asin": "PARENT_123", "weekly_search_volume": 8527, "click_share": 0.0982, "price": 45.41, "average_organic_rank": 20, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "grams": 500, "organic_or_not": "organic", "container": "box", "clicks": 837}, {"week_date": "2023-10-29", "keywords": "wireless headphones", "competitor_brand": "SoundCore", "product_title": "SoundCore Premium wireless headphones", "is_yaba_asin": "N", "asin": "ASIN_Sou_349", "parent_asin": "PARENT_123", "weekly_search_volume": 12101, "click_share": 0.1477, "price": 49.38, "average_organic_rank": 19, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "grams": 500, "organic_or_not": "organic", "container": "box", "clicks": 1787}, {"week_date": "2023-10-29", "keywords": "wireless headphones", "competitor_brand": "Sony", "product_title": "Sony Premium wireless headphones", "is_yaba_asin": "N", "asin": "ASIN_Son_912", "parent_asin": "PARENT_123", "weekly_search_volume": 12101, "click_share": 0.2838, "price": 121.71, "average_organic_rank": 18, "weekly_number_of_days_with_deal": 7, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "grams": 500, "organic_or_not": "organic", "container": "box", "clicks": 3434}, {"week_date": "2023-10-29", "keywords": "wireless headphones", "competitor_brand": "Bose", "product_title": "Bose Premium wireless headphones", "is_yaba_asin": "N", "asin": "ASIN_Bos_976", "parent_asin": "PARENT_123", "weekly_search_volume": 12101, "click_share": 0.2079, "price": 208.57, "average_organic_rank": 19, "weekly_number_of_days_with_deal": 7, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "grams": 500, "organic_or_not": "organic", "container": "box", "clicks": 2515}, {"week_date": "2023-10-29", "keywords": "wireless headphones", "competitor_brand": "Unknown Brand", "product_title": "Unknown Brand Premium wireless headphones", "is_yaba_asin": "N", "asin": "ASIN_Unk_957", "parent_asin": "PARENT_123", "weekly_search_volume": 12101, "click_share": 0.0531, "price": 31.06, "average_organic_rank": 21, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "grams": 500, "organic_or_not": "organic", "container": "box", "clicks": 642}, {"week_date": "2023-10-29", "keywords": "wireless headphones", "competitor_brand": "OurBrand", "product_title": "OurBrand Premium wireless headphones", "is_yaba_asin": "Y", "asin": "ASIN_Our_924", "parent_asin": "PARENT_123", "weekly_search_volume": 12101, "click_share": 0.1228, "price": 37.13, "average_organic_rank": 16, "weekly_number_of_days_with_deal": 7, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "grams": 500, "organic_or_not": "organic", "container": "box", "clicks": 1485}, {"week_date": "2023-10-29", "keywords": "bluetooth earbuds", "competitor_brand": "SoundCore", "product_title": "SoundCore Premium bluetooth earbuds", "is_yaba_asin": "N", "asin": "ASIN_Sou_333", "parent_asin": "PARENT_123", "weekly_search_volume": 6128, "click_share": 0.1345, "price": 49.69, "average_organic_rank": 18, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "grams": 500, "organic_or_not": "organic", "container": "box", "clicks": 824}, {"week_date": "2023-10-29", "keywords": "bluetooth earbuds", "competitor_brand": "Sony", "product_title": "Sony Premium bluetooth earbuds", "is_yaba_asin": "N", "asin": "ASIN_Son_935", "parent_asin": "PARENT_123", "weekly_search_volume": 6128, "click_share": 0.2312, "price": 146.43, "average_organic_rank": 20, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "grams": 500, "organic_or_not": "organic", "container": "box", "clicks": 1416}, {"week_date": "2023-10-29", "keywords": "bluetooth earbuds", "competitor_brand": "Bose", "product_title": "Bose Premium bluetooth earbuds", "is_yaba_asin": "N", "asin": "ASIN_Bos_492", "parent_asin": "PARENT_123", "weekly_search_volume": 6128, "click_share": 0.2081, "price": 242.02, "average_organic_rank": 19, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "grams": 500, "organic_or_not": "organic", "container": "box", "clicks": 1275}, {"week_date": "2023-10-29", "keywords": "bluetooth earbuds", "competitor_brand": "Unknown Brand", "product_title": "Unknown Brand Premium bluetooth earbuds", "is_yaba_asin": "N", "asin": "ASIN_Unk_950", "parent_asin": "PARENT_123", "weekly_search_volume": 6128, "click_share": 0.0526, "price": 31.07, "average_organic_rank": 20, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "grams": 500, "organic_or_not": "organic", "container": "box", "clicks": 322}, {"week_date": "2023-10-29", "keywords": "bluetooth earbuds", "competitor_brand": "OurBrand", "product_title": "OurBrand Premium bluetooth earbuds", "is_yaba_asin": "Y", "asin": "ASIN_Our_739", "parent_asin": "PARENT_123", "weekly_search_volume": 6128, "click_share": 0.1264, "price": 38.03, "average_organic_rank": 16, "weekly_number_of_days_with_deal": 7, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "grams": 500, "organic_or_not": "organic", "container": "box", "clicks": 774}, {"week_date": "2023-10-29", "keywords": "noise cancelling headphones", "competitor_brand": "SoundCore", "product_title": "SoundCore Premium noise cancelling headphones", "is_yaba_asin": "N", "asin": "ASIN_Sou_349", "parent_asin": "PARENT_123", "weekly_search_volume": 8130, "click_share": 0.1345, "price": 48.06, "average_organic_rank": 18, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "grams": 500, "organic_or_not": "organic", "container": "box", "clicks": 1093}, {"week_date": "2023-10-29", "keywords": "noise cancelling headphones", "competitor_brand": "Sony", "product_title": "Sony Premium noise cancelling headphones", "is_yaba_asin": "N", "asin": "ASIN_Son_912", "parent_asin": "PARENT_123", "weekly_search_volume": 8130, "click_share": 0.2783, "price": 149.02, "average_organic_rank": 17, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "grams": 500, "organic_or_not": "organic", "container": "box", "clicks": 2262}, {"week_date": "2023-10-29", "keywords": "noise cancelling headphones", "competitor_brand": "Bose", "product_title": "Bose Premium noise cancelling headphones", "is_yaba_asin": "N", "asin": "ASIN_Bos_962", "parent_asin": "PARENT_123", "weekly_search_volume": 8130, "click_share": 0.1997, "price": 257.73, "average_organic_rank": 17, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "grams": 500, "organic_or_not": "organic", "container": "box", "clicks": 1623}, {"week_date": "2023-10-29", "keywords": "noise cancelling headphones", "competitor_brand": "Unknown Brand", "product_title": "Unknown Brand Premium noise cancelling headphones", "is_yaba_asin": "N", "asin": "ASIN_Unk_950", "parent_asin": "PARENT_123", "weekly_search_volume": 8130, "click_share": 0.052, "price": 28.52, "average_organic_rank": 20, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "grams": 500, "organic_or_not": "organic", "container": "box", "clicks": 422}, {"week_date": "2023-10-29", "keywords": "noise cancelling headphones", "competitor_brand": "OurBrand", "product_title": "OurBrand Premium noise cancelling headphones", "is_yaba_asin": "Y", "asin": "ASIN_Our_720", "parent_asin": "PARENT_123", "weekly_search_volume": 8130, "click_share": 0.1587, "price": 37.13, "average_organic_rank": 14, "weekly_number_of_days_with_deal": 7, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "grams": 500, "organic_or_not": "organic", "container": "box", "clicks": 1290}];
+
+        // 2. LOGIC: Helpers & Processing
+        let ourBrandName = "";
+        let compBrands = [];
+        
+        // Load Charts
+        google.charts.load('current', {'packages':['corechart', 'table']});
+        google.charts.setOnLoadCallback(initDashboard);
+
+        function initDashboard() {
+            processData();
+            drawTrendChart();
+            drawCompChart();
+            generateLeversTable();
+            drawEffChart();
+            generateInsights();
+            populateControls();
+        }
+
+        function resolveBrand(record) {
+            if (record.competitor_brand) return record.competitor_brand;
+            // Fallback logic as per prompt
+            if (record.product_title) return record.product_title.split(' ')[0];
+            return "Unknown Brand";
+        }
+
+        function processData() {
+            // Identify Our Brand
+            const ourRecord = marketData.find(d => d.is_yaba_asin === 'Y');
+            ourBrandName = ourRecord ? resolveBrand(ourRecord) : "Our Brand";
+            document.getElementById('report-meta').innerText = `Analysis for: ${ourBrandName} | Weeks: ${marketData.length > 0 ? marketData[0].week_date + ' to ' + marketData[marketData.length-1].week_date : 'N/A'}`;
+
+            // Identify Competitors
+            const brands = [...new Set(marketData.map(d => resolveBrand(d)))];
+            compBrands = brands.filter(b => b !== ourBrandName);
+        }
+
+        // --- CHART 1: TREND ---
+        function drawTrendChart() {
+            const weeks = [...new Set(marketData.map(d => d.week_date))].sort();
+            const dataTable = [['Week', 'Total Clicks', 'Our Click Share (%)']];
+
+            weeks.forEach(week => {
+                const weekData = marketData.filter(d => d.week_date === week);
+                const totalClicks = weekData.reduce((sum, d) => sum + (d.clicks || 0), 0);
+                
+                const ourData = weekData.filter(d => resolveBrand(d) === ourBrandName);
+                const ourClicks = ourData.reduce((sum, d) => sum + (d.clicks || 0), 0);
+                
+                // Calculate weighted share
+                const share = totalClicks > 0 ? (ourClicks / totalClicks) : 0;
+                
+                dataTable.push([week, totalClicks, share]);
+            });
+
+            const data = google.visualization.arrayToDataTable(dataTable);
+
+            const options = {
+                seriesType: 'bars',
+                series: {1: {type: 'line', targetAxisIndex: 1, color: '#0071E3', lineWidth: 3}},
+                colors: ['#E0E0E0'],
+                vAxes: {0: {title: 'Market Volume'}, 1: {title: 'Our Share', format: 'percent'}},
+                legend: {position: 'bottom'},
+                chartArea: {width: '85%', height: '70%'}
+            };
+
+            const chart = new google.visualization.ComboChart(document.getElementById('trend_chart'));
+            chart.draw(data, options);
+        }
+
+        // --- CHART 2: COMPETITIVENESS ---
+        function drawCompChart() {
+            // Find Top 3 Competitors by Total Volume Share
+            const brand volumes = {};
+            marketData.forEach(d => {
+                const b = resolveBrand(d);
+                if (b !== ourBrandName) {
+                    brand_volumes[b] = (brand_volumes[b] || 0) + (d.clicks || 0);
+                }
+            });
+            const top3 = Object.entries(brand_volumes)
+                .sort((a,b) => b[1] - a[1])
+                .slice(0,3)
+                .map(e => e[0]);
+
+            const weeks = [...new Set(marketData.map(d => d.week_date))].sort();
+            
+            // Header
+            const header = ['Week', ourBrandName, ...top3, 'Rest of Market'];
+            const rows = [];
+
+            weeks.forEach(week => {
+                const weekData = marketData.filter(d => d.week_date === week);
+                const totalClicks = weekData.reduce((sum, d) => sum + d.clicks, 0);
+                
+                const getShare = (brand) => {
+                    const bClicks = weekData.filter(d => resolveBrand(d) === brand).reduce((s, d) => s + d.clicks, 0);
+                    return totalClicks > 0 ? bClicks / totalClicks : 0;
+                };
+
+                const ourShare = getShare(ourBrandName);
+                const compShares = top3.map(b => getShare(b));
+                const restShare = 1 - (ourShare + compShares.reduce((a,b)=>a+b, 0));
+
+                rows.push([week, ourShare, ...compShares, restShare]);
+            });
+
+            const data = google.visualization.arrayToDataTable([header, ...rows]);
+
+            const options = {
+                curveType: 'function',
+                lineWidth: 3,
+                colors: ['#0071E3', '#FF3B30', '#FF9500', '#AF52DE', '#999'], // Blue for us, others distinct
+                vAxis: {format: 'percent'},
+                legend: {position: 'bottom'},
+                chartArea: {width: '90%', height: '70%'}
+            };
+
+            const chart = new google.visualization.LineChart(document.getElementById('comp_chart'));
+            chart.draw(data, options);
+        }
+
+        // --- SECTION 3: LEVERS ---
+        function generateLeversTable() {
+            // Compare average share when Deal/Badge present vs absent
+            const attributes = [
+                {key: 'weekly_number_of_days_with_deal', label: 'Deals'},
+                {key: 'weekly_number_of_days_with_amazon_choice_badge', label: 'Amazon Choice'},
+                {key: 'weekly_number_of_days_with_best_seller_badge', label: 'Best Seller'}
+            ];
+
+            let html = `<table class="data-table"><thead><tr><th>Lever</th><th>Share without</th><th>Share with</th><th>Lift</th></tr></thead><tbody>`;
+
+            attributes.forEach(attr => {
+                // Filter only for our brand to see efficiency
+                const ourData = marketData.filter(d => resolveBrand(d) === ourBrandName);
+                
+                const withAttr = ourData.filter(d => d[attr.key] > 0);
+                const withoutAttr = ourData.filter(d => d[attr.key] === 0);
+
+                const avgShareWith = withAttr.length ? withAttr.reduce((s,d)=>s+d.click_share,0)/withAttr.length : 0;
+                const avgShareWithout = withoutAttr.length ? withoutAttr.reduce((s,d)=>s+d.click_share,0)/withoutAttr.length : 0;
+                
+                const lift = avgShareWithout > 0 ? ((avgShareWith - avgShareWithout)/avgShareWithout * 100).toFixed(1) : 0;
+
+                html += `<tr>
+                    <td>${attr.label}</td>
+                    <td>${(avgShareWithout*100).toFixed(2)}%</td>
+                    <td>${(avgShareWith*100).toFixed(2)}%</td>
+                    <td class="${lift > 0 ? 'highlight-positive' : ''}">${lift > 0 ? '+' : ''}${lift}%</td>
+                </tr>`;
+            });
+            html += '</tbody></table>';
+            document.getElementById('levers_table').innerHTML = html;
+        }
+
+        // --- SECTION 4: EFFICIENCY ---
+        function drawEffChart() {
+            // Last week only
+            const weeks = [...new Set(marketData.map(d => d.week_date))].sort();
+            const lastWeek = weeks[weeks.length-1];
+            const dataLastWeek = marketData.filter(d => d.week_date === lastWeek);
+
+            const dataTable = [['Rank', 'Click Share', { role: 'style' }, { role: 'tooltip' }]];
+
+            dataLastWeek.forEach(d => {
+                const isUs = resolveBrand(d) === ourBrandName;
+                const color = isUs ? '#0071E3' : '#C7C7CC';
+                const label = `${resolveBrand(d)}: Rank ${d.average_organic_rank}, Share ${(d.click_share*100).toFixed(1)}%`;
+                dataTable.push([d.average_organic_rank, d.click_share, `point { fill-color: ${color}; size: ${isUs?10:5}; }`, label]);
+            });
+
+            const data = google.visualization.arrayToDataTable(dataTable);
+            
+            const options = {
+                hAxis: {title: 'Organic Rank (Lower is Better)', direction: -1}, // Invert rank
+                vAxis: {title: 'Click Share', format: 'percent'},
+                legend: 'none',
+                chartArea: {width: '85%', height: '70%'}
+            };
+
+            const chart = new google.visualization.ScatterChart(document.getElementById('eff_chart'));
+            chart.draw(data, options);
+        }
+
+        // --- INSIGHTS ---
+        function generateInsights() {
+            const weeks = [...new Set(marketData.map(d => d.week_date))].sort();
+            const lastWeek = weeks[weeks.length-1];
+            const prevWeek = weeks[weeks.length-2];
+
+            // 1. Trend Insight
+            const lwData = marketData.filter(d => d.week_date === lastWeek && resolveBrand(d) === ourBrandName);
+            const pwData = marketData.filter(d => d.week_date === prevWeek && resolveBrand(d) === ourBrandName);
+            
+            const lwShare = lwData.reduce((s,d) => s + (d.clicks||0), 0) / marketData.filter(d=>d.week_date===lastWeek).reduce((s,d)=>s+(d.clicks||0),0);
+            const pwShare = pwData.reduce((s,d) => s + (d.clicks||0), 0) / marketData.filter(d=>d.week_date===prevWeek).reduce((s,d)=>s+(d.clicks||0),0);
+
+            const shareDiff = lwShare - pwShare;
+            const trendText = shareDiff > 0 ? "gaining traction" : "losing visibility";
+            
+            const insightsList = document.getElementById('insights_list');
+            insightsList.innerHTML += `<li>Global Trend: ${ourBrandName} is <b>${trendText}</b> vs previous week (${(shareDiff*100).toFixed(2)}% change).</li>`;
+
+            // 2. Price Insight
+            const lwPrice = lwData.reduce((s,d)=>s+d.price,0)/lwData.length;
+            const pwPrice = pwData.reduce((s,d)=>s+d.price,0)/pwData.length;
+            const priceChange = lwPrice - pwPrice;
+            insightsList.innerHTML += `<li>Price Strategy: Average price ${priceChange < 0 ? 'decreased' : 'increased'} by $${Math.abs(priceChange).toFixed(2)}.</li>`;
+
+            // Recommendations
+            const recList = document.getElementById('recommendations_list');
+            if (shareDiff < 0) recList.innerHTML += `<li><b>Urgent:</b> Investigate keywords where rank dropped > 3 positions.</li>`;
+            if (priceChange > 0 && shareDiff < 0) recList.innerHTML += `<li><b>Action:</b> Revert price increase or add Coupon to recover conversion.</li>`;
+            recList.innerHTML += `<li><b>Optimization:</b> Target competitors with high Rank but low Share (vulnerable).</li>`;
+            recList.innerHTML += `<li><b>Content:</b> Ensure main keywords are in Title to improve Organic Rank efficiency.</li>`;
+        }
+
+        // --- INTERACTIVE TAB ---
+        function populateControls() {
+            const select = document.getElementById('comp_select');
+            compBrands.forEach(b => {
+                const opt = document.createElement('option');
+                opt.value = b;
+                opt.text = b;
+                select.appendChild(opt);
+            });
+        }
+
+        function drawInteractiveChart() {
+            const comp = document.getElementById('comp_select').value;
+            const metric = document.getElementById('metric_select').value;
+            if (!comp) return;
+
+            const weeks = [...new Set(marketData.map(d => d.week_date))].sort();
+            const dataTable = [['Week', 'Us', comp]];
+
+            weeks.forEach(week => {
+                // Aggregate metric (average) for the brand for that week
+                const getMetric = (brand) => {
+                    const records = marketData.filter(d => d.week_date === week && resolveBrand(d) === brand);
+                    if (records.length === 0) return 0;
+                    return records.reduce((s,d) => s + d[metric], 0) / records.length;
+                };
+                dataTable.push([week, getMetric(ourBrandName), getMetric(comp)]);
+            });
+
+            const data = google.visualization.arrayToDataTable(dataTable);
+            const options = {
+                title: `${metric} Comparison: Us vs ${comp}`,
+                curveType: 'function',
+                legend: { position: 'bottom' },
+                colors: ['#0071E3', '#FF3B30']
+            };
+
+            const chart = new google.visualization.LineChart(document.getElementById('interactive_chart'));
+            chart.draw(data, options);
+        }
+
+        // --- UTILS ---
+        function switchTab(tabId) {
+            document.querySelectorAll('.dashboard-section').forEach(el => el.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            event.target.classList.add('active');
+
+            // Redraw charts to fit new container visibility
+            if(tabId === 'static') { drawTrendChart(); drawCompChart(); drawEffChart(); }
+            else { drawInteractiveChart(); }
+        }
+
+        window.onresize = function() {
+            drawTrendChart();
+            drawCompChart();
+            drawEffChart();
+            drawInteractiveChart();
+        };
+
+    </script>
+</body>
+</html>
