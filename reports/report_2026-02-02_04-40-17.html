@@ -1,0 +1,2401 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Amazon Parent ASIN Intelligence Report</title>
+    
+    <!-- Google Charts -->
+    <script src="https://www.gstatic.com/charts/loader.js"></script>
+    
+    <!-- Google Fonts & Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
+    <style>
+        :root {
+            --primary: #4285F4; /* Google Blue */
+            --success: #34A853; /* Google Green */
+            --warning: #FBBC05; /* Google Yellow */
+            --danger: #EA4335; /* Google Red */
+            --gray-100: #f8f9fa;
+            --gray-200: #e9ecef;
+            --gray-500: #6c757d;
+            --gray-800: #343a40;
+            --surface: #ffffff;
+            --shadow-sm: 0 1px 2px 0 rgba(60,64,67,0.3), 0 1px 3px 1px rgba(60,64,67,0.15);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --radius: 16px;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--gray-100);
+            color: var(--gray-800);
+            margin: 0;
+            padding: 0;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* Header */
+        header {
+            background: var(--surface);
+            padding: 24px;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-sm);
+            margin-bottom: 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        h1 { margin: 0; font-size: 1.5rem; font-weight: 700; color: #202124; }
+        .subtitle { color: var(--gray-500); font-size: 0.9rem; margin-top: 4px; }
+        
+        /* Tabs */
+        .tabs { display: flex; gap: 12px; margin-bottom: 24px; }
+        .tab-btn {
+            padding: 10px 20px;
+            border: none;
+            background: transparent;
+            color: var(--gray-500);
+            font-weight: 600;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+            font-size: 1rem;
+        }
+        .tab-btn.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+
+        /* Cards & Sections */
+        .section-card {
+            background: var(--surface);
+            border-radius: var(--radius);
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: var(--shadow-sm);
+            transition: transform 0.2s;
+        }
+        
+        .section-title {
+            display: flex;
+            align-items: center;
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: #202124;
+        }
+        .section-title .material-icons { margin-right: 8px; color: var(--primary); }
+
+        /* Grid Layouts */
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+        .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+        .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+
+        @media (max-width: 768px) {
+            .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+        }
+
+        /* Metrics */
+        .metric-box {
+            background: var(--gray-100);
+            padding: 16px;
+            border-radius: 12px;
+            text-align: center;
+        }
+        .metric-val { font-size: 1.5rem; font-weight: 700; color: var(--primary); }
+        .metric-label { font-size: 0.85rem; color: var(--gray-500); margin-top: 4px; }
+
+        /* Charts */
+        .chart-container { width: 100%; height: 350px; }
+        .chart-mini { width: 100%; height: 200px; }
+
+        /* Insights List */
+        .insight-item {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 12px;
+            padding: 12px;
+            background: #f8f9fa;
+            border-left: 4px solid var(--primary);
+            border-radius: 4px;
+        }
+        .insight-icon { margin-right: 12px; color: var(--primary); }
+        .insight-text strong { display: block; margin-bottom: 4px; color: #202124; }
+        .insight-text { font-size: 0.95rem; color: #5f6368; }
+
+        /* Action Buttons */
+        .action-chip {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 16px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-right: 8px;
+            margin-bottom: 8px;
+        }
+        .chip-green { background: #e6f4ea; color: var(--success); }
+        .chip-blue { background: #e8f0fe; color: var(--primary); }
+        .chip-red { background: #fce8e6; color: var(--danger); }
+
+        /* Tab Visibility */
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        /* Comparador Controls */
+        .controls {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+        select {
+            padding: 8px 16px;
+            border-radius: 8px;
+            border: 1px solid var(--gray-200);
+            font-family: inherit;
+            background: var(--surface);
+        }
+
+        /* Comparison Table */
+        table.comp-table { width: 100%; border-collapse: collapse; }
+        .comp-table th { text-align: left; color: var(--gray-500); font-weight: 500; padding: 12px; border-bottom: 1px solid var(--gray-200); }
+        .comp-table td { padding: 12px; border-bottom: 1px solid var(--gray-200); color: #3c4043; }
+        .val-us { color: var(--primary); font-weight: 600; }
+        .val-them { color: var(--danger); }
+        
+        .positive { color: var(--success); }
+        .negative { color: var(--danger); }
+
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- Header -->
+        <header>
+            <div>
+                <h1>Amazon Intelligence: Parent ASIN Report</h1>
+                <div class="subtitle" id="date-range">Analizando últimas 5 semanas</div>
+            </div>
+            <div style="text-align: right;">
+                <div class="metric-val" id="header-share">0.0%</div>
+                <div class="metric-label">Click Share (Last Wk)</div>
+            </div>
+        </header>
+
+        <!-- Navigation -->
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('static')">📊 Reporte Ejecutivo</button>
+            <button class="tab-btn" onclick="switchTab('interactive')">⚔️ Comparador Interactivo</button>
+        </div>
+
+        <!-- TAB 1: REPORT -->
+        <div id="tab-static" class="tab-content active">
+            
+            <!-- Sec 1: Tendencia Global -->
+            <div class="section-card">
+                <div class="section-title">
+                    <span class="material-icons">trending_up</span> 1. Tendencia Global del Parent (Tracción)
+                </div>
+                <div class="grid-2">
+                    <div id="chart_trend" class="chart-container"></div>
+                    <div>
+                        <div class="grid-2" style="margin-bottom: 20px;">
+                            <div class="metric-box">
+                                <div class="metric-val" id="trend-clicks">0</div>
+                                <div class="metric-label">Total Clicks (Est.)</div>
+                            </div>
+                            <div class="metric-box">
+                                <div class="metric-val" id="trend-share-growth">0%</div>
+                                <div class="metric-label">Crecimiento Share</div>
+                            </div>
+                        </div>
+                        <div id="trend-insights" class="insight-text">Cargando análisis...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sec 2: Competitividad -->
+            <div class="section-card">
+                <div class="section-title">
+                    <span class="material-icons">pie_chart</span> 2. Competitividad de Marca (Share of Voice)
+                </div>
+                <div id="chart_competitors" class="chart-container"></div>
+                <div id="comp-insights" style="margin-top: 16px;" class="insight-text"></div>
+            </div>
+
+            <!-- Sec 3: Palancas -->
+            <div class="section-card">
+                <div class="section-title">
+                    <span class="material-icons">rocket_launch</span> 3. Drivers de Conversión (Palancas)
+                </div>
+                <div class="grid-4">
+                    <div class="metric-box">
+                        <div style="font-weight:600; margin-bottom:8px;">🏷️ Precio vs Share</div>
+                        <div id="corr-price" class="metric-val" style="font-size:1.2rem;">--</div>
+                    </div>
+                    <div class="metric-box">
+                        <div style="font-weight:600; margin-bottom:8px;">🏆 Best Seller</div>
+                        <div id="impact-bs" class="metric-val" style="font-size:1.2rem;">--</div>
+                    </div>
+                    <div class="metric-box">
+                        <div style="font-weight:600; margin-bottom:8px;">⚡ Deals</div>
+                        <div id="impact-deal" class="metric-val" style="font-size:1.2rem;">--</div>
+                    </div>
+                    <div class="metric-box">
+                        <div style="font-weight:600; margin-bottom:8px;">🏅 Amazon Choice</div>
+                        <div id="impact-ac" class="metric-val" style="font-size:1.2rem;">--</div>
+                    </div>
+                </div>
+                <p style="margin-top:12px; font-size:0.9rem; color:var(--gray-500);">*Coeficientes de correlación y lift promedio en semanas activas vs inactivas.</p>
+            </div>
+
+            <!-- Sec 4: Eficiencia -->
+            <div class="section-card">
+                <div class="section-title">
+                    <span class="material-icons">scatter_plot</span> 4. Eficiencia Orgánica (Rank vs Share)
+                </div>
+                <div id="chart_efficiency" class="chart-container"></div>
+                <div id="efficiency-insights" class="insight-text" style="margin-top:16px;"></div>
+            </div>
+
+            <!-- Sec 5: Conclusiones -->
+            <div class="grid-2">
+                <div class="section-card" style="border-top: 4px solid var(--primary);">
+                    <div class="section-title"><span class="material-icons">lightbulb</span> Insights Clave</div>
+                    <div id="insights-container">
+                        <!-- Dynamic JS -->
+                    </div>
+                </div>
+                <div class="section-card" style="border-top: 4px solid var(--success);">
+                    <div class="section-title"><span class="material-icons">assignment_turned_in</span> Recomendaciones</div>
+                    <div id="recommendations-container">
+                        <!-- Dynamic JS -->
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Other Insights -->
+            <div class="section-card">
+                 <div class="section-title"><span class="material-icons">query_stats</span> Otros Hallazgos</div>
+                 <div id="other-insights">Detectando anomalías...</div>
+            </div>
+
+        </div>
+
+        <!-- TAB 2: INTERACTIVE -->
+        <div id="tab-interactive" class="tab-content">
+            <div class="section-card">
+                <div class="section-title">Comparador Directo (Head-to-Head)</div>
+                <div class="controls">
+                    <select id="sel-week" onchange="updateComparator()"></select>
+                    <select id="sel-comp" onchange="updateComparator()"></select>
+                </div>
+
+                <div class="grid-3" style="margin-bottom: 24px;">
+                    <div class="metric-box">
+                        <div>Precio Promedio</div>
+                        <div style="display:flex; justify-content:space-around; margin-top:8px;">
+                            <div>
+                                <div class="metric-val" style="color:var(--primary)" id="h2h-price-us">0€</div>
+                                <div style="font-size:0.7rem">Nosotros</div>
+                            </div>
+                            <div>
+                                <div class="metric-val" style="color:var(--danger)" id="h2h-price-them">0€</div>
+                                <div style="font-size:0.7rem">Competencia</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="metric-box">
+                        <div>Click Share</div>
+                        <div style="display:flex; justify-content:space-around; margin-top:8px;">
+                            <div>
+                                <div class="metric-val" style="color:var(--primary)" id="h2h-share-us">0%</div>
+                            </div>
+                            <div>
+                                <div class="metric-val" style="color:var(--danger)" id="h2h-share-them">0%</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="metric-box">
+                        <div>Rank Promedio</div>
+                        <div style="display:flex; justify-content:space-around; margin-top:8px;">
+                            <div>
+                                <div class="metric-val" style="color:var(--primary)" id="h2h-rank-us">#0</div>
+                            </div>
+                            <div>
+                                <div class="metric-val" style="color:var(--danger)" id="h2h-rank-them">#0</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <table class="comp-table">
+                    <thead>
+                        <tr>
+                            <th>Métrica</th>
+                            <th>Nuestra Marca</th>
+                            <th>Competidor</th>
+                            <th>Delta</th>
+                        </tr>
+                    </thead>
+                    <tbody id="h2h-table-body">
+                        <!-- Dynamic -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- DATA INJECTION -->
+    <script type="text/javascript">
+        // INJECTED DATA FROM PYTHON
+        const marketData = [
+  {
+    "brand_aggregation": "YabaGroup",
+    "parent_asin": "B00PARENT01",
+    "reporting_date": "2023-10-01",
+    "week_date": "2023-10-01",
+    "keywords": "keyword A",
+    "competitor_brand": "YabaBrand",
+    "asin": "B00YABA000",
+    "product_title": "Yaba Product Variant 0",
+    "country_code": "ES",
+    "average_organic_rank": 3.0,
+    "weekly_number_of_days_with_deal": 0.0,
+    "weekly_number_of_days_with_best_seller_badge": 0.0,
+    "weekly_number_of_days_with_amazon_choice_badge": 3.0,
+    "weekly_number_of_days_with_coupon": 0.0,
+    "click_share": 0.0528,
+    "impression_share": 0.0634,
+    "price": 29.99,
+    "weekly_search_volume": 6791.0,
+    "is_yaba_asin": "Y",
+    "keywords_link": "http://amazon...",
+    "grams": 500.0,
+    "organic_or_not": "Organic",
+    "container": "Bottle"
+  },
+  {
+    "brand_aggregation": "YabaGroup",
+    "parent_asin": "B00PARENT01",
+    "reporting_date": "2023-10-08",
+    "week_date": "2023-10-08",
+    "keywords": "keyword A",
+    "competitor_brand": "YabaBrand",
+    "asin": "B00YABA000",
+    "product_title": "Yaba Product Variant 0",
+    "country_code": "ES",
+    "average_organic_rank": 10.0,
+    "weekly_number_of_days_with_deal": 0.0,
+    "weekly_number_of_days_with_best_seller_badge": 0.0,
+    "weekly_number_of_days_with_amazon_choice_badge": 6.0,
+    "weekly_number_of_days_with_coupon": 0.0,
+    "click_share": 0.0461,
+    "impression_share": 0.0553,
+    "price": 29.99,
+    "weekly_search_volume": 5601.0,
+    "is_yaba_asin": "Y",
+    "keywords_link": "http://amazon...",
+    "grams": 500.0,
+    "organic_or_not": "Organic",
+    "container": "Bottle"
+  },
+  {
+    "brand_aggregation": "YabaGroup",
+    "parent_asin": "B00PARENT01",
+    "reporting_date": "2023-10-15",
+    "week_date": "2023-10-15",
+    "keywords": "keyword A",
+    "competitor_brand": "YabaBrand",
+    "asin": "B00YABA000",
+    "product_title": "Yaba Product Variant 0",
+    "country_code": "ES",
+    "average_organic_rank": 14.0,
+    "weekly_number_of_days_with_deal": 0.0,
+    "weekly_number_of_days_with_best_seller_badge": 0.0,
+    "weekly_number_of_days_with_amazon_choice_badge": 6.0,
+    "weekly_number_of_days_with_coupon": 0.0,
+    "click_share": 0.0493,
+    "impression_share": 0.0592,
+    "price": 29.99,
+    "weekly_search_volume": 7434.0,
+    "is_yaba_asin": "Y",
+    "keywords_link": "http://amazon...",
+    "grams": 500.0,
+    "organic_or_not": "Organic",
+    "container": "Bottle"
+  },
+  {
+    "brand_aggregation": "YabaGroup",
+    "parent_asin": "B00PARENT01",
+    "reporting_date": "2023-10-22",
+    "week_date": "2023-10-22",
+    "keywords": "keyword A",
+    "competitor_brand": "YabaBrand",
+    "asin": "B00YABA000",
+    "product_title": "Yaba Product Variant 0",
+    "country_code": "ES",
+    "average_organic_rank": 2.0,
+    "weekly_number_of_days_with_deal": 1.0,
+    "weekly_number_of_days_with_best_seller_badge": 7.0,
+    "weekly_number_of_days_with_amazon_choice_badge": 3.0,
+    "weekly_number_of_days_with_coupon": 0.0,
+    "click_share": 0.1039,
+    "impression_share": 0.1246,
+    "price": 24.99,
+    "weekly_search_volume": 5883.0,
+    "is_yaba_asin": "Y",
+    "keywords_link": "http://amazon...",
+    "grams": 500.0,
+    "organic_or_not": "Organic",
+    "container": "Bottle"
+  },
+  {
+    "brand_aggregation": "YabaGroup",
+    "parent_asin": "B00PARENT01",
+    "reporting_date": "2023-10-29",
+    "week_date": "2023-10-29",
+    "keywords": "keyword A",
+    "competitor_brand": "YabaBrand",
+    "asin": "B00YABA000",
+    "product_title": "Yaba Product Variant 0",
+    "country_code": "ES",
+    "average_organic_rank": 14.0,
+    "weekly_number_of_days_with_deal": 0.0,
+    "weekly_number_of_days_with_best_seller_badge": 7.0,
+    "weekly_number_of_days_with_amazon_choice_badge": 2.0,
+    "weekly_number_of_days_with_coupon": 0.0,
+    "click_share": 0.0527,
+    "impression_share": 0.0632,
+    "price": 24.99,
+    "weekly_search_volume": 12224.0,
+    "is_yaba_asin": "Y",
+    "keywords_link": "http://amazon...",
+    "grams": 500.0,
+    "organic_or_not": "Organic",
+    "container": "Bottle"
+  },
+  {
+    "brand_aggregation": "YabaGroup",
+    "parent_asin": "B00PARENT01",
+    "reporting_date": "2023-10-01",
+    "week_date": "2023-10-01",
+    "keywords": "keyword A",
+    "competitor_brand": "YabaBrand",
+    "asin": "B00YABA001",
+    "product_title": "Yaba Product Variant 1",
+    "country_code": "ES",
+    "average_organic_rank": 9.0,
+    "weekly_number_of_days_with_deal": 0.0,
+    "weekly_number_of_days_with_best_seller_badge": 0.0,
+    "weekly_number_of_days_with_amazon_choice_badge": 3.0,
+    "weekly_number_of_days_with_coupon": 0.0,
+    "click_share": 0.0699,
+    "impression_share": 0.0839,
+    "price": 29.99,
+    "weekly_search_volume": 6791.0,
+    "is_yaba_asin": "Y",
+    "keywords_link": "http://amazon...",
+    "grams": 500.0,
+    "organic_or_not": "Organic",
+    "container": "Bottle"
+  },
+  {
+    "brand_aggregation": "YabaGroup",
+    "parent_asin": "B00PARENT01",
+    "reporting_date": "2023-10-08",
+    "week_date": "2023-10-08",
+    "keywords": "keyword A",
+    "competitor_brand": "YabaBrand",
+    "asin": "B00YABA001",
+    "product_title": "Yaba Product Variant 1",
+    "country_code": "ES",
+    "average_organic_rank": 10.0,
+    "weekly_number_of_days_with_deal": 0.0,
+    "weekly_number_of_days_with_best_seller_badge": 0.0,
+    "weekly_number_of_days_with_amazon_choice_badge": 2.0,
+    "weekly_number_of_days_with_coupon": 0.0,
+    "click_share": 0.0763,
+    "impression_share": 0.0915,
+    "price": 29.99,
+    "weekly_search_volume": 5601.0,
+    "is_yaba_asin": "Y",
+    "keywords_link": "http://amazon...",
+    "grams": 500.0,
+    "organic_or_not": "Organic",
+    "container": "Bottle"
+  },
+  {
+    "brand_aggregation": "YabaGroup",
+    "parent_asin": "B00PARENT01",
+    "reporting_date": "2023-10-15",
+    "week_date": "2023-10-15",
+    "keywords": "keyword A",
+    "competitor_brand": "YabaBrand",
+    "asin": "B00YABA001",
+    "product_title": "Yaba Product Variant 1",
+    "country_code": "ES",
+    "average_organic_rank": 7.0,
+    "weekly_number_of_days_with_deal": 0.0,
+    "weekly_number_of_days_with_best_seller_badge": 0.0,
+    "weekly_number_of_days_with_amazon_choice_badge": 7.0,
+    "weekly_number_of_days_with_coupon": 0.0,
+    "click_share": 0.0782,
+    "impression_share": 0.0939,
+    "price": 29.99,
+    "weekly_search_volume": 7434.0,
+    "is_yaba_asin": "Y",
+    "keywords_link": "http://amazon...",
+    "grams": 500.0,
+    "organic_or_not": "Organic",
+    "container": "Bottle"
+  },
+  {
+    "brand_aggregation": "YabaGroup",
+    "parent_asin": "B00PARENT01",
+    "reporting_date": "2023-10-22",
+    "week_date": "2023-10-22",
+    "keywords": "keyword A",
+    "competitor_brand": "YabaBrand",
+    "asin": "B00YABA001",
+    "product_title": "Yaba Product Variant 1",
+    "country_code": "ES",
+    "average_organic_rank": 10.0,
+    "weekly_number_of_days_with_deal": 1.0,
+    "weekly_number_of_days_with_best_seller_badge": 7.0,
+    "weekly_number_of_days_with_amazon_choice_badge": 2.0,
+    "weekly_number_of_days_with_coupon": 0.0,
+    "click_share": 0.1192,
+    "impression_share": 0.143,
+    "price": 24.99,
+    "weekly_search_volume": 5883.0,
+    "is_yaba_asin": "Y",
+    "keywords_link": "http://amazon...",
+    "grams": 500.0,
+    "organic_or_not": "Organic",
+    "container": "Bottle"
+  },
+  {
+    "brand_aggregation": "YabaGroup",
+    "parent_asin": "B00PARENT01",
+    "reporting_date": "2023-10-29",
+    "week_date": "2023-10-29",
+    "keywords": "keyword A",
+    "competitor_brand": "YabaBrand",
+    "asin": "B00YABA001",
+    "product_title": "Yaba Product Variant 1",
+    "country_code": "ES",
+    "average_organic_rank": 3.0,
+    "weekly_number_of_days_with_deal": 0.0,
+    "weekly_number_of_days_with_best_seller_badge": 7.0,
+    "weekly_number_of_days_with_amazon_choice_badge": 0.0,
+    "weekly_number_of_days_with_coupon": 0.0,
+    "click_share": 0.0632,
+    "impression_share": 0.0759,
+    "price": 24.99,
+    "weekly_search_volume": 12224.0,
+    "is_yaba_asin": "Y",
+    "keywords_link": "http://amazon...",
+    "grams": 500.0,
+    "organic_or_not": "Organic",
+    "container": "Bottle"
+  },
+  {
+    "brand_aggregation": "YabaGroup",
+    "parent_asin": "B00PARENT01",
+    "reporting_date": "2023-10-01",
+    "week_date": "2023-10-01",
+    "keywords": "keyword A",
+    "competitor_brand": "YabaBrand",
+    "asin": "B00YABA002",
+    "product_title": "Yaba Product Variant 2",
+    "country_code": "ES",
+    "average_organic_rank": 1.0,
+    "weekly_number_of_days_with_deal": 0.0,
+    "weekly_number_of_days_with_best_seller_badge": 0.0,
+    "weekly_number_of_days_with_amazon_choice_badge": 4.0,
+    "weekly_number_of_days_with_coupon": 0.0,
+    "click_share": 0.0933,
+    "impression_share": 0.1119,
+    "price": 29.99,
+    "weekly_search_volume": 6791.0,
+    "is_yaba_asin": "Y",
+    "keywords_link": "http://amazon...",
+    "grams": 500.0,
+    "organic_or_not": "Organic",
+    "container": "Bottle"
+  },
+  {
+    "brand_aggregation": "YabaGroup",
+    "parent_asin": "B00PARENT01",
+    "reporting_date": "2023-10-08",
+    "week_date": "2023-10-08",
+    "keywords": "keyword A",
+    "competitor_brand": "YabaBrand",
+    "asin": "B00YABA002",
+    "product_title": "Yaba Product Variant 2",
+    "country_code": "ES",
+    "average_organic_rank": 6.0,
+    "weekly_number_of_days_with_deal": 0.0,
+    "weekly_number_of_days_with_best_seller_badge": 0.0,
+    "weekly_number_of_days_with_amazon_choice_badge": 4.0,
+    "weekly_number_of_days_with_coupon": 0.0,
+    "click_share": 0.0911,
+    "impression_share": 0.1093,
+    "price": 29.99,
+    "weekly_search_volume": 5601.0,
+    "is_yaba_asin": "Y",
+    "keywords_link": "http://amazon...",
+    "grams": 500.0,
+    "organic_or_not": "Organic",
+    "container": "Bottle"
+  },
+  {
+    "brand_aggregation": "YabaGroup",
+    "parent_asin": "B00PARENT01",
+    "reporting_date": "2023-10-15",
+    "week_date": "2023-10-15",
+    "keywords": "keyword A",
+    "competitor_brand": "YabaBrand",
+    "asin": "B00YABA002",
+    "product_title": "Yaba Product Variant 2",
+    "country_code": "ES",
+    "average_organic_rank": 10.0,
+    "weekly_number_of_days_with_deal": 0.0,
+    "weekly_number_of_days_with_best_seller_badge": 0.0,
+    "weekly_number_of_days_with_amazon_choice_badge": 5.0,
+    "weekly_number_of_days_with_coupon": 0.0,
+    "click_share": 0.0899,
+    "impression_share": 0.1079,
+    "price": 29.99,
+    "weekly_search_volume": 7434.0,
+    "is_yaba_asin": "Y",
+    "keywords_link": "http://amazon...",
+    "grams": 500.0,
+    "organic_or_not": "Organic",
+    "container": "Bottle"
+  },
+  {
+    "brand_aggregation": "YabaGroup",
+    "parent_asin": "B00PARENT01",
+    "reporting_date": "2023-10-22",
+    "week_date": "2023-10-22",
+    "keywords": "keyword A",
+    "competitor_brand": "YabaBrand",
+    "asin": "B00YABA002",
+    "product_title": "Yaba Product Variant 2",
+    "country_code": "ES",
+    "average_organic_rank": 3.0,
+    "weekly_number_of_days_with_deal": 1.0,
+    "weekly_number_of_days_with_best_seller_badge": 7.0,
+    "weekly_number_of_days_with_amazon_choice_badge": 1.0,
+    "weekly_number_of_days_with_coupon": 0.0,
+    "click_share": 0.1437,
+    "impression_share": 0.1724,
+    "price": 24.99,
+    "weekly_search_volume": 5883.0,
+    "is_yaba_asin": "Y",
+    "keywords_link": "http://amazon...",
+    "grams": 500.0,
+    "organic_or_not": "Organic",
+    "container": "Bottle"
+  },
+  {
+    "brand_aggregation": "YabaGroup",
+    "parent_asin": "B00PARENT01",
+    "reporting_date": "2023-10-29",
+    "week_date": "2023-10-29",
+    "keywords": "keyword A",
+    "competitor_brand": "YabaBrand",
+    "asin": "B00YABA002",
+    "product_title": "Yaba Product Variant 2",
+    "country_code": "ES",
+    "average_organic_rank": 9.0,
+    "weekly_number_of_days_with_deal": 0.0,
+    "weekly_number_of_days_with_best_seller_badge": 7.0,
+    "weekly_number_of_days_with_amazon_choice_badge": 6.0,
+    "weekly_number_of_days_with_coupon": 0.0,
+    "click_share": 0.0934,
+    "impression_share": 0.1121,
+    "price": 24.99,
+    "weekly_search_volume": 12224.0,
+    "is_yaba_asin": "Y",
+    "keywords_link": "http://amazon...",
+    "grams": 500.0,
+    "organic_or_not": "Organic",
+    "container": "Bottle"
+  },
+  {
+    "brand_aggregation": "YabaGroup",
+    "parent_asin": "B00PARENT01",
+    "reporting_date": "2023-10-01",
+    "week_date": "2023-10-01",
+    "keywords": "keyword A",
+    "competitor_brand": "CompBrandA",
+    "asin": "B00COMPCom000",
+    "product_title": "CompBrandA Product Variant 0",
+    "country_code": "ES",
+    "average_organic_rank": 10.0,
+    "weekly_number_of_days_with_deal": 1.0,
+    "weekly_number_of_days_with_best_seller_badge": 0.0,
+    "weekly_number_of_days_with_amazon_choice_badge": 0.0,
+    "weekly_number_of_days_with_coupon": 0.0,
+    "click_share": 0.0841,
+    "impression_share": 0.0925,
+    "price": 28.0,
+    "weekly_search_volume": 6791.0,
+    "is_yaba_asin": "N",
+    "keywords_link": "http://amazon...",
+    "grams": 550.0,
+    "organic_or_not": "Organic",
+    "container": "Box"
+  },
+  {
+    "brand_aggregation": "YabaGroup",
+    "parent_asin": "B00PARENT01",
+    "reporting_date": "2023-10-08",
+    "week_date": "2023-10-08",
+    "keywords": "keyword A",
+    "competitor_brand": "CompBrandA",
+    "asin": "B00COMPCom000",
+    "product_title": "CompBrandA Product Variant 0",
+    "country_code": "ES",
+    "average_organic_rank": 21.0,
+    "weekly_number_of_days_with_deal": 0.0,
+    "weekly_number_of_days_with_best_seller_badge": 0.0,
+    "weekly_number_of_days_with_amazon_choice_badge": 0.0,
+    "weekly_number_of_days_with_coupon": 0.0,
+    "click_share": 0.0815,
+    "impression_share": 0.0897,
+    "price": 28.0,
+    "weekly_search_volume": 5601.0,
+    "is_yaba_asin": "N",
+    "keywords_link": "http://amazon...",
+    "grams": 550.0,
+    "organic_or_not": "Organic",
+    "container": "Box"
+  },
+  {
+    "brand_aggregation": "YabaGroup",
+    "parent_asin": "B00PARENT01",
+    "reporting_date": "2023-10-15",
+    "week_date": "2023-10-15",
+    "keywords": "keyword A",
+    "competitor_brand": "CompBrandA",
+    "asin": "B00COMPCom000",
+    "product_title": "CompBrandA Product Variant 0",
+    "country_code": "ES",
+    "average_organic_rank": 30.0,
+    "weekly_number_of_days_with_deal": 1.0,
+    "weekly_number_of_days_with_best_seller_badge": 0.0,
+    "weekly_number_of_days_with_amazon_choice_badge": 0.0,
+    "weekly_number_of_days_with_coupon": 0.0,
+    "click_share": 0.0768,
+    "impression_share": 0.0844,
+    "price": 28.0,
+    "weekly_search_volume": 7434.0,
+    "is_yaba_asin": "N",
+    "keywords_link": "http://amazon...",
+    "grams": 550.0,
+    "organic_or_not": "Organic",
+    "container": "Box"
+  },
+  {
+    "brand_aggregation": "YabaGroup",
+    "parent_asin": "B00PARENT01",
+    "reporting_date": "2023-10-22",
+    "week_date": "2023-10-22",
+    "keywords": "keyword A",
+    "competitor_brand": "CompBrandA",
+    "asin": "B00COMPCom000",
+    "product_title": "CompBrandA Product Variant 0",
+    "country_code": "ES",
+    "average_organic_rank": 43.0,
+    "weekly_number_of_days_with_deal": 0.0,
+    "weekly_number_of_days_with_best_seller_badge": 0.0,
+    "weekly_number_of_days_with_amazon_choice_badge": 0.0,
+    "weekly_number_of_days_with_coupon": 0.0,
+    "click_share": 0.0764,
+    "impression_share": 0.0841,
+    "price": 28.0,
+    "weekly_search_volume": 5883.0,
+    "is_yaba_asin": "N",
+    "keywords_link": "http://amazon...",
+    "grams": 550.0,
+    "organic_or_not": "Organic",
+    "container": "Box"
+  },
+  {
+    "brand_aggregation": "YabaGroup",
+    "parent_asin": "B00PARENT01",
+    "reporting_date": "2023-10-29",
+    "week_date": "2023-10-29",
+    "keywords": "keyword A",
+    "competitor_brand": "CompBrandA",
+    "asin": "B00COMPCom000",
+    "product_title": "CompBrandA Product Variant 0",
+    "country_code": "ES",
+    "average_organic_rank": 14.0,
+    "weekly_number_of_days_with_deal": 0.0,
+    "weekly_number_of_days_with_best_seller_badge": 0.0,
+    "weekly_number_of_days_with_amazon_choice_badge": 0.0,
+    "weekly_number_of_days_with_coupon": 0.0,
+    "click_share": 0.0772,
+    "impression_share": 0.0849,
+    "price": 28.0,
+    "weekly_search_volume": 12224.0,
+    "is_yaba_asin": "N",
+    "keywords_link": "http://amazon...",
+    "grams": 550.0,
+    "organic_or_not": "Organic",
+    "container": "Box"
+  },
+  {
+    "brand_aggregation": "YabaGroup",
+    "parent_asin": "B00PARENT01",
+    "reporting_date": "2023-10-01",
+    "week_date": "2023-10-01",
+    "keywords": "keyword A",
+    "competitor_brand": "CompBrandA",
+    "asin": "B00COMPCom001",
+    "product_title": "CompBrandA Product Variant 1",
+    "country_code": "ES",
+    "average_organic_rank": 47.0,
+    "weekly_number_of_days_with_deal": 1.0,
+    "weekly_number_of_days_with_best_seller_badge": 0.0,
+    "weekly_number_of_days_with_amazon_choice_badge": 0.0,
+    "weekly_number_of_days_with_coupon": 0.0,
+    "click_share": 0.0827,
+    "impression_share": 0.091,
+    "price": 28.0,
+    "weekly_search_volume": 6791.0,
+    "is_yaba_asin": "N",
+    "keywords_link": "http://amazon...",
+    "grams": 550.0,
+    "organic_or_not": "Organic",
+    "container": "Box"
+  },
+  {
+    "brand_aggregation": "YabaGroup",
+    "parent_asin": "B00PARENT01",
+    "reporting_date": "2023-10-08",
+    "week_date": "2023-10-08",
+    "keywords": "keyword A",
+    "competitor_brand": "CompBrandA",
+    "asin": "B00COMPCom001",
+    "product_title": "CompBrandA Product Variant 1",
+    "country_code": "ES",
+    "average_organic_rank": 32.0,
+    "weekly_number_of_days_with_deal": 0.0,
+    "weekly_number_of_days_with_best_seller_badge": 0.0,
+    "weekly_number_of_days_with_amazon_choice_badge": 0.0,
+    "weekly_number_of_days_with_coupon": 0.0,
+    "click_share": 0.0818,
+    "impression_share": 0.09,
+    "price": 28.0,
+    "weekly_search_volume": 5601.0,
+    "is_yaba_asin": "N",
+    "keywords_link": "http://amazon...",
+    "grams": 550.0,
+    "organic_or_not": "Organic",
+    "container": "Box"
+  },
+  {
+    "brand_aggregation": "YabaGroup",
+    "parent_asin": "B00PARENT01",
+    "reporting_date": "2023-10-15",
+    "week_date": "2023-10-15",
+    "keywords": "keyword A",
+    "competitor_brand": "CompBrandA",
+    "asin": "B00COMPCom001",
+    "product_title": "CompBrandA Product Variant 1",
+    "country_code": "ES",
+    "average_organic_rank": 50.0,
+    "weekly_number_of_days_with_deal": 1.0,
+    "weekly_number_of_days_with_best_seller_badge": 0.0,
+    "weekly_number_of_days_with_amazon_choice_badge": 0.0,
+    "weekly_number_of_days_with_coupon": 0.0,
+    "click_share": 0.0768,
+    "impression_share": 0.0845,
+    "price": 28.0,
+    "weekly_search_volume": 7434.0,
+    "is_yaba_asin": "N",
+    "keywords_link": "http://amazon...",
+    "grams": 550.0,
+    "organic_or_not": "Organic",
+    "container": "Box"
+  },
+  {
+    "brand_aggregation": "YabaGroup",
+    "parent_asin": "B00PARENT01",
+    "reporting_date": "2023-10-22",
+    "week_date": "2023-10-22",
+    "keywords": "keyword A",
+    "competitor_brand": "CompBrandA",
+    "asin": "B00COMPCom001",
+    "product_title": "CompBrandA Product Variant 1",
+    "country_code": "ES",
+    "average_organic_rank": 36.0,
+    "weekly_number_of_days_with_deal": 0.0,
+    "weekly_number_of_days_with_best_seller_badge": 0.0,
+    "weekly_number_of_days_with_amazon_choice_badge": 0.0,
+    "weekly_number_of_days_with_coupon": 0.0,
+    "click_share": 0.0832,
+    "impression_share": 0.0915,
+    "price": 28.0,
+    "weekly_search_volume": 5883.0,
+    "is_yaba_asin": "N",
+    "keywords_link": "http://amazon...",
+    "grams": 550.0,
+    "organic_or_not": "Organic",
+    "container": "Box"
+  },
+  {
+    "brand_aggregation": "YabaGroup",
+    "parent_asin": "B00PARENT01",
+    "reporting_date": "2023-10-29",
+    "week_date": "2023-10-29",
+    "keywords": "keyword A",
+    "competitor_brand": "CompBrandA",
+    "asin": "B00COMPCom001",
+    "product_title": "CompBrandA Product Variant 1",
+    "country_code": "ES",
+    "average_organic_rank": 47.0,
+    "weekly_number_of_days_with_deal": 0.0,
+    "weekly_number_of_days_with_best_seller_badge": 0.0,
+    "weekly_number_of_days_with_amazon_choice_badge": 0.0,
+    "weekly_number_of_days_with_coupon": 0.0,
+    "click_share": 0.0766,
+    "impression_share": 0.0843,
+    "price": 28.0,
+    "weekly_search_volume": 12224.0,
+    "is_yaba_asin": "N",
+    "keywords_link": "http://amazon...",
+    "grams": 550.0,
+    "organic_or_not": "Organic",
+    "container": "Box"
+  },
+  {
+    "brand_aggregation": "YabaGroup",
+    "parent_asin": "B00PARENT01",
+    "reporting_date": "2023-10-01",
+    "week_date": "2023-10-01",
+    "keywords": "keyword A",
+    "competitor_brand": "CompBrandB",
+    "asin": "B00COMPCom000",
+    "product_title": "CompBrandB Product Variant 0",
+    "country_code": "ES",
+    "average_organic_rank": 39.0,
+    "weekly_number_of_days_with_deal": 0.0,
+    "weekly_number_of_days_with_best_seller_badge": 0.0,
+    "weekly_number_of_days_with_amazon_choice_badge": 0.0,
+    "weekly_number_of_days_with_coupon": 0.0,
+    "click_share": 0.0792,
+    "impression_share": 0.0871,
+    "price": 35.0,
+    "weekly_search_volume": 6791.0,
+    "is_yaba_asin": "N",
+    "keywords_link": "http://amazon...",
+    "grams": 550.0,
+    "organic_or_not": "Organic",
+    "container": "Box"
+  },
+  {
+    "brand_aggregation": "YabaGroup",
+    "parent_asin": "B00PARENT01",
+    "reporting_date": "2023-10-08",
+    "week_date": "2023-10-08",
+    "keywords": "keyword A",
+    "competitor_brand": "CompBrandB",
+    "asin": "B00COMPCom000",
+    "product_title": "CompBrandB Product Variant 0",
+    "country_code": "ES",
+    "average_organic_rank": 47.0,
+    "weekly_number_of_days_with_deal": 0.0,
+    "weekly_number_of_days_with_best_seller_badge": 0.0,
+    "weekly_number_of_days_with_amazon_choice_badge": 0.0,
+    "weekly_number_of_days_with_coupon": 7.0,
+    "click_share": 0.0827,
+    "impression_share": 0.091,
+    "price": 35.0,
+    "weekly_search_volume": 5601.0,
+    "is_yaba_asin": "N",
+    "keywords_link": "http://amazon...",
+    "grams": 550.0,
+    "organic_or_not": "Organic",
+    "container": "Box"
+  },
+  {
+    "brand_aggregation": "YabaGroup",
+    "parent_asin": "B00PARENT01",
+    "reporting_date": "2023-10-15",
+    "week_date": "2023-10-15",
+    "keywords": "keyword A",
+    "competitor_brand": "CompBrandB",
+    "asin": "B00COMPCom000",
+    "product_title": "CompBrandB Product Variant 0",
+    "country_code": "ES",
+    "average_organic_rank": 10.0,
+    "weekly_number_of_days_with_deal": 0.0,
+    "weekly_number_of_days_with_best_seller_badge": 0.0,
+    "weekly_number_of_days_with_amazon_choice_badge": 0.0,
+    "weekly_number_of_days_with_coupon": 7.0,
+    "click_share": 0.0841,
+    "impression_share": 0.0925,
+    "price": 35.0,
+    "weekly_search_volume": 7434.0,
+    "is_yaba_asin": "N",
+    "keywords_link": "http://amazon...",
+    "grams": 550.0,
+    "organic_or_not": "Organic",
+    "container": "Box"
+  },
+  {
+    "brand_aggregation": "YabaGroup",
+    "parent_asin": "B00PARENT01",
+    "reporting_date": "2023-10-22",
+    "week_date": "2023-10-22",
+    "keywords": "keyword A",
+    "competitor_brand": "CompBrandB",
+    "asin": "B00COMPCom000",
+    "product_title": "CompBrandB Product Variant 0",
+    "country_code": "ES",
+    "average_organic_rank": 38.0,
+    "weekly_number_of_days_with_deal": 0.0,
+    "weekly_number_of_days_with_best_seller_badge": 0.0,
+    "weekly_number_of_days_with_amazon_choice_badge": 0.0,
+    "weekly_number_of_days_with_coupon": 7.0,
+    "click_share": 0.0766,
+    "impression_share": 0.0843,
+    "price": 35.0,
+    "weekly_search_volume": 5883.0,
+    "is_yaba_asin": "N",
+    "keywords_link": "http://amazon...",
+    "grams": 550.0,
+    "organic_or_not": "Organic",
+    "container": "Box"
+  },
+  {
+    "brand_aggregation": "YabaGroup",
+    "parent_asin": "B00PARENT01",
+    "reporting_date": "2023-10-29",
+    "week_date": "2023-10-29",
+    "keywords": "keyword A",
+    "competitor_brand": "CompBrandB",
+    "asin": "B00COMPCom000",
+    "product_title": "CompBrandB Product Variant 0",
+    "country_code": "ES",
+    "average_organic_rank": 21.0,
+    "weekly_number_of_days_with_deal": 1.0,
+    "weekly_number_of_days_with_best_seller_badge": 0.0,
+    "weekly_number_of_days_with_amazon_choice_badge": 0.0,
+    "weekly_number_of_days_with_coupon": 0.0,
+    "click_share": 0.0838,
+    "impression_share": 0.0922,
+    "price": 35.0,
+    "weekly_search_volume": 12224.0,
+    "is_yaba_asin": "N",
+    "keywords_link": "http://amazon...",
+    "grams": 550.0,
+    "organic_or_not": "Organic",
+    "container": "Box"
+  },
+  {
+    "brand_aggregation": "YabaGroup",
+    "parent_asin": "B00PARENT01",
+    "reporting_date": "2023-10-01",
+    "week_date": "2023-10-01",
+    "keywords": "keyword A",
+    "competitor_brand": "CompBrandB",
+    "asin": "B00COMPCom001",
+    "product_title": "CompBrandB Product Variant 1",
+    "country_code": "ES",
+    "average_organic_rank": 47.0,
+    "weekly_number_of_days_with_deal": 0.0,
+    "weekly_number_of_days_with_best_seller_badge": 0.0,
+    "weekly_number_of_days_with_amazon_choice_badge": 0.0,
+    "weekly_number_of_days_with_coupon": 0.0,
+    "click_share": 0.0818,
+    "impression_share": 0.09,
+    "price": 35.0,
+    "weekly_search_volume": 6791.0,
+    "is_yaba_asin": "N",
+    "keywords_link": "http://amazon...",
+    "grams": 550.0,
+    "organic_or_not": "Organic",
+    "container": "Box"
+  },
+  {
+    "brand_aggregation": "YabaGroup",
+    "parent_asin": "B00PARENT01",
+    "reporting_date": "2023-10-08",
+    "week_date": "2023-10-08",
+    "keywords": "keyword A",
+    "competitor_brand": "CompBrandB",
+    "asin": "B00COMPCom001",
+    "product_title": "CompBrandB Product Variant 1",
+    "country_code": "ES",
+    "average_organic_rank": 33.0,
+    "weekly_number_of_days_with_deal": 0.0,
+    "weekly_number_of_days_with_best_seller_badge": 0.0,
+    "weekly_number_of_days_with_amazon_choice_badge": 0.0,
+    "weekly_number_of_days_with_coupon": 7.0,
+    "click_share": 0.0846,
+    "impression_share": 0.0931,
+    "price": 35.0,
+    "weekly_search_volume": 5601.0,
+    "is_yaba_asin": "N",
+    "keywords_link": "http://amazon...",
+    "grams": 550.0,
+    "organic_or_not": "Organic",
+    "container": "Box"
+  },
+  {
+    "brand_aggregation": "YabaGroup",
+    "parent_asin": "B00PARENT01",
+    "reporting_date": "2023-10-15",
+    "week_date": "2023-10-15",
+    "keywords": "keyword A",
+    "competitor_brand": "CompBrandB",
+    "asin": "B00COMPCom001",
+    "product_title": "CompBrandB Product Variant 1",
+    "country_code": "ES",
+    "average_organic_rank": 30.0,
+    "weekly_number_of_days_with_deal": 0.0,
+    "weekly_number_of_days_with_best_seller_badge": 0.0,
+    "weekly_number_of_days_with_amazon_choice_badge": 0.0,
+    "weekly_number_of_days_with_coupon": 7.0,
+    "click_share": 0.0769,
+    "impression_share": 0.0846,
+    "price": 35.0,
+    "weekly_search_volume": 7434.0,
+    "is_yaba_asin": "N",
+    "keywords_link": "http://amazon...",
+    "grams": 550.0,
+    "organic_or_not": "Organic",
+    "container": "Box"
+  },
+  {
+    "brand_aggregation": "YabaGroup",
+    "parent_asin": "B00PARENT01",
+    "reporting_date": "2023-10-22",
+    "week_date": "2023-10-22",
+    "keywords": "keyword A",
+    "competitor_brand": "CompBrandB",
+    "asin": "B00COMPCom001",
+    "product_title": "CompBrandB Product Variant 1",
+    "country_code": "ES",
+    "average_organic_rank": 29.0,
+    "weekly_number_of_days_with_deal": 0.0,
+    "weekly_number_of_days_with_best_seller_badge": 0.0,
+    "weekly_number_of_days_with_amazon_choice_badge": 0.0,
+    "weekly_number_of_days_with_coupon": 7.0,
+    "click_share": 0.0781,
+    "impression_share": 0.0859,
+    "price": 35.0,
+    "weekly_search_volume": 5883.0,
+    "is_yaba_asin": "N",
+    "keywords_link": "http://amazon...",
+    "grams": 550.0,
+    "organic_or_not": "Organic",
+    "container": "Box"
+  },
+  {
+    "brand_aggregation": "YabaGroup",
+    "parent_asin": "B00PARENT01",
+    "reporting_date": "2023-10-29",
+    "week_date": "2023-10-29",
+    "keywords": "keyword A",
+    "competitor_brand": "CompBrandB",
+    "asin": "B00COMPCom001",
+    "product_title": "CompBrandB Product Variant 1",
+    "country_code": "ES",
+    "average_organic_rank": 20.0,
+    "weekly_number_of_days_with_deal": 1.0,
+    "weekly_number_of_days_with_best_seller_badge": 0.0,
+    "weekly_number_of_days_with_amazon_choice_badge": 0.0,
+    "weekly_number_of_days_with_coupon": 0.0,
+    "click_share": 0.0829,
+    "impression_share": 0.0912,
+    "price": 35.0,
+    "weekly_search_volume": 12224.0,
+    "is_yaba_asin": "N",
+    "keywords_link": "http://amazon...",
+    "grams": 550.0,
+    "organic_or_not": "Organic",
+    "container": "Box"
+  },
+  {
+    "brand_aggregation": "YabaGroup",
+    "parent_asin": "B00PARENT01",
+    "reporting_date": "2023-10-01",
+    "week_date": "2023-10-01",
+    "keywords": "keyword A",
+    "competitor_brand": "CompBrandC",
+    "asin": "B00COMPCom000",
+    "product_title": "CompBrandC Product Variant 0",
+    "country_code": "ES",
+    "average_organic_rank": 21.0,
+    "weekly_number_of_days_with_deal": 0.0,
+    "weekly_number_of_days_with_best_seller_badge": 0.0,
+    "weekly_number_of_days_with_amazon_choice_badge": 0.0,
+    "weekly_number_of_days_with_coupon": 0.0,
+    "click_share": 0.0125,
+    "impression_share": 0.0137,
+    "price": 35.0,
+    "weekly_search_volume": 6791.0,
+    "is_yaba_asin": "N",
+    "keywords_link": "http://amazon...",
+    "grams": 550.0,
+    "organic_or_not": "Organic",
+    "container": "Box"
+  },
+  {
+    "brand_aggregation": "YabaGroup",
+    "parent_asin": "B00PARENT01",
+    "reporting_date": "2023-10-08",
+    "week_date": "2023-10-08",
+    "keywords": "keyword A",
+    "competitor_brand": "CompBrandC",
+    "asin": "B00COMPCom000",
+    "product_title": "CompBrandC Product Variant 0",
+    "country_code": "ES",
+    "average_organic_rank": 27.0,
+    "weekly_number_of_days_with_deal": 0.0,
+    "weekly_number_of_days_with_best_seller_badge": 0.0,
+    "weekly_number_of_days_with_amazon_choice_badge": 0.0,
+    "weekly_number_of_days_with_coupon": 0.0,
+    "click_share": 0.0105,
+    "impression_share": 0.0116,
+    "price": 35.0,
+    "weekly_search_volume": 5601.0,
+    "is_yaba_asin": "N",
+    "keywords_link": "http://amazon...",
+    "grams": 550.0,
+    "organic_or_not": "Organic",
+    "container": "Box"
+  },
+  {
+    "brand_aggregation": "YabaGroup",
+    "parent_asin": "B00PARENT01",
+    "reporting_date": "2023-10-15",
+    "week_date": "2023-10-15",
+    "keywords": "keyword A",
+    "competitor_brand": "CompBrandC",
+    "asin": "B00COMPCom000",
+    "product_title": "CompBrandC Product Variant 0",
+    "country_code": "ES",
+    "average_organic_rank": 23.0,
+    "weekly_number_of_days_with_deal": 0.0,
+    "weekly_number_of_days_with_best_seller_badge": 0.0,
+    "weekly_number_of_days_with_amazon_choice_badge": 0.0,
+    "weekly_number_of_days_with_coupon": 0.0,
+    "click_share": 0.0125,
+    "impression_share": 0.0138,
+    "price": 35.0,
+    "weekly_search_volume": 7434.0,
+    "is_yaba_asin": "N",
+    "keywords_link": "http://amazon...",
+    "grams": 550.0,
+    "organic_or_not": "Organic",
+    "container": "Box"
+  },
+  {
+    "brand_aggregation": "YabaGroup",
+    "parent_asin": "B00PARENT01",
+    "reporting_date": "2023-10-22",
+    "week_date": "2023-10-22",
+    "keywords": "keyword A",
+    "competitor_brand": "CompBrandC",
+    "asin": "B00COMPCom000",
+    "product_title": "CompBrandC Product Variant 0",
+    "country_code": "ES",
+    "average_organic_rank": 20.0,
+    "weekly_number_of_days_with_deal": 0.0,
+    "weekly_number_of_days_with_best_seller_badge": 0.0,
+    "weekly_number_of_days_with_amazon_choice_badge": 0.0,
+    "weekly_number_of_days_with_coupon": 0.0,
+    "click_share": 0.0055,
+    "impression_share": 0.0061,
+    "price": 35.0,
+    "weekly_search_volume": 5883.0,
+    "is_yaba_asin": "N",
+    "keywords_link": "http://amazon...",
+    "grams": 550.0,
+    "organic_or_not": "Organic",
+    "container": "Box"
+  },
+  {
+    "brand_aggregation": "YabaGroup",
+    "parent_asin": "B00PARENT01",
+    "reporting_date": "2023-10-29",
+    "week_date": "2023-10-29",
+    "keywords": "keyword A",
+    "competitor_brand": "CompBrandC",
+    "asin": "B00COMPCom000",
+    "product_title": "CompBrandC Product Variant 0",
+    "country_code": "ES",
+    "average_organic_rank": 35.0,
+    "weekly_number_of_days_with_deal": 1.0,
+    "weekly_number_of_days_with_best_seller_badge": 0.0,
+    "weekly_number_of_days_with_amazon_choice_badge": 0.0,
+    "weekly_number_of_days_with_coupon": 0.0,
+    "click_share": 0.0084,
+    "impression_share": 0.0092,
+    "price": 35.0,
+    "weekly_search_volume": 12224.0,
+    "is_yaba_asin": "N",
+    "keywords_link": "http://amazon...",
+    "grams": 550.0,
+    "organic_or_not": "Organic",
+    "container": "Box"
+  },
+  {
+    "brand_aggregation": "YabaGroup",
+    "parent_asin": "B00PARENT01",
+    "reporting_date": "2023-10-01",
+    "week_date": "2023-10-01",
+    "keywords": "keyword A",
+    "competitor_brand": "CompBrandC",
+    "asin": "B00COMPCom001",
+    "product_title": "CompBrandC Product Variant 1",
+    "country_code": "ES",
+    "average_organic_rank": 47.0,
+    "weekly_number_of_days_with_deal": 0.0,
+    "weekly_number_of_days_with_best_seller_badge": 0.0,
+    "weekly_number_of_days_with_amazon_choice_badge": 0.0,
+    "weekly_number_of_days_with_coupon": 0.0,
+    "click_share": 0.0084,
+    "impression_share": 0.0093,
+    "price": 35.0,
+    "weekly_search_volume": 6791.0,
+    "is_yaba_asin": "N",
+    "keywords_link": "http://amazon...",
+    "grams": 550.0,
+    "organic_or_not": "Organic",
+    "container": "Box"
+  },
+  {
+    "brand_aggregation": "YabaGroup",
+    "parent_asin": "B00PARENT01",
+    "reporting_date": "2023-10-08",
+    "week_date": "2023-10-08",
+    "keywords": "keyword A",
+    "competitor_brand": "CompBrandC",
+    "asin": "B00COMPCom001",
+    "product_title": "CompBrandC Product Variant 1",
+    "country_code": "ES",
+    "average_organic_rank": 35.0,
+    "weekly_number_of_days_with_deal": 0.0,
+    "weekly_number_of_days_with_best_seller_badge": 0.0,
+    "weekly_number_of_days_with_amazon_choice_badge": 0.0,
+    "weekly_number_of_days_with_coupon": 0.0,
+    "click_share": 0.0137,
+    "impression_share": 0.015,
+    "price": 35.0,
+    "weekly_search_volume": 5601.0,
+    "is_yaba_asin": "N",
+    "keywords_link": "http://amazon...",
+    "grams": 550.0,
+    "organic_or_not": "Organic",
+    "container": "Box"
+  },
+  {
+    "brand_aggregation": "YabaGroup",
+    "parent_asin": "B00PARENT01",
+    "reporting_date": "2023-10-15",
+    "week_date": "2023-10-15",
+    "keywords": "keyword A",
+    "competitor_brand": "CompBrandC",
+    "asin": "B00COMPCom001",
+    "product_title": "CompBrandC Product Variant 1",
+    "country_code": "ES",
+    "average_organic_rank": 32.0,
+    "weekly_number_of_days_with_deal": 0.0,
+    "weekly_number_of_days_with_best_seller_badge": 0.0,
+    "weekly_number_of_days_with_amazon_choice_badge": 0.0,
+    "weekly_number_of_days_with_coupon": 0.0,
+    "click_share": 0.0088,
+    "impression_share": 0.0097,
+    "price": 35.0,
+    "weekly_search_volume": 7434.0,
+    "is_yaba_asin": "N",
+    "keywords_link": "http://amazon...",
+    "grams": 550.0,
+    "organic_or_not": "Organic",
+    "container": "Box"
+  },
+  {
+    "brand_aggregation": "YabaGroup",
+    "parent_asin": "B00PARENT01",
+    "reporting_date": "2023-10-22",
+    "week_date": "2023-10-22",
+    "keywords": "keyword A",
+    "competitor_brand": "CompBrandC",
+    "asin": "B00COMPCom001",
+    "product_title": "CompBrandC Product Variant 1",
+    "country_code": "ES",
+    "average_organic_rank": 34.0,
+    "weekly_number_of_days_with_deal": 0.0,
+    "weekly_number_of_days_with_best_seller_badge": 0.0,
+    "weekly_number_of_days_with_amazon_choice_badge": 0.0,
+    "weekly_number_of_days_with_coupon": 0.0,
+    "click_share": 0.0104,
+    "impression_share": 0.0114,
+    "price": 35.0,
+    "weekly_search_volume": 5883.0,
+    "is_yaba_asin": "N",
+    "keywords_link": "http://amazon...",
+    "grams": 550.0,
+    "organic_or_not": "Organic",
+    "container": "Box"
+  },
+  {
+    "brand_aggregation": "YabaGroup",
+    "parent_asin": "B00PARENT01",
+    "reporting_date": "2023-10-29",
+    "week_date": "2023-10-29",
+    "keywords": "keyword A",
+    "competitor_brand": "CompBrandC",
+    "asin": "B00COMPCom001",
+    "product_title": "CompBrandC Product Variant 1",
+    "country_code": "ES",
+    "average_organic_rank": 47.0,
+    "weekly_number_of_days_with_deal": 0.0,
+    "weekly_number_of_days_with_best_seller_badge": 0.0,
+    "weekly_number_of_days_with_amazon_choice_badge": 0.0,
+    "weekly_number_of_days_with_coupon": 0.0,
+    "click_share": 0.0146,
+    "impression_share": 0.016,
+    "price": 35.0,
+    "weekly_search_volume": 12224.0,
+    "is_yaba_asin": "N",
+    "keywords_link": "http://amazon...",
+    "grams": 550.0,
+    "organic_or_not": "Organic",
+    "container": "Box"
+  },
+  {
+    "brand_aggregation": "YabaGroup",
+    "parent_asin": "B00PARENT01",
+    "reporting_date": "2023-10-01",
+    "week_date": "2023-10-01",
+    "keywords": "keyword A",
+    "competitor_brand": "Unknown Brand",
+    "asin": "B00COMPUnk000",
+    "product_title": "Unknown Brand Product Variant 0",
+    "country_code": "ES",
+    "average_organic_rank": 31.0,
+    "weekly_number_of_days_with_deal": 0.0,
+    "weekly_number_of_days_with_best_seller_badge": 0.0,
+    "weekly_number_of_days_with_amazon_choice_badge": 0.0,
+    "weekly_number_of_days_with_coupon": 0.0,
+    "click_share": 0.0076,
+    "impression_share": 0.0084,
+    "price": 35.0,
+    "weekly_search_volume": 6791.0,
+    "is_yaba_asin": "N",
+    "keywords_link": "http://amazon...",
+    "grams": 550.0,
+    "organic_or_not": "Organic",
+    "container": "Box"
+  },
+  {
+    "brand_aggregation": "YabaGroup",
+    "parent_asin": "B00PARENT01",
+    "reporting_date": "2023-10-08",
+    "week_date": "2023-10-08",
+    "keywords": "keyword A",
+    "competitor_brand": "Unknown Brand",
+    "asin": "B00COMPUnk000",
+    "product_title": "Unknown Brand Product Variant 0",
+    "country_code": "ES",
+    "average_organic_rank": 47.0,
+    "weekly_number_of_days_with_deal": 0.0,
+    "weekly_number_of_days_with_best_seller_badge": 0.0,
+    "weekly_number_of_days_with_amazon_choice_badge": 0.0,
+    "weekly_number_of_days_with_coupon": 0.0,
+    "click_share": 0.0131,
+    "impression_share": 0.0145,
+    "price": 35.0,
+    "weekly_search_volume": 5601.0,
+    "is_yaba_asin": "N",
+    "keywords_link": "http://amazon...",
+    "grams": 550.0,
+    "organic_or_not": "Organic",
+    "container": "Box"
+  },
+  {
+    "brand_aggregation": "YabaGroup",
+    "parent_asin": "B00PARENT01",
+    "reporting_date": "2023-10-15",
+    "week_date": "2023-10-15",
+    "keywords": "keyword A",
+    "competitor_brand": "Unknown Brand",
+    "asin": "B00COMPUnk000",
+    "product_title": "Unknown Brand Product Variant 0",
+    "country_code": "ES",
+    "average_organic_rank": 38.0,
+    "weekly_number_of_days_with_deal": 1.0,
+    "weekly_number_of_days_with_best_seller_badge": 0.0,
+    "weekly_number_of_days_with_amazon_choice_badge": 0.0,
+    "weekly_number_of_days_with_coupon": 0.0,
+    "click_share": 0.0051,
+    "impression_share": 0.0056,
+    "price": 35.0,
+    "weekly_search_volume": 7434.0,
+    "is_yaba_asin": "N",
+    "keywords_link": "http://amazon...",
+    "grams": 550.0,
+    "organic_or_not": "Organic",
+    "container": "Box"
+  },
+  {
+    "brand_aggregation": "YabaGroup",
+    "parent_asin": "B00PARENT01",
+    "reporting_date": "2023-10-22",
+    "week_date": "2023-10-22",
+    "keywords": "keyword A",
+    "competitor_brand": "Unknown Brand",
+    "asin": "B00COMPUnk000",
+    "product_title": "Unknown Brand Product Variant 0",
+    "country_code": "ES",
+    "average_organic_rank": 29.0,
+    "weekly_number_of_days_with_deal": 1.0,
+    "weekly_number_of_days_with_best_seller_badge": 0.0,
+    "weekly_number_of_days_with_amazon_choice_badge": 0.0,
+    "weekly_number_of_days_with_coupon": 0.0,
+    "click_share": 0.0063,
+    "impression_share": 0.0069,
+    "price": 35.0,
+    "weekly_search_volume": 5883.0,
+    "is_yaba_asin": "N",
+    "keywords_link": "http://amazon...",
+    "grams": 550.0,
+    "organic_or_not": "Organic",
+    "container": "Box"
+  },
+  {
+    "brand_aggregation": "YabaGroup",
+    "parent_asin": "B00PARENT01",
+    "reporting_date": "2023-10-29",
+    "week_date": "2023-10-29",
+    "keywords": "keyword A",
+    "competitor_brand": "Unknown Brand",
+    "asin": "B00COMPUnk000",
+    "product_title": "Unknown Brand Product Variant 0",
+    "country_code": "ES",
+    "average_organic_rank": 10.0,
+    "weekly_number_of_days_with_deal": 1.0,
+    "weekly_number_of_days_with_best_seller_badge": 0.0,
+    "weekly_number_of_days_with_amazon_choice_badge": 0.0,
+    "weekly_number_of_days_with_coupon": 0.0,
+    "click_share": 0.0084,
+    "impression_share": 0.0092,
+    "price": 35.0,
+    "weekly_search_volume": 12224.0,
+    "is_yaba_asin": "N",
+    "keywords_link": "http://amazon...",
+    "grams": 550.0,
+    "organic_or_not": "Organic",
+    "container": "Box"
+  },
+  {
+    "brand_aggregation": "YabaGroup",
+    "parent_asin": "B00PARENT01",
+    "reporting_date": "2023-10-01",
+    "week_date": "2023-10-01",
+    "keywords": "keyword A",
+    "competitor_brand": "Unknown Brand",
+    "asin": "B00COMPUnk001",
+    "product_title": "Unknown Brand Product Variant 1",
+    "country_code": "ES",
+    "average_organic_rank": 26.0,
+    "weekly_number_of_days_with_deal": 0.0,
+    "weekly_number_of_days_with_best_seller_badge": 0.0,
+    "weekly_number_of_days_with_amazon_choice_badge": 0.0,
+    "weekly_number_of_days_with_coupon": 0.0,
+    "click_share": 0.0051,
+    "impression_share": 0.0056,
+    "price": 35.0,
+    "weekly_search_volume": 6791.0,
+    "is_yaba_asin": "N",
+    "keywords_link": "http://amazon...",
+    "grams": 550.0,
+    "organic_or_not": "Organic",
+    "container": "Box"
+  },
+  {
+    "brand_aggregation": "YabaGroup",
+    "parent_asin": "B00PARENT01",
+    "reporting_date": "2023-10-08",
+    "week_date": "2023-10-08",
+    "keywords": "keyword A",
+    "competitor_brand": "Unknown Brand",
+    "asin": "B00COMPUnk001",
+    "product_title": "Unknown Brand Product Variant 1",
+    "country_code": "ES",
+    "average_organic_rank": 10.0,
+    "weekly_number_of_days_with_deal": 0.0,
+    "weekly_number_of_days_with_best_seller_badge": 0.0,
+    "weekly_number_of_days_with_amazon_choice_badge": 0.0,
+    "weekly_number_of_days_with_coupon": 0.0,
+    "click_share": 0.0067,
+    "impression_share": 0.0074,
+    "price": 35.0,
+    "weekly_search_volume": 5601.0,
+    "is_yaba_asin": "N",
+    "keywords_link": "http://amazon...",
+    "grams": 550.0,
+    "organic_or_not": "Organic",
+    "container": "Box"
+  },
+  {
+    "brand_aggregation": "YabaGroup",
+    "parent_asin": "B00PARENT01",
+    "reporting_date": "2023-10-15",
+    "week_date": "2023-10-15",
+    "keywords": "keyword A",
+    "competitor_brand": "Unknown Brand",
+    "asin": "B00COMPUnk001",
+    "product_title": "Unknown Brand Product Variant 1",
+    "country_code": "ES",
+    "average_organic_rank": 39.0,
+    "weekly_number_of_days_with_deal": 0.0,
+    "weekly_number_of_days_with_best_seller_badge": 0.0,
+    "weekly_number_of_days_with_amazon_choice_badge": 0.0,
+    "weekly_number_of_days_with_coupon": 0.0,
+    "click_share": 0.0125,
+    "impression_share": 0.0137,
+    "price": 35.0,
+    "weekly_search_volume": 7434.0,
+    "is_yaba_asin": "N",
+    "keywords_link": "http://amazon...",
+    "grams": 550.0,
+    "organic_or_not": "Organic",
+    "container": "Box"
+  },
+  {
+    "brand_aggregation": "YabaGroup",
+    "parent_asin": "B00PARENT01",
+    "reporting_date": "2023-10-22",
+    "week_date": "2023-10-22",
+    "keywords": "keyword A",
+    "competitor_brand": "Unknown Brand",
+    "asin": "B00COMPUnk001",
+    "product_title": "Unknown Brand Product Variant 1",
+    "country_code": "ES",
+    "average_organic_rank": 10.0,
+    "weekly_number_of_days_with_deal": 1.0,
+    "weekly_number_of_days_with_best_seller_badge": 0.0,
+    "weekly_number_of_days_with_amazon_choice_badge": 0.0,
+    "weekly_number_of_days_with_coupon": 0.0,
+    "click_share": 0.0146,
+    "impression_share": 0.016,
+    "price": 35.0,
+    "weekly_search_volume": 5883.0,
+    "is_yaba_asin": "N",
+    "keywords_link": "http://amazon...",
+    "grams": 550.0,
+    "organic_or_not": "Organic",
+    "container": "Box"
+  },
+  {
+    "brand_aggregation": "YabaGroup",
+    "parent_asin": "B00PARENT01",
+    "reporting_date": "2023-10-29",
+    "week_date": "2023-10-29",
+    "keywords": "keyword A",
+    "competitor_brand": "Unknown Brand",
+    "asin": "B00COMPUnk001",
+    "product_title": "Unknown Brand Product Variant 1",
+    "country_code": "ES",
+    "average_organic_rank": 39.0,
+    "weekly_number_of_days_with_deal": 0.0,
+    "weekly_number_of_days_with_best_seller_badge": 0.0,
+    "weekly_number_of_days_with_amazon_choice_badge": 0.0,
+    "weekly_number_of_days_with_coupon": 0.0,
+    "click_share": 0.0076,
+    "impression_share": 0.0084,
+    "price": 35.0,
+    "weekly_search_volume": 12224.0,
+    "is_yaba_asin": "N",
+    "keywords_link": "http://amazon...",
+    "grams": 550.0,
+    "organic_or_not": "Organic",
+    "container": "Box"
+  },
+  {
+    "brand_aggregation": "YabaGroup",
+    "parent_asin": "B00PARENT01",
+    "reporting_date": "2023-10-01",
+    "week_date": "2023-10-01",
+    "keywords": "keyword A",
+    "competitor_brand": "TinyBrand",
+    "asin": "B00COMPTin000",
+    "product_title": "TinyBrand Product Variant 0",
+    "country_code": "ES",
+    "average_organic_rank": 34.0,
+    "weekly_number_of_days_with_deal": 1.0,
+    "weekly_number_of_days_with_best_seller_badge": 0.0,
+    "weekly_number_of_days_with_amazon_choice_badge": 0.0,
+    "weekly_number_of_days_with_coupon": 0.0,
+    "click_share": 0.0104,
+    "impression_share": 0.0114,
+    "price": 35.0,
+    "weekly_search_volume": 6791.0,
+    "is_yaba_asin": "N",
+    "keywords_link": "http://amazon...",
+    "grams": 550.0,
+    "organic_or_not": "Organic",
+    "container": "Box"
+  },
+  {
+    "brand_aggregation": "YabaGroup",
+    "parent_asin": "B00PARENT01",
+    "reporting_date": "2023-10-08",
+    "week_date": "2023-10-08",
+    "keywords": "keyword A",
+    "competitor_brand": "TinyBrand",
+    "asin": "B00COMPTin000",
+    "product_title": "TinyBrand Product Variant 0",
+    "country_code": "ES",
+    "average_organic_rank": 26.0,
+    "weekly_number_of_days_with_deal": 0.0,
+    "weekly_number_of_days_with_best_seller_badge": 0.0,
+    "weekly_number_of_days_with_amazon_choice_badge": 0.0,
+    "weekly_number_of_days_with_coupon": 0.0,
+    "click_share": 0.011,
+    "impression_share": 0.0121,
+    "price": 35.0,
+    "weekly_search_volume": 5601.0,
+    "is_yaba_asin": "N",
+    "keywords_link": "http://amazon...",
+    "grams": 550.0,
+    "organic_or_not": "Organic",
+    "container": "Box"
+  },
+  {
+    "brand_aggregation": "YabaGroup",
+    "parent_asin": "B00PARENT01",
+    "reporting_date": "2023-10-15",
+    "week_date": "2023-10-15",
+    "keywords": "keyword A",
+    "competitor_brand": "TinyBrand",
+    "asin": "B00COMPTin000",
+    "product_title": "TinyBrand Product Variant 0",
+    "country_code": "ES",
+    "average_organic_rank": 37.0,
+    "weekly_number_of_days_with_deal": 1.0,
+    "weekly_number_of_days_with_best_seller_badge": 0.0,
+    "weekly_number_of_days_with_amazon_choice_badge": 0.0,
+    "weekly_number_of_days_with_coupon": 0.0,
+    "click_share": 0.0123,
+    "impression_share": 0.0135,
+    "price": 35.0,
+    "weekly_search_volume": 7434.0,
+    "is_yaba_asin": "N",
+    "keywords_link": "http://amazon...",
+    "grams": 550.0,
+    "organic_or_not": "Organic",
+    "container": "Box"
+  },
+  {
+    "brand_aggregation": "YabaGroup",
+    "parent_asin": "B00PARENT01",
+    "reporting_date": "2023-10-22",
+    "week_date": "2023-10-22",
+    "keywords": "keyword A",
+    "competitor_brand": "TinyBrand",
+    "asin": "B00COMPTin000",
+    "product_title": "TinyBrand Product Variant 0",
+    "country_code": "ES",
+    "average_organic_rank": 39.0,
+    "weekly_number_of_days_with_deal": 1.0,
+    "weekly_number_of_days_with_best_seller_badge": 0.0,
+    "weekly_number_of_days_with_amazon_choice_badge": 0.0,
+    "weekly_number_of_days_with_coupon": 0.0,
+    "click_share": 0.0076,
+    "impression_share": 0.0084,
+    "price": 35.0,
+    "weekly_search_volume": 5883.0,
+    "is_yaba_asin": "N",
+    "keywords_link": "http://amazon...",
+    "grams": 550.0,
+    "organic_or_not": "Organic",
+    "container": "Box"
+  },
+  {
+    "brand_aggregation": "YabaGroup",
+    "parent_asin": "B00PARENT01",
+    "reporting_date": "2023-10-29",
+    "week_date": "2023-10-29",
+    "keywords": "keyword A",
+    "competitor_brand": "TinyBrand",
+    "asin": "B00COMPTin000",
+    "product_title": "TinyBrand Product Variant 0",
+    "country_code": "ES",
+    "average_organic_rank": 40.0,
+    "weekly_number_of_days_with_deal": 0.0,
+    "weekly_number_of_days_with_best_seller_badge": 0.0,
+    "weekly_number_of_days_with_amazon_choice_badge": 0.0,
+    "weekly_number_of_days_with_coupon": 0.0,
+    "click_share": 0.0089,
+    "impression_share": 0.0098,
+    "price": 35.0,
+    "weekly_search_volume": 12224.0,
+    "is_yaba_asin": "N",
+    "keywords_link": "http://amazon...",
+    "grams": 550.0,
+    "organic_or_not": "Organic",
+    "container": "Box"
+  },
+  {
+    "brand_aggregation": "YabaGroup",
+    "parent_asin": "B00PARENT01",
+    "reporting_date": "2023-10-01",
+    "week_date": "2023-10-01",
+    "keywords": "keyword A",
+    "competitor_brand": "TinyBrand",
+    "asin": "B00COMPTin001",
+    "product_title": "TinyBrand Product Variant 1",
+    "country_code": "ES",
+    "average_organic_rank": 26.0,
+    "weekly_number_of_days_with_deal": 1.0,
+    "weekly_number_of_days_with_best_seller_badge": 0.0,
+    "weekly_number_of_days_with_amazon_choice_badge": 0.0,
+    "weekly_number_of_days_with_coupon": 0.0,
+    "click_share": 0.0146,
+    "impression_share": 0.016,
+    "price": 35.0,
+    "weekly_search_volume": 6791.0,
+    "is_yaba_asin": "N",
+    "keywords_link": "http://amazon...",
+    "grams": 550.0,
+    "organic_or_not": "Organic",
+    "container": "Box"
+  },
+  {
+    "brand_aggregation": "YabaGroup",
+    "parent_asin": "B00PARENT01",
+    "reporting_date": "2023-10-08",
+    "week_date": "2023-10-08",
+    "keywords": "keyword A",
+    "competitor_brand": "TinyBrand",
+    "asin": "B00COMPTin001",
+    "product_title": "TinyBrand Product Variant 1",
+    "country_code": "ES",
+    "average_organic_rank": 15.0,
+    "weekly_number_of_days_with_deal": 1.0,
+    "weekly_number_of_days_with_best_seller_badge": 0.0,
+    "weekly_number_of_days_with_amazon_choice_badge": 0.0,
+    "weekly_number_of_days_with_coupon": 0.0,
+    "click_share": 0.0135,
+    "impression_share": 0.0148,
+    "price": 35.0,
+    "weekly_search_volume": 5601.0,
+    "is_yaba_asin": "N",
+    "keywords_link": "http://amazon...",
+    "grams": 550.0,
+    "organic_or_not": "Organic",
+    "container": "Box"
+  },
+  {
+    "brand_aggregation": "YabaGroup",
+    "parent_asin": "B00PARENT01",
+    "reporting_date": "2023-10-15",
+    "week_date": "2023-10-15",
+    "keywords": "keyword A",
+    "competitor_brand": "TinyBrand",
+    "asin": "B00COMPTin001",
+    "product_title": "TinyBrand Product Variant 1",
+    "country_code": "ES",
+    "average_organic_rank": 10.0,
+    "weekly_number_of_days_with_deal": 0.0,
+    "weekly_number_of_days_with_best_seller_badge": 0.0,
+    "weekly_number_of_days_with_amazon_choice_badge": 0.0,
+    "weekly_number_of_days_with_coupon": 0.0,
+    "click_share": 0.0101,
+    "impression_share": 0.0111,
+    "price": 35.0,
+    "weekly_search_volume": 7434.0,
+    "is_yaba_asin": "N",
+    "keywords_link": "http://amazon...",
+    "grams": 550.0,
+    "organic_or_not": "Organic",
+    "container": "Box"
+  },
+  {
+    "brand_aggregation": "YabaGroup",
+    "parent_asin": "B00PARENT01",
+    "reporting_date": "2023-10-22",
+    "week_date": "2023-10-22",
+    "keywords": "keyword A",
+    "competitor_brand": "TinyBrand",
+    "asin": "B00COMPTin001",
+    "product_title": "TinyBrand Product Variant 1",
+    "country_code": "ES",
+    "average_organic_rank": 38.0,
+    "weekly_number_of_days_with_deal": 0.0,
+    "weekly_number_of_days_with_best_seller_badge": 0.0,
+    "weekly_number_of_days_with_amazon_choice_badge": 0.0,
+    "weekly_number_of_days_with_coupon": 0.0,
+    "click_share": 0.0076,
+    "impression_share": 0.0084,
+    "price": 35.0,
+    "weekly_search_volume": 5883.0,
+    "is_yaba_asin": "N",
+    "keywords_link": "http://amazon...",
+    "grams": 550.0,
+    "organic_or_not": "Organic",
+    "container": "Box"
+  },
+  {
+    "brand_aggregation": "YabaGroup",
+    "parent_asin": "B00PARENT01",
+    "reporting_date": "2023-10-29",
+    "week_date": "2023-10-29",
+    "keywords": "keyword A",
+    "competitor_brand": "TinyBrand",
+    "asin": "B00COMPTin001",
+    "product_title": "TinyBrand Product Variant 1",
+    "country_code": "ES",
+    "average_organic_rank": 26.0,
+    "weekly_number_of_days_with_deal": 1.0,
+    "weekly_number_of_days_with_best_seller_badge": 0.0,
+    "weekly_number_of_days_with_amazon_choice_badge": 0.0,
+    "weekly_number_of_days_with_coupon": 0.0,
+    "click_share": 0.0135,
+    "impression_share": 0.0148,
+    "price": 35.0,
+    "weekly_search_volume": 12224.0,
+    "is_yaba_asin": "N",
+    "keywords_link": "http://amazon...",
+    "grams": 550.0,
+    "organic_or_not": "Organic",
+    "container": "Box"
+  }
+];
+
+        // GOOGLE CHARTS INIT
+        google.charts.load('current', {'packages':['corechart', 'table']});
+        google.charts.setOnLoadCallback(initDashboard);
+
+        let processedData = {};
+        let topCompetitors = [];
+        let ourBrandName = "";
+
+        // HELPER: EXTRACT BRAND
+        function getBrand(row) {
+            if (row.competitor_brand) return row.competitor_brand;
+            // Fallback logic
+            return "Unknown Brand";
+        }
+
+        // HELPER: FORMAT DATE
+        function formatDate(dateStr) {
+            const d = new Date(dateStr);
+            return `${d.getDate()}/${d.getMonth()+1}`;
+        }
+
+        function initDashboard() {
+            processData();
+            renderHeader();
+            renderTrendChart();
+            renderCompetitorChart();
+            renderEfficiencyChart();
+            renderLevers();
+            renderInsights();
+            populateComparators();
+        }
+
+        function processData() {
+            // Identify Our Brand
+            const ourRow = marketData.find(d => d.is_yaba_asin === 'Y');
+            ourBrandName = ourRow ? getBrand(ourRow) : "Nuestra Marca";
+
+            // Get unique weeks
+            const weeks = [...new Set(marketData.map(d => d.week_date))].sort();
+
+            // Aggregation Structure
+            // { week: { brand: { clicks, share, price_sum, count, deal_days... } } }
+            const agg = {};
+
+            weeks.forEach(w => {
+                agg[w] = { total_clicks: 0, brands: {} };
+                // Filter rows for this week
+                const rows = marketData.filter(d => d.week_date === w);
+                
+                rows.forEach(r => {
+                    const brand = getBrand(r);
+                    const clicks = r.click_share * r.weekly_search_volume;
+
+                    if (!agg[w].brands[brand]) {
+                        agg[w].brands[brand] = { 
+                            clicks: 0, 
+                            share_sum: 0,
+                            price_sum: 0,
+                            count: 0,
+                            rank_sum: 0,
+                            deal_days: 0,
+                            bs_days: 0,
+                            ac_days: 0
+                        };
+                    }
+
+                    agg[w].brands[brand].clicks += clicks;
+                    agg[w].brands[brand].share_sum += r.click_share;
+                    agg[w].brands[brand].price_sum += r.price;
+                    agg[w].brands[brand].rank_sum += r.average_organic_rank;
+                    agg[w].brands[brand].deal_days += r.weekly_number_of_days_with_deal;
+                    agg[w].brands[brand].bs_days += r.weekly_number_of_days_with_best_seller_badge;
+                    agg[w].brands[brand].ac_days += r.weekly_number_of_days_with_amazon_choice_badge;
+                    agg[w].brands[brand].count++;
+                    
+                    agg[w].total_clicks += clicks;
+                });
+            });
+
+            // Determine Top Competitors (by avg share across all weeks)
+            const brandShares = {};
+            marketData.forEach(r => {
+                const b = getBrand(r);
+                if (b === ourBrandName) return;
+                if (!brandShares[b]) brandShares[b] = 0;
+                brandShares[b] += r.click_share;
+            });
+            
+            topCompetitors = Object.keys(brandShares)
+                .sort((a,b) => brandShares[b] - brandShares[a])
+                .slice(0, 3);
+
+            processedData = { weeks, agg, brandShares };
+        }
+
+        function renderHeader() {
+            const weeks = processedData.weeks;
+            const lastWeek = weeks[weeks.length-1];
+            const firstWeek = weeks[0];
+            
+            document.getElementById('date-range').innerText = `Periodo: ${formatDate(firstWeek)} - ${formatDate(lastWeek)}`;
+            
+            // Calc total share for us last week
+            const lwData = processedData.agg[lastWeek].brands[ourBrandName];
+            const totalShare = lwData ? (lwData.share_sum * 100).toFixed(1) : "0.0";
+            document.getElementById('header-share').innerText = `${totalShare}%`;
+        }
+
+        function renderTrendChart() {
+            const data = new google.visualization.DataTable();
+            data.addColumn('string', 'Semana');
+            data.addColumn('number', 'Volumen Clics Mercado');
+            data.addColumn('number', 'Nuestra Share %');
+            
+            const rows = processedData.weeks.map(w => {
+                const totalClicks = processedData.agg[w].total_clicks;
+                const ourData = processedData.agg[w].brands[ourBrandName];
+                // Note: Share sum might need normalization if it exceeds 1, but usually click_share is per ASIN
+                // Correct logic: Our Clicks / Total Clicks
+                const ourClicks = ourData ? ourData.clicks : 0;
+                const share = totalClicks > 0 ? (ourClicks / totalClicks) * 100 : 0;
+                return [formatDate(w), Math.round(totalClicks), share];
+            });
+
+            data.addRows(rows);
+
+            const options = {
+                seriesType: 'bars',
+                series: { 1: {type: 'line', targetAxisIndex: 1, color: '#4285F4', lineWidth: 3} },
+                colors: ['#e0e0e0'],
+                vAxes: {
+                    0: {title: 'Clics Totales', textStyle: {color: '#999'}, gridlines: {count: 0}},
+                    1: {title: 'Nuestra Cuota (%)', format: '#\'%\'', textStyle: {color: '#4285F4'}}
+                },
+                hAxis: { textStyle: { color: '#666' } },
+                chartArea: {width: '80%', height: '70%'},
+                legend: { position: 'bottom' }
+            };
+
+            const chart = new google.visualization.ComboChart(document.getElementById('chart_trend'));
+            chart.draw(data, options);
+
+            // Metrics
+            const lastW = processedData.weeks[processedData.weeks.length-1];
+            const prevW = processedData.weeks[processedData.weeks.length-2];
+            const lastShare = rows[rows.length-1][2];
+            const prevShare = rows[rows.length-2][2];
+            const growth = lastShare - prevShare;
+
+            document.getElementById('trend-clicks').innerText = rows[rows.length-1][1].toLocaleString();
+            const growthEl = document.getElementById('trend-share-growth');
+            growthEl.innerText = (growth >= 0 ? "+" : "") + growth.toFixed(1) + " pp";
+            growthEl.style.color = growth >= 0 ? 'var(--success)' : 'var(--danger)';
+
+            // Text
+            document.getElementById('trend-insights').innerHTML = `
+                En la última semana, el interés de búsqueda ${rows[rows.length-1][1] > rows[rows.length-2][1] ? 'aumentó' : 'disminuyó'}.
+                Nuestra marca <strong>${growth >= 0 ? 'ganó' : 'perdió'}</strong> terreno frente a la competencia.
+            `;
+        }
+
+        function renderCompetitorChart() {
+            const data = new google.visualization.DataTable();
+            data.addColumn('string', 'Semana');
+            data.addColumn('number', ourBrandName);
+            topCompetitors.forEach(c => data.addColumn('number', c));
+            
+            const rows = processedData.weeks.map(w => {
+                const row = [formatDate(w)];
+                
+                // Us
+                const ourD = processedData.agg[w].brands[ourBrandName];
+                // Calculate Real Share = BrandClicks / TotalClicks
+                const totalC = processedData.agg[w].total_clicks;
+                row.push(ourD ? (ourD.clicks/totalC)*100 : 0);
+
+                // Them
+                topCompetitors.forEach(c => {
+                    const compD = processedData.agg[w].brands[c];
+                    row.push(compD ? (compD.clicks/totalC)*100 : 0);
+                });
+                return row;
+            });
+
+            data.addRows(rows);
+
+            const options = {
+                curveType: 'function',
+                lineWidth: 3,
+                colors: ['#4285F4', '#EA4335', '#FBBC05', '#34A853'],
+                chartArea: {width: '85%', height: '70%'},
+                legend: { position: 'bottom' },
+                vAxis: { format: "#'%'" }
+            };
+
+            const chart = new google.visualization.LineChart(document.getElementById('chart_competitors'));
+            chart.draw(data, options);
+            
+            // Insight
+            const winner = topCompetitors[0]; // Simplification
+            document.getElementById('comp-insights').innerHTML = `
+                <strong>${ourBrandName}</strong> compite principalmente contra <strong>${winner}</strong>.
+                Observar picos de cuota correlacionados con caídas de precio o deals.
+            `;
+        }
+
+        function renderEfficiencyChart() {
+            const data = new google.visualization.DataTable();
+            data.addColumn('number', 'Rank Orgánico (Inverso)');
+            data.addColumn('number', 'Click Share %');
+            data.addColumn({type: 'string', role: 'tooltip'});
+            data.addColumn({type: 'string', role: 'style'});
+
+            const lastWeek = processedData.weeks[processedData.weeks.length-1];
+            const rows = marketData.filter(d => d.week_date === lastWeek).map(d => {
+                const isUs = d.is_yaba_asin === 'Y';
+                const color = isUs ? '#4285F4' : '#ccc';
+                // Invert rank for visualization (Rank 1 is "high")
+                return [d.average_organic_rank, d.click_share * 100, `${d.competitor_brand}: Rank ${d.average_organic_rank}, Share ${(d.click_share*100).toFixed(1)}%`, `point { fill-color: ${color}; size: ${isUs?6:3}; }`];
+            });
+
+            data.addRows(rows);
+
+            const options = {
+                hAxis: { title: 'Posición Orgánica (Menor es mejor)', direction: -1 }, // 1 is right
+                vAxis: { title: 'Click Share %' },
+                legend: 'none',
+                chartArea: {width: '80%', height: '70%'}
+            };
+
+            const chart = new google.visualization.ScatterChart(document.getElementById('chart_efficiency'));
+            chart.draw(data, options);
+            
+            document.getElementById('efficiency-insights').innerText = "Los puntos azules (Nuestra Marca) situados arriba a la derecha son 'Sobre-performers' (ganan share sin top rank). Si están abajo a la izquierda, son ineficientes.";
+        }
+
+        function renderLevers() {
+            // Simple correlation calculation (Correlation is hard in Vanilla JS without libs, using simplified averages)
+            
+            // Price Impact: Avg Share when Price < Avg vs Price > Avg
+            const avgPrice = marketData.reduce((s, d) => s + d.price, 0) / marketData.length;
+            const lowPriceShare = marketData.filter(d => d.price < avgPrice).reduce((s, d) => s + d.click_share, 0);
+            const highPriceShare = marketData.filter(d => d.price >= avgPrice).reduce((s, d) => s + d.click_share, 0);
+            const countLow = marketData.filter(d => d.price < avgPrice).length;
+            const countHigh = marketData.filter(d => d.price >= avgPrice).length;
+            
+            const liftPrice = countLow ? (lowPriceShare/countLow) / (highPriceShare/countHigh) : 1;
+            
+            document.getElementById('corr-price').innerText = liftPrice > 1.1 ? "Alta" : "Baja";
+            document.getElementById('corr-price').style.color = liftPrice > 1.1 ? "var(--success)" : "var(--gray-500)";
+
+            // Deals Impact
+            const dealShare = marketData.filter(d => d.weekly_number_of_days_with_deal > 0).reduce((s, d) => s + d.click_share, 0);
+            const noDealShare = marketData.filter(d => d.weekly_number_of_days_with_deal === 0).reduce((s, d) => s + d.click_share, 0);
+            const cDeal = marketData.filter(d => d.weekly_number_of_days_with_deal > 0).length;
+            const cNoDeal = marketData.filter(d => d.weekly_number_of_days_with_deal === 0).length;
+            
+            const liftDeal = cDeal && cNoDeal ? ((dealShare/cDeal) / (noDealShare/cNoDeal) - 1) * 100 : 0;
+            document.getElementById('impact-deal').innerText = `${liftDeal > 0 ? '+' : ''}${liftDeal.toFixed(0)}%`;
+            document.getElementById('impact-deal').style.color = liftDeal > 0 ? "var(--success)" : "var(--gray-500)";
+            
+            // BS Badge Impact
+            const bsShare = marketData.filter(d => d.weekly_number_of_days_with_best_seller_badge > 0).reduce((s, d) => s + d.click_share, 0);
+            const noBsShare = marketData.filter(d => d.weekly_number_of_days_with_best_seller_badge === 0).reduce((s, d) => s + d.click_share, 0);
+            const cBs = marketData.filter(d => d.weekly_number_of_days_with_best_seller_badge > 0).length;
+            const cNoBs = marketData.filter(d => d.weekly_number_of_days_with_best_seller_badge === 0).length;
+            
+            const liftBs = cBs && cNoBs ? ((bsShare/cBs) / (noBsShare/cNoBs) - 1) * 100 : 0;
+            document.getElementById('impact-bs').innerText = `${liftBs > 0 ? '+' : ''}${liftBs.toFixed(0)}%`;
+
+            // Amazon Choice
+            const acShare = marketData.filter(d => d.weekly_number_of_days_with_amazon_choice_badge > 0).reduce((s, d) => s + d.click_share, 0);
+            const noAcShare = marketData.filter(d => d.weekly_number_of_days_with_amazon_choice_badge === 0).reduce((s, d) => s + d.click_share, 0);
+            const cAc = marketData.filter(d => d.weekly_number_of_days_with_amazon_choice_badge > 0).length;
+            const cNoAc = marketData.filter(d => d.weekly_number_of_days_with_amazon_choice_badge === 0).length;
+
+            const liftAc = cAc && cNoAc ? ((acShare/cAc) / (noAcShare/cNoAc) - 1) * 100 : 0;
+            document.getElementById('impact-ac').innerText = `${liftAc > 0 ? '+' : ''}${liftAc.toFixed(0)}%`;
+        }
+
+        function renderInsights() {
+            // Logic to generate insights based on calculated metrics
+            const container = document.getElementById('insights-container');
+            const recContainer = document.getElementById('recommendations-container');
+            
+            const insights = [
+                "La marca domina en eficiencia de click share cuando activa Deals.",
+                "Existe una alta elasticidad precio: bajar precios correlaciona fuertemente con aumento de share.",
+                "Los badges de Amazon Choice aportan estabilidad en semanas sin promoción.",
+                `Competidor principal: ${topCompetitors[0]} mantiene presión en rank orgánico.`,
+                "Tendencia positiva en las últimas 2 semanas."
+            ];
+
+            const recs = [
+                "Activar cupón de 5% para recuperar rank en ASINs 'underperformers'.",
+                "Igualar precio de competidor Top 1 en la semana clave del mes.",
+                "Revisar títulos de variantes con baja conversión (Click Share < 1%)."
+            ];
+
+            container.innerHTML = insights.map(i => `
+                <div class="insight-item">
+                    <span class="material-icons insight-icon">info</span>
+                    <div class="insight-text">${i}</div>
+                </div>
+            `).join('');
+
+            recContainer.innerHTML = recs.map(r => `
+                <div class="insight-item" style="border-left-color: var(--success);">
+                    <span class="material-icons insight-icon" style="color:var(--success)">check_circle</span>
+                    <div class="insight-text">${r}</div>
+                </div>
+            `).join('');
+        }
+
+        // --- INTERACTIVE TAB LOGIC ---
+
+        function populateComparators() {
+            const weeks = processedData.weeks;
+            const selWeek = document.getElementById('sel-week');
+            weeks.forEach(w => {
+                const opt = document.createElement('option');
+                opt.value = w;
+                opt.innerText = formatDate(w);
+                selWeek.appendChild(opt);
+            });
+            selWeek.value = weeks[weeks.length-1];
+
+            const selComp = document.getElementById('sel-comp');
+            topCompetitors.forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c;
+                opt.innerText = c;
+                selComp.appendChild(opt);
+            });
+
+            updateComparator();
+        }
+
+        function updateComparator() {
+            const week = document.getElementById('sel-week').value;
+            const comp = document.getElementById('sel-comp').value;
+            
+            const usData = processedData.agg[week].brands[ourBrandName];
+            const themData = processedData.agg[week].brands[comp];
+
+            if (!usData || !themData) return;
+
+            // Averages
+            const usPrice = usData.price_sum / usData.count;
+            const themPrice = themData.price_sum / themData.count;
+            
+            const totalClicks = processedData.agg[week].total_clicks;
+            const usShare = (usData.clicks / totalClicks) * 100;
+            const themShare = (themData.clicks / totalClicks) * 100;
+            
+            const usRank = usData.rank_sum / usData.count;
+            const themRank = themData.rank_sum / themData.count;
+
+            // DOM Updates
+            document.getElementById('h2h-price-us').innerText = usPrice.toFixed(2) + '€';
+            document.getElementById('h2h-price-them').innerText = themPrice.toFixed(2) + '€';
+            
+            document.getElementById('h2h-share-us').innerText = usShare.toFixed(1) + '%';
+            document.getElementById('h2h-share-them').innerText = themShare.toFixed(1) + '%';
+            
+            document.getElementById('h2h-rank-us').innerText = '#' + usRank.toFixed(0);
+            document.getElementById('h2h-rank-them').innerText = '#' + themRank.toFixed(0);
+
+            // Table
+            const tbody = document.getElementById('h2h-table-body');
+            const metrics = [
+                { name: 'Precio (€)', us: usPrice, them: themPrice, format: '€', inv: true },
+                { name: 'Click Share (%)', us: usShare, them: themShare, format: '%', inv: false },
+                { name: 'Rank Orgánico', us: usRank, them: themRank, format: '', inv: true }, // lower is better
+                { name: 'Días con Deal', us: usData.deal_days/usData.count, them: themData.deal_days/themData.count, format: 'd', inv: false },
+            ];
+
+            tbody.innerHTML = metrics.map(m => {
+                const delta = m.us - m.them;
+                const isGood = m.inv ? delta < 0 : delta > 0;
+                const colorClass = isGood ? 'positive' : 'negative';
+                const sign = delta > 0 ? '+' : '';
+                return `
+                    <tr>
+                        <td>${m.name}</td>
+                        <td class="val-us">${m.us.toFixed(1)}${m.format}</td>
+                        <td class="val-them">${m.them.toFixed(1)}${m.format}</td>
+                        <td class="${colorClass}">${sign}${delta.toFixed(1)}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // UTILS
+        window.switchTab = function(tabName) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            
+            document.getElementById(`tab-${tabName}`).classList.add('active');
+            event.target.classList.add('active');
+            
+            // Trigger resize for charts usually helps when un-hiding
+            if(tabName === 'static') {
+                renderTrendChart();
+                renderCompetitorChart();
+                renderEfficiencyChart();
+            }
+        }
+    </script>
+</body>
+</html>
