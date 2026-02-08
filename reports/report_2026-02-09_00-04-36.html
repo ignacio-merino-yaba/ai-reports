@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Parent ASIN Analysis Report</title>
+    
+    <!-- Google Material Design & Fonts -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <link rel="stylesheet" href="https://code.getmdl.io/1.3.0/material.indigo-blue.min.css">
+    <script defer src="https://code.getmdl.io/1.3.0/material.min.js"></script>
+    
+    <!-- Google Charts -->
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+
+    <style>
+        :root {
+            --primary: #4285F4;
+            --secondary: #5f6368;
+            --success: #34A853;
+            --danger: #EA4335;
+            --warning: #FBBC05;
+            --bg-light: #f8f9fa;
+        }
+        
+        body {
+            font-family: 'Roboto', 'Helvetica', 'Arial', sans-serif;
+            background-color: var(--bg-light);
+            color: #202124;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* Apple-like / Clean Cards */
+        .dashboard-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .yaba-card {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            padding: 24px;
+            margin-bottom: 24px;
+            transition: all 0.3s ease;
+        }
+
+        .yaba-card:hover {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #1a1a1a;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* KPI Grid */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .kpi-box {
+            background: white;
+            border-radius: 12px;
+            padding: 16px;
+            border: 1px solid #e0e0e0;
+            text-align: center;
+        }
+
+        .kpi-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .kpi-label {
+            font-size: 0.875rem;
+            color: var(--secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .trend-up { color: var(--success); font-size: 0.9rem; font-weight: 500; }
+        .trend-down { color: var(--danger); font-size: 0.9rem; font-weight: 500; }
+
+        /* Tabs */
+        .tab-nav {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 30px;
+            background: white;
+            padding: 10px;
+            border-radius: 50px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            width: fit-content;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .tab-btn {
+            padding: 10px 24px;
+            border-radius: 40px;
+            border: none;
+            background: transparent;
+            font-weight: 600;
+            color: var(--secondary);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .tab-btn.active {
+            background: var(--primary);
+            color: white;
+            box-shadow: 0 2px 4px rgba(66, 133, 244, 0.3);
+        }
+
+        /* Insights Section */
+        .insight-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .insight-item {
+            display: flex;
+            align-items: start;
+            gap: 12px;
+            margin-bottom: 12px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .insight-icon {
+            color: var(--primary);
+            background: #e8f0fe;
+            padding: 8px;
+            border-radius: 50%;
+        }
+
+        /* Controls for Interactive Tab */
+        .controls-row {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        select {
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            font-size: 1rem;
+            min-width: 200px;
+        }
+
+        /* Helpers */
+        .hidden { display: none; }
+        .chart-container { width: 100%; height: 400px; }
+        .chart-small { width: 100%; height: 300px; }
+        
+        .badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: bold;
+        }
+        .badge-our { background: #e8f0fe; color: var(--primary); }
+        .badge-comp { background: #fce8e6; color: var(--danger); }
+    </style>
+</head>
+<body>
+
+    <!-- Header -->
+    <header class="mdl-layout__header mdl-layout__header--waterfall">
+        <div class="mdl-layout__header-row">
+            <span class="mdl-layout-title">
+                <i class="material-icons" style="vertical-align: middle; margin-right: 10px;">analytics</i>
+                Parent ASIN Intelligence Report
+            </span>
+            <div class="mdl-layout-spacer"></div>
+            <nav class="mdl-navigation">
+                <span class="mdl-navigation__link" id="reportDate"></span>
+            </nav>
+        </div>
+    </header>
+
+    <div class="dashboard-container">
+        
+        <!-- Tab Navigation -->
+        <div class="tab-nav">
+            <button class="tab-btn active" onclick="switchTab('static')">1. Reporte Estratégico</button>
+            <button class="tab-btn" onclick="switchTab('interactive')">2. Comparador Interactivo</button>
+        </div>
+
+        <!-- ================= TAB 1: STATIC REPORT ================= -->
+        <div id="tab-static">
+            
+            <!-- Global KPIs -->
+            <div class="yaba-card">
+                <div class="card-header">
+                    <span class="card-title">Resumen Última Semana</span>
+                    <span class="badge badge-our">Nuestra Marca</span>
+                </div>
+                <div class="kpi-grid" id="kpi-container">
+                    <!-- Injected by JS -->
+                    <div class="kpi-box">Loading Data...</div>
+                </div>
+            </div>
+
+            <!-- Section 1: Global Trend -->
+            <div class="yaba-card">
+                <div class="card-header">
+                    <span class="card-title"><i class="material-icons">trending_up</i> 1. Tendencia Global del Parent</span>
+                </div>
+                <div id="chart_global_trend" class="chart-container"></div>
+                <div class="mdl-typography--body-1" style="margin-top: 15px; color: #666;" id="text_global_trend"></div>
+            </div>
+
+            <!-- Section 2: Brand Competitiveness -->
+            <div class="yaba-card">
+                <div class="card-header">
+                    <span class="card-title"><i class="material-icons">pie_chart</i> 2. Competitividad de Marca (Share %)</span>
+                </div>
+                <div id="chart_brand_comp" class="chart-container"></div>
+                <div class="mdl-typography--body-1" style="margin-top: 15px; color: #666;" id="text_brand_comp"></div>
+            </div>
+
+            <div class="mdl-grid" style="padding: 0; margin: 0 -8px;">
+                <!-- Section 3: Levers -->
+                <div class="mdl-cell mdl-cell--6-col">
+                    <div class="yaba-card" style="height: 100%;">
+                        <div class="card-header">
+                            <span class="card-title"><i class="material-icons">rocket_launch</i> 3. Impacto de Palancas (Deals/Coupons)</span>
+                        </div>
+                        <div id="chart_levers" class="chart-small"></div>
+                        <div id="text_levers" style="margin-top: 10px; font-size: 0.9rem;"></div>
+                    </div>
+                </div>
+
+                <!-- Section 4: Efficiency -->
+                <div class="mdl-cell mdl-cell--6-col">
+                    <div class="yaba-card" style="height: 100%;">
+                        <div class="card-header">
+                            <span class="card-title"><i class="material-icons">scatter_plot</i> 4. Eficiencia (Rank vs Share)</span>
+                        </div>
+                        <div id="chart_efficiency" class="chart-small"></div>
+                        <div id="text_efficiency" style="margin-top: 10px; font-size: 0.9rem;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 5: Insights -->
+            <div class="yaba-card" style="border-left: 5px solid var(--primary);">
+                <div class="card-header">
+                    <span class="card-title"><i class="material-icons">lightbulb</i> 5. Conclusiones Clave y Recomendaciones</span>
+                </div>
+                <div class="mdl-grid">
+                    <div class="mdl-cell mdl-cell--6-col">
+                        <h4 style="margin-top: 0; font-size: 1.1rem; color: var(--secondary);">Insights Detectados</h4>
+                        <ul class="insight-list" id="insights_list"></ul>
+                    </div>
+                    <div class="mdl-cell mdl-cell--6-col">
+                        <h4 style="margin-top: 0; font-size: 1.1rem; color: var(--secondary);">Acciones Recomendadas</h4>
+                        <ul class="insight-list" id="actions_list"></ul>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- ================= TAB 2: INTERACTIVE ================= -->
+        <div id="tab-interactive" class="hidden">
+            <div class="yaba-card">
+                <div class="card-header">
+                    <span class="card-title">Comparador Cara a Cara</span>
+                </div>
+                
+                <div class="controls-row">
+                    <div>
+                        <label style="display:block; font-size: 0.8rem; color: #777; margin-bottom: 4px;">Seleccionar Semana</label>
+                        <select id="sel_week" onchange="updateInteractive()"></select>
+                    </div>
+                    <div>
+                        <label style="display:block; font-size: 0.8rem; color: #777; margin-bottom: 4px;">Comparar con</label>
+                        <select id="sel_competitor" onchange="updateInteractive()"></select>
+                    </div>
+                </div>
+
+                <div class="mdl-grid">
+                    <div class="mdl-cell mdl-cell--6-col">
+                        <div id="chart_int_price" class="chart-small"></div>
+                    </div>
+                    <div class="mdl-cell mdl-cell--6-col">
+                        <div id="chart_int_share" class="chart-small"></div>
+                    </div>
+                </div>
+                
+                <div id="int_stats" style="margin-top: 20px;"></div>
+            </div>
+        </div>
+
+    </div>
+
+    <script type="text/javascript">
+        // 1. DATA INJECTION (Generated by Python)
+        // REPLACE THE ARRAY BELOW WITH REAL JSON DATA IN PRODUCTION
+        const marketData = [{"week": "2026-01-11", "brand": "YabaBrand", "is_yaba": "Y", "asin": "B00YABA001", "clicks": 320.0, "click_share": 0.029465930018416207, "rank": 19.0, "price": 41.95981825434215, "deal_days": 0, "coupon_days": 0, "bs_days": 0, "ac_days": 7, "brand_category": "Our Brand", "product_title": "YabaBrand Wireless Headphones B00YABA001"}, {"week": "2026-01-11", "brand": "YabaBrand", "is_yaba": "Y", "asin": "B00YABA002", "clicks": 156.0, "click_share": 0.0143646408839779, "rank": 3.0, "price": 48.01657509930107, "deal_days": 0, "coupon_days": 0, "bs_days": 0, "ac_days": 0, "brand_category": "Our Brand", "product_title": "YabaBrand Wireless Headphones B00YABA002"}, {"week": "2026-01-11", "brand": "PowerComp", "is_yaba": "N", "asin": "B00COMPA01", "clicks": 80.0, "click_share": 0.0073664825046040515, "rank": 6.0, "price": 28.530514995536437, "deal_days": 0, "coupon_days": 0, "bs_days": 7, "ac_days": 0, "brand_category": "PowerComp", "product_title": "PowerComp Wireless Headphones B00COMPA01"}, {"week": "2026-01-11", "brand": "PowerComp", "is_yaba": "N", "asin": "B00COMPA02", "clicks": 241.0, "click_share": 0.022191528545119706, "rank": 15.0, "price": 43.19705007328905, "deal_days": 0, "coupon_days": 7, "bs_days": 7, "ac_days": 0, "brand_category": "PowerComp", "product_title": "PowerComp Wireless Headphones B00COMPA02"}, {"week": "2026-01-11", "brand": "SpeedyCo", "is_yaba": "N", "asin": "B00COMPB01", "clicks": 182.0, "click_share": 0.016758747697974218, "rank": 6.0, "price": 43.83296152028682, "deal_days": 7, "coupon_days": 7, "bs_days": 0, "ac_days": 0, "brand_category": "SpeedyCo", "product_title": "SpeedyCo Wireless Headphones B00COMPB01"}, {"week": "2026-01-11", "brand": "BudgetBest", "is_yaba": "N", "asin": "B00COMPC01", "clicks": 422.0, "click_share": 0.03885819521178637, "rank": 9.0, "price": 15.0, "deal_days": 0, "coupon_days": 7, "bs_days": 0, "ac_days": 0, "brand_category": "BudgetBest", "product_title": "BudgetBest Wireless Headphones B00COMPC01"}, {"week": "2026-01-11", "brand": "Unknown", "is_yaba": "N", "asin": "B00UNK0001", "clicks": 425.0, "click_share": 0.03913443830570902, "rank": 16.0, "price": 49.37895470815777, "deal_days": 0, "coupon_days": 0, "bs_days": 0, "ac_days": 0, "brand_category": "Rest of Market", "product_title": "Unknown Wireless Headphones B00UNK0001"}, {"week": "2026-01-04", "brand": "YabaBrand", "is_yaba": "Y", "asin": "B00YABA001", "clicks": 222.0, "click_share": 0.015242018537607359, "rank": 10.0, "price": 40.54637731773099, "deal_days": 0, "coupon_days": 7, "bs_days": 0, "ac_days": 7, "brand_category": "Our Brand", "product_title": "YabaBrand Wireless Headphones B00YABA001"}, {"week": "2026-01-04", "brand": "YabaBrand", "is_yaba": "Y", "asin": "B00YABA002", "clicks": 182.0, "click_share": 0.012495709131489873, "rank": 10.0, "price": 28.528404288673727, "deal_days": 0, "coupon_days": 0, "bs_days": 0, "ac_days": 0, "brand_category": "Our Brand", "product_title": "YabaBrand Wireless Headphones B00YABA002"}, {"week": "2026-01-04", "brand": "PowerComp", "is_yaba": "N", "asin": "B00COMPA01", "clicks": 358.0, "click_share": 0.024579334019910744, "rank": 15.0, "price": 31.832624317822502, "deal_days": 0, "coupon_days": 0, "bs_days": 7, "ac_days": 0, "brand_category": "PowerComp", "product_title": "PowerComp Wireless Headphones B00COMPA01"}, {"week": "2026-01-04", "brand": "PowerComp", "is_yaba": "N", "asin": "B00COMPA02", "clicks": 287.0, "click_share": 0.019704874699622384, "rank": 1.0, "price": 25.17642735760815, "deal_days": 0, "coupon_days": 0, "bs_days": 7, "ac_days": 0, "brand_category": "PowerComp", "product_title": "PowerComp Wireless Headphones B00COMPA02"}, {"week": "2026-01-04", "brand": "SpeedyCo", "is_yaba": "N", "asin": "B00COMPB01", "clicks": 157.0, "click_share": 0.010779265362169608, "rank": 9.0, "price": 40.94164188732896, "deal_days": 0, "coupon_days": 0, "bs_days": 0, "ac_days": 0, "brand_category": "SpeedyCo", "product_title": "SpeedyCo Wireless Headphones B00COMPB01"}, {"week": "2026-01-04", "brand": "BudgetBest", "is_yaba": "N", "asin": "B00COMPC01", "clicks": 264.0, "click_share": 0.018125643769310023, "rank": 15.0, "price": 15.0, "deal_days": 0, "coupon_days": 0, "bs_days": 0, "ac_days": 0, "brand_category": "BudgetBest", "product_title": "BudgetBest Wireless Headphones B00COMPC01"}, {"week": "2026-01-04", "brand": "Unknown", "is_yaba": "N", "asin": "B00UNK0001", "clicks": 303.0, "click_share": 0.020803295571575695, "rank": 17.0, "price": 45.41804257125301, "deal_days": 0, "coupon_days": 0, "bs_days": 0, "ac_days": 0, "brand_category": "Rest of Market", "product_title": "Unknown Wireless Headphones B00UNK0001"}, {"week": "2025-12-28", "brand": "YabaBrand", "is_yaba": "Y", "asin": "B00YABA001", "clicks": 137.0, "click_share": 0.010996949751163908, "rank": 6.0, "price": 25.96885371587593, "deal_days": 7, "coupon_days": 0, "bs_days": 0, "ac_days": 7, "brand_category": "Our Brand", "product_title": "YabaBrand Wireless Headphones B00YABA001"}, {"week": "2025-12-28", "brand": "YabaBrand", "is_yaba": "Y", "asin": "B00YABA002", "clicks": 341.0, "click_share": 0.027372069381119008, "rank": 18.0, "price": 46.85501869806371, "deal_days": 0, "coupon_days": 0, "bs_days": 0, "ac_days": 0, "brand_category": "Our Brand", "product_title": "YabaBrand Wireless Headphones B00YABA002"}, {"week": "2025-12-28", "brand": "PowerComp", "is_yaba": "N", "asin": "B00COMPA01", "clicks": 482.0, "click_share": 0.03869056028254937, "rank": 14.0, "price": 49.32439366601666, "deal_days": 0, "coupon_days": 0, "bs_days": 7, "ac_days": 0, "brand_category": "PowerComp", "product_title": "PowerComp Wireless Headphones B00COMPA01"}, {"week": "2025-12-28", "brand": "PowerComp", "is_yaba": "N", "asin": "B00COMPA02", "clicks": 348.0, "click_share": 0.027933964841868677, "rank": 13.0, "price": 24.31804473855589, "deal_days": 0, "coupon_days": 7, "bs_days": 7, "ac_days": 0, "brand_category": "PowerComp", "product_title": "PowerComp Wireless Headphones B00COMPA02"}, {"week": "2025-12-28", "brand": "SpeedyCo", "is_yaba": "N", "asin": "B00COMPB01", "clicks": 314.0, "click_share": 0.025204687851019424, "rank": 9.0, "price": 48.77583713066373, "deal_days": 7, "coupon_days": 0, "bs_days": 0, "ac_days": 0, "brand_category": "SpeedyCo", "product_title": "SpeedyCo Wireless Headphones B00COMPB01"}, {"week": "2025-12-28", "brand": "BudgetBest", "is_yaba": "N", "asin": "B00COMPC01", "clicks": 366.0, "click_share": 0.029378712473912347, "rank": 3.0, "price": 15.0, "deal_days": 0, "coupon_days": 7, "bs_days": 0, "ac_days": 0, "brand_category": "BudgetBest", "product_title": "BudgetBest Wireless Headphones B00COMPC01"}, {"week": "2025-12-28", "brand": "Unknown", "is_yaba": "N", "asin": "B00UNK0001", "clicks": 305.0, "click_share": 0.024482260394926955, "rank": 15.0, "price": 28.524584742797665, "deal_days": 0, "coupon_days": 7, "bs_days": 0, "ac_days": 0, "brand_category": "Rest of Market", "product_title": "Unknown Wireless Headphones B00UNK0001"}, {"week": "2025-12-21", "brand": "YabaBrand", "is_yaba": "Y", "asin": "B00YABA001", "clicks": 339.0, "click_share": 0.02705938732254151, "rank": 10.0, "price": 28.271813941406732, "deal_days": 0, "coupon_days": 0, "bs_days": 0, "ac_days": 7, "brand_category": "Our Brand", "product_title": "YabaBrand Wireless Headphones B00YABA001"}, {"week": "2025-12-21", "brand": "YabaBrand", "is_yaba": "Y", "asin": "B00YABA002", "clicks": 264.0, "click_share": 0.021072816730523228, "rank": 7.0, "price": 48.33758362629633, "deal_days": 0, "coupon_days": 0, "bs_days": 0, "ac_days": 0, "brand_category": "Our Brand", "product_title": "YabaBrand Wireless Headphones B00YABA002"}, {"week": "2025-12-21", "brand": "PowerComp", "is_yaba": "N", "asin": "B00COMPA01", "clicks": 257.0, "click_share": 0.02051404853129989, "rank": 15.0, "price": 31.066487532398504, "deal_days": 0, "coupon_days": 0, "bs_days": 7, "ac_days": 0, "brand_category": "PowerComp", "product_title": "PowerComp Wireless Headphones B00COMPA01"}, {"week": "2025-12-21", "brand": "PowerComp", "is_yaba": "N", "asin": "B00COMPA02", "clicks": 240.0, "click_share": 0.019157127235193106, "rank": 16.0, "price": 20.370398606413203, "deal_days": 0, "coupon_days": 0, "bs_days": 7, "ac_days": 0, "brand_category": "PowerComp", "product_title": "PowerComp Wireless Headphones B00COMPA02"}, {"week": "2025-12-21", "brand": "SpeedyCo", "is_yaba": "N", "asin": "B00COMPB01", "clicks": 421.0, "click_share": 0.033604725415070244, "rank": 11.0, "price": 20.505708892797693, "deal_days": 0, "coupon_days": 7, "bs_days": 0, "ac_days": 0, "brand_category": "SpeedyCo", "product_title": "SpeedyCo Wireless Headphones B00COMPB01"}, {"week": "2025-12-21", "brand": "BudgetBest", "is_yaba": "N", "asin": "B00COMPC01", "clicks": 241.0, "click_share": 0.019236939671136653, "rank": 4.0, "price": 15.0, "deal_days": 0, "coupon_days": 0, "bs_days": 0, "ac_days": 0, "brand_category": "BudgetBest", "product_title": "BudgetBest Wireless Headphones B00COMPC01"}, {"week": "2025-12-21", "brand": "Unknown", "is_yaba": "N", "asin": "B00UNK0001", "clicks": 140.0, "click_share": 0.011174988026799808, "rank": 8.0, "price": 40.73030230219662, "deal_days": 0, "coupon_days": 7, "bs_days": 0, "ac_days": 0, "brand_category": "Rest of Market", "product_title": "Unknown Wireless Headphones B00UNK0001"}, {"week": "2025-12-14", "brand": "YabaBrand", "is_yaba": "Y", "asin": "B00YABA001", "clicks": 491.0, "click_share": 0.046162810455058296, "rank": 3.0, "price": 22.84656133878197, "deal_days": 0, "coupon_days": 7, "bs_days": 0, "ac_days": 7, "brand_category": "Our Brand", "product_title": "YabaBrand Wireless Headphones B00YABA001"}, {"week": "2025-12-14", "brand": "YabaBrand", "is_yaba": "Y", "asin": "B00YABA002", "clicks": 393.0, "click_share": 0.036948476870994735, "rank": 14.0, "price": 49.60534293998952, "deal_days": 0, "coupon_days": 0, "bs_days": 0, "ac_days": 0, "brand_category": "Our Brand", "product_title": "YabaBrand Wireless Headphones B00YABA002"}, {"week": "2025-12-14", "brand": "PowerComp", "is_yaba": "N", "asin": "B00COMPA01", "clicks": 182.0, "click_share": 0.017111696286333835, "rank": 13.0, "price": 31.79250269399317, "deal_days": 0, "coupon_days": 7, "bs_days": 7, "ac_days": 0, "brand_category": "PowerComp", "product_title": "PowerComp Wireless Headphones B00COMPA01"}, {"week": "2025-12-14", "brand": "PowerComp", "is_yaba": "N", "asin": "B00COMPA02", "clicks": 393.0, "click_share": 0.036948476870994735, "rank": 19.0, "price": 48.077270417642636, "deal_days": 7, "coupon_days": 0, "bs_days": 7, "ac_days": 0, "brand_category": "PowerComp", "product_title": "PowerComp Wireless Headphones B00COMPA02"}, {"week": "2025-12-14", "brand": "SpeedyCo", "is_yaba": "N", "asin": "B00COMPB01", "clicks": 264.0, "click_share": 0.024821361113670553, "rank": 10.0, "price": 35.122606830598836, "deal_days": 7, "coupon_days": 7, "bs_days": 0, "ac_days": 0, "brand_category": "SpeedyCo", "product_title": "SpeedyCo Wireless Headphones B00COMPB01"}, {"week": "2025-12-14", "brand": "BudgetBest", "is_yaba": "N", "asin": "B00COMPC01", "clicks": 239.0, "click_share": 0.022470853657389998, "rank": 13.0, "price": 15.0, "deal_days": 0, "coupon_days": 0, "bs_days": 0, "ac_days": 0, "brand_category": "BudgetBest", "product_title": "BudgetBest Wireless Headphones B00COMPC01"}, {"week": "2025-12-14", "brand": "Unknown", "is_yaba": "N", "asin": "B00UNK0001", "clicks": 71.0, "click_share": 0.006675441895449417, "rank": 19.0, "price": 46.12450325985065, "deal_days": 0, "coupon_days": 7, "bs_days": 0, "ac_days": 0, "brand_category": "Rest of Market", "product_title": "Unknown Wireless Headphones B00UNK0001"}];
+
+        // 2. DATA PROCESSING LOGIC
+        
+        // Colors
+        const COLOR_US = '#4285F4';
+        const COLORS_COMP = ['#EA4335', '#FBBC05', '#34A853', '#9AA0A6', '#F1C40F'];
+
+        // Get unique weeks sorted
+        const weeks = [...new Set(marketData.map(d => d.week))].sort();
+        const lastWeek = weeks[weeks.length - 1];
+        const prevWeek = weeks[weeks.length - 2];
+
+        // Helper: Format percentages
+        const fmtPct = (val) => (val * 100).toFixed(2) + '%';
+        const fmtNum = (val) => val.toLocaleString();
+
+        // --- Aggregations ---
+        
+        // 1. KPI Aggregation (Last Week)
+        const lastWeekData = marketData.filter(d => d.week === lastWeek);
+        const usLastWeek = lastWeekData.filter(d => d.brand_category === 'Our Brand');
+        
+        const totalClicks = lastWeekData.reduce((acc, curr) => acc + curr.clicks, 0);
+        const usClicks = usLastWeek.reduce((acc, curr) => acc + curr.clicks, 0);
+        const usShare = usClicks / totalClicks || 0;
+        
+        // Prev Week for Trend
+        const prevWeekData = marketData.filter(d => d.week === prevWeek);
+        const usPrevWeek = prevWeekData.filter(d => d.brand_category === 'Our Brand');
+        const prevTotalClicks = prevWeekData.reduce((acc, curr) => acc + curr.clicks, 0);
+        const prevUsClicks = usPrevWeek.reduce((acc, curr) => acc + curr.clicks, 0);
+        const prevUsShare = prevUsClicks / prevTotalClicks || 0;
+
+        const trendShare = usShare - prevUsShare;
+        
+        // 2. Global Trend Aggregation
+        const globalTrend = weeks.map(w => {
+            const weekData = marketData.filter(d => d.week === w);
+            const totalC = weekData.reduce((sum, d) => sum + d.clicks, 0);
+            const usC = weekData.filter(d => d.brand_category === 'Our Brand').reduce((sum, d) => sum + d.clicks, 0);
+            const compC = totalC - usC;
+            const usS = totalC > 0 ? (usC / totalC) : 0;
+            return [w, usC, compC, usS];
+        });
+
+        // 3. Competitiveness Aggregation (Brand Share)
+        const topBrands = ['Our Brand', ...[...new Set(marketData.map(d => d.brand_category))].filter(b => b !== 'Our Brand' && b !== 'Rest of Market').slice(0,3)];
+        
+        const compTrend = weeks.map(w => {
+            const weekData = marketData.filter(d => d.week === w);
+            const totalC = weekData.reduce((sum, d) => sum + d.clicks, 0);
+            const row = [w];
+            
+            // Our Brand
+            const usVal = weekData.filter(d => d.brand_category === 'Our Brand').reduce((s,d) => s + d.clicks, 0);
+            row.push(totalC > 0 ? usVal/totalC : 0);
+            
+            // Competitors
+            topBrands.filter(b => b !== 'Our Brand').forEach(b => {
+                const val = weekData.filter(d => d.brand_category === b).reduce((s,d) => s + d.clicks, 0);
+                row.push(totalC > 0 ? val/totalC : 0);
+            });
+            
+            // Rest
+            const restVal = weekData.filter(d => !topBrands.includes(d.brand_category)).reduce((s,d) => s + d.clicks, 0);
+            row.push(totalC > 0 ? restVal/totalC : 0);
+            
+            return row;
+        });
+
+        // 4. Efficiency Data (Scatter: Rank vs Share) - Last Week Only
+        const efficiencyData = lastWeekData.map(d => {
+            return [d.rank, d.click_share, d.brand_category === 'Our Brand' ? 'Our Brand' : 'Competitor', d.product_title];
+        });
+
+        // 5. Levers Analysis
+        // Compare Avg Share when Lever = Yes vs No (Across all data)
+        const calcLever = (field) => {
+            const withLever = marketData.filter(d => d[field] > 0);
+            const withoutLever = marketData.filter(d => d[field] === 0);
+            const avgWith = withLever.length ? withLever.reduce((s,d) => s + d.click_share, 0) / withLever.length : 0;
+            const avgWithout = withoutLever.length ? withoutLever.reduce((s,d) => s + d.click_share, 0) / withoutLever.length : 0;
+            return { with: avgWith, without: avgWithout, lift: avgWithout > 0 ? (avgWith - avgWithout)/avgWithout : 0 };
+        };
+        
+        const leverDeals = calcLever('deal_days');
+        const leverCoupons = calcLever('coupon_days');
+
+        // 3. GOOGLE CHARTS SETUP
+        google.charts.load('current', {'packages':['corechart', 'bar', 'table']});
+        google.charts.setOnLoadCallback(drawCharts);
+
+        function drawCharts() {
+            
+            // --- Chart 1: Global Trend ---
+            var data1 = new google.visualization.DataTable();
+            data1.addColumn('string', 'Semana');
+            data1.addColumn('number', 'Clicks Nuestros');
+            data1.addColumn('number', 'Clicks Competencia');
+            data1.addColumn('number', 'Nuestra Cuota (%)');
+            data1.addRows(globalTrend);
+
+            var options1 = {
+                seriesType: 'bars',
+                series: {2: {type: 'line', targetAxisIndex: 1, color: COLOR_US, lineWidth: 3}},
+                colors: [COLOR_US, '#ddd'],
+                isStacked: true,
+                vAxes: {0: {title: 'Volumen Clicks'}, 1: {title: 'Click Share', format: 'percent'}},
+                legend: {position: 'bottom'},
+                chartArea: {width: '85%', height: '70%'}
+            };
+            var chart1 = new google.visualization.ComboChart(document.getElementById('chart_global_trend'));
+            chart1.draw(data1, options1);
+
+            // --- Chart 2: Competitiveness ---
+            var data2 = new google.visualization.DataTable();
+            data2.addColumn('string', 'Semana');
+            data2.addColumn('number', 'Nosotros');
+            topBrands.filter(b => b!=='Our Brand').forEach(b => data2.addColumn('number', b));
+            data2.addColumn('number', 'Resto');
+            data2.addRows(compTrend);
+
+            var options2 = {
+                colors: [COLOR_US, ...COLORS_COMP],
+                curveType: 'function',
+                legend: {position: 'bottom'},
+                vAxis: {format: 'percent'},
+                chartArea: {width: '85%', height: '70%'},
+                lineWidth: 3
+            };
+            var chart2 = new google.visualization.LineChart(document.getElementById('chart_brand_comp'));
+            chart2.draw(data2, options2);
+
+            // --- Chart 3: Levers (Bar) ---
+            var data3 = google.visualization.arrayToDataTable([
+                ['Palanca', 'Sin Activar', 'Activado'],
+                ['Deals', leverDeals.without, leverDeals.with],
+                ['Cupones', leverCoupons.without, leverCoupons.with]
+            ]);
+            var options3 = {
+                colors: ['#ddd', '#34A853'],
+                legend: {position: 'top'},
+                vAxis: {title: 'Avg Click Share', format: 'percent'},
+                chartArea: {width: '70%', height: '70%'}
+            };
+            var chart3 = new google.visualization.ColumnChart(document.getElementById('chart_levers'));
+            chart3.draw(data3, options3);
+
+            // --- Chart 4: Efficiency (Scatter) ---
+            var data4 = new google.visualization.DataTable();
+            data4.addColumn('number', 'Rank Orgánico (Inv)');
+            data4.addColumn('number', 'Click Share');
+            data4.addColumn({type: 'string', role: 'style'}); // Color
+            data4.addColumn({type: 'string', role: 'tooltip'});
+
+            efficiencyData.forEach(row => {
+                const color = row[2] === 'Our Brand' ? `point {fill-color: ${COLOR_US}}` : `point {fill-color: #999}`;
+                data4.addRow([row[0], row[1], color, `${row[3]}\nRank: ${row[0]}, Share: ${(row[1]*100).toFixed(2)}%`]);
+            });
+
+            var options4 = {
+                hAxis: {title: 'Rank Orgánico (Menor es Mejor)', direction: -1}, // Invert axis logic visually
+                vAxis: {title: 'Click Share', format: 'percent'},
+                legend: 'none',
+                chartArea: {width: '80%', height: '70%'}
+            };
+            var chart4 = new google.visualization.ScatterChart(document.getElementById('chart_efficiency'));
+            chart4.draw(data4, options4);
+        }
+
+        // 4. UI POPULATION & INSIGHTS
+        document.getElementById('reportDate').innerText = `Semana: ${lastWeek}`;
+
+        // KPI Cards
+        const kpiHTML = `
+            <div class="kpi-box">
+                <div class="kpi-value">${fmtNum(usClicks)}</div>
+                <div class="kpi-label">Clicks Totales</div>
+            </div>
+            <div class="kpi-box">
+                <div class="kpi-value">${fmtPct(usShare)}</div>
+                <div class="kpi-label">Click Share Global</div>
+                <div class="${trendShare >= 0 ? 'trend-up' : 'trend-down'}">
+                    ${trendShare >= 0 ? '▲' : '▼'} vs semana anterior
+                </div>
+            </div>
+            <div class="kpi-box">
+                <div class="kpi-value">${usLastWeek.length}</div>
+                <div class="kpi-label">ASINs Activos</div>
+            </div>
+        `;
+        document.getElementById('kpi-container').innerHTML = kpiHTML;
+
+        // Dynamic Text
+        document.getElementById('text_global_trend').innerHTML = 
+            `En la última semana, nuestra marca obtuvo <b>${fmtPct(usShare)}</b> de la cuota total de clicks. 
+            La tendencia es ${trendShare >= 0 ? 'positiva' : 'negativa'} respecto a la semana anterior.`;
+
+        document.getElementById('text_levers').innerHTML = 
+            `Impacto Deals: <b>${(leverDeals.lift*100).toFixed(1)}%</b> lift.<br>
+             Impacto Cupones: <b>${(leverCoupons.lift*100).toFixed(1)}%</b> lift.`;
+
+        // Insights Generation
+        const insights = [];
+        const actions = [];
+
+        // Logic 1: Trend
+        if (trendShare < 0) {
+            insights.push("Alerta: Pérdida de cuota de mercado respecto a la semana anterior.");
+            actions.push("Revisar agresividad de precios o pujas en PPC esta semana para recuperar cuota.");
+        } else {
+            insights.push("Crecimiento sostenido en cuota de clicks esta semana.");
+        }
+
+        // Logic 2: Price Competitiveness
+        const avgUsPrice = usLastWeek.reduce((s,d)=>s+d.price,0)/usLastWeek.length;
+        const compLastWeek = lastWeekData.filter(d => d.brand_category !== 'Our Brand');
+        const avgCompPrice = compLastWeek.reduce((s,d)=>s+d.price,0)/compLastWeek.length;
+        
+        if (avgUsPrice > avgCompPrice * 1.1) {
+            insights.push(`Precio promedio (${avgUsPrice.toFixed(2)}) es un 10% superior a la competencia.`);
+            actions.push("Evaluar aplicar cupón del 5-10% para reducir fricción de precio.");
+        }
+
+        // Logic 3: Levers
+        if (leverCoupons.lift > 0.2) {
+            insights.push("Los cupones muestran una alta efectividad (>20% lift) en esta categoría.");
+            actions.push("Mantener estrategia de cupones 'Always-On' en ASINs principales.");
+        }
+
+        // Render Lists
+        document.getElementById('insights_list').innerHTML = insights.map(i => 
+            `<li class="insight-item"><i class="material-icons insight-icon">analytics</i><span>${i}</span></li>`).join('');
+        document.getElementById('actions_list').innerHTML = actions.map(i => 
+            `<li class="insight-item"><i class="material-icons insight-icon">check_circle</i><span>${i}</span></li>`).join('');
+
+
+        // 5. INTERACTIVE TAB LOGIC
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            document.getElementById('tab-static').classList.add('hidden');
+            document.getElementById('tab-interactive').classList.add('hidden');
+            document.getElementById('tab-' + tabId).classList.remove('hidden');
+
+            if(tabId === 'interactive') initInteractive();
+        }
+
+        function initInteractive() {
+            // Populate Selectors
+            const selWeek = document.getElementById('sel_week');
+            const selComp = document.getElementById('sel_competitor');
+            
+            if (selWeek.options.length === 0) {
+                weeks.slice().reverse().forEach(w => {
+                    let opt = document.createElement('option');
+                    opt.value = w;
+                    opt.text = w;
+                    selWeek.add(opt);
+                });
+                
+                topBrands.filter(b => b !== 'Our Brand').forEach(b => {
+                    let opt = document.createElement('option');
+                    opt.value = b;
+                    opt.text = b;
+                    selComp.add(opt);
+                });
+            }
+            updateInteractive();
+        }
+
+        function updateInteractive() {
+            const week = document.getElementById('sel_week').value;
+            const comp = document.getElementById('sel_competitor').value;
+            
+            const weekData = marketData.filter(d => d.week === week);
+            const usData = weekData.filter(d => d.brand_category === 'Our Brand');
+            const compData = weekData.filter(d => d.brand_category === comp);
+            
+            // Metrics
+            const avgPriceUs = usData.length ? usData.reduce((s,d)=>s+d.price,0)/usData.length : 0;
+            const avgPriceComp = compData.length ? compData.reduce((s,d)=>s+d.price,0)/compData.length : 0;
+            const shareUs = usData.reduce((s,d)=>s+d.click_share,0);
+            const shareComp = compData.reduce((s,d)=>s+d.click_share,0);
+
+            // Draw Charts (Bar Comparison)
+            var dataPrice = google.visualization.arrayToDataTable([
+                ['Metric', 'Nosotros', comp],
+                ['Precio Promedio', avgPriceUs, avgPriceComp]
+            ]);
+            
+            var dataShare = google.visualization.arrayToDataTable([
+                ['Metric', 'Nosotros', comp],
+                ['Click Share Total', shareUs, shareComp]
+            ]);
+
+            var commonOpts = {
+                legend: {position: 'bottom'},
+                colors: [COLOR_US, '#EA4335'],
+                vAxis: {minValue: 0}
+            };
+
+            new google.visualization.ColumnChart(document.getElementById('chart_int_price')).draw(dataPrice, {...commonOpts, title: 'Comparativa Precio'});
+            new google.visualization.ColumnChart(document.getElementById('chart_int_share')).draw(dataShare, {...commonOpts, title: 'Comparativa Cuota Mercado', vAxis: {format: 'percent'}});
+            
+            // Text Summary
+            document.getElementById('int_stats').innerHTML = `
+                <div class="kpi-grid">
+                    <div class="kpi-box">Diferencial Precio: <br><b>${(avgPriceUs - avgPriceComp).toFixed(2)}</b></div>
+                    <div class="kpi-box">Gap de Cuota: <br><b>${((shareUs - shareComp)*100).toFixed(2)}%</b></div>
+                </div>
+            `;
+        }
+
+    </script>
+</body>
+</html>
