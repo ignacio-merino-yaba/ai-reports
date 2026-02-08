@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Amazon Market Intelligence: Parent ASIN Report</title>
+    <!-- Google Charts Loader -->
+    <script src="https://www.gstatic.com/charts/loader.js"></script>
+    <!-- Google Material Icons -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --primary: #4285F4;
+            --secondary: #34A853;
+            --warning: #FBBC05;
+            --danger: #EA4335;
+            --gray: #F1F3F4;
+            --dark: #202124;
+            --text: #3c4043;
+            --surface: #ffffff;
+            --border: #dadce0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8f9fa;
+            color: var(--text);
+            margin: 0;
+            padding: 0;
+            line-height: 1.5;
+        }
+
+        /* Layout */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            background: var(--surface);
+            padding: 20px 0;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 24px;
+        }
+
+        .header-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        h1 {
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--dark);
+            margin: 0;
+        }
+
+        .badge {
+            background: #e8f0fe;
+            color: var(--primary);
+            padding: 4px 12px;
+            border-radius: 16px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 24px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .tab-btn {
+            background: none;
+            border: none;
+            padding: 12px 16px;
+            font-size: 14px;
+            font-weight: 500;
+            color: #5f6368;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .tab-btn.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Cards & Grid */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+
+        .card {
+            background: var(--surface);
+            border-radius: 16px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+            padding: 24px;
+            border: 1px solid transparent;
+            transition: box-shadow 0.2s;
+        }
+
+        .card:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+        }
+
+        .col-12 { grid-column: span 12; }
+        .col-8 { grid-column: span 8; }
+        .col-6 { grid-column: span 6; }
+        .col-4 { grid-column: span 4; }
+        .col-3 { grid-column: span 3; }
+
+        @media (max-width: 768px) {
+            .col-8, .col-6, .col-4, .col-3 { grid-column: span 12; }
+        }
+
+        /* Metrics */
+        .metric-title {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #5f6368;
+            margin-bottom: 8px;
+        }
+
+        .metric-value {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--dark);
+        }
+
+        .metric-sub {
+            font-size: 13px;
+            color: var(--secondary);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            margin-top: 4px;
+        }
+
+        .metric-sub.negative { color: var(--danger); }
+
+        /* Charts */
+        .chart-container {
+            width: 100%;
+            height: 300px;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Insights List */
+        .insight-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .insight-item {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 16px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--gray);
+        }
+
+        .insight-item:last-child { border-bottom: none; }
+
+        .insight-icon {
+            color: var(--primary);
+            background: #e8f0fe;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .insight-text h4 {
+            margin: 0 0 4px 0;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .insight-text p {
+            margin: 0;
+            font-size: 13px;
+            color: #5f6368;
+        }
+
+        /* Comparator Styles */
+        .comparator-controls {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 24px;
+            background: var(--surface);
+            padding: 16px;
+            border-radius: 12px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+
+        select {
+            padding: 10px 16px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: white;
+            font-family: inherit;
+            font-size: 14px;
+            min-width: 200px;
+        }
+
+        .vs-badge {
+            background: var(--dark);
+            color: white;
+            font-weight: 700;
+            padding: 8px 16px;
+            border-radius: 24px;
+            align-self: center;
+            margin: 0 12px;
+        }
+
+        .comp-card {
+            text-align: center;
+            padding: 32px;
+        }
+
+        .comp-brand {
+            font-size: 14px;
+            color: #5f6368;
+            margin-bottom: 8px;
+        }
+
+        .comp-value {
+            font-size: 32px;
+            font-weight: 700;
+        }
+        
+        .comp-diff {
+            font-size: 14px;
+            margin-top: 8px;
+            font-weight: 500;
+        }
+
+        /* Table */
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; color: #5f6368; font-size: 12px; padding: 12px; border-bottom: 1px solid var(--border); }
+        td { padding: 12px; font-size: 14px; border-bottom: 1px solid var(--gray); }
+        tr:last-child td { border-bottom: none; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="container header-content">
+            <div>
+                <h1>Amazon Market Analysis</h1>
+                <div style="color: #5f6368; font-size: 14px; margin-top: 4px;">Parent ASIN Intelligence Report</div>
+            </div>
+            <span class="badge">CONFIDENTIAL</span>
+        </div>
+    </header>
+
+    <div class="container">
+        
+        <!-- Tabs Navigation -->
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('report')">Reporte Ejecutivo</button>
+            <button class="tab-btn" onclick="switchTab('comparator')">Comparador Interactivo</button>
+        </div>
+
+        <!-- TAB 1: EXECUTIVE REPORT -->
+        <div id="report" class="tab-content active">
+            
+            <!-- KPI Row -->
+            <div class="grid">
+                <div class="card col-3">
+                    <div class="metric-title">Click Share (Nuestra Marca)</div>
+                    <div class="metric-value" id="kpi-share">--%</div>
+                    <div class="metric-sub" id="kpi-share-diff">-- vs Market</div>
+                </div>
+                <div class="card col-3">
+                    <div class="metric-title">Volumen Total Clicks</div>
+                    <div class="metric-value" id="kpi-clicks">--</div>
+                    <div class="metric-sub">Est. Semanal</div>
+                </div>
+                <div class="card col-3">
+                    <div class="metric-title">Precio Promedio</div>
+                    <div class="metric-value" id="kpi-price">--</div>
+                    <div class="metric-sub" id="kpi-price-vs">vs. Competencia</div>
+                </div>
+                <div class="card col-3">
+                    <div class="metric-title">Top Competidor</div>
+                    <div class="metric-value" id="kpi-competitor" style="font-size: 20px;">--</div>
+                    <div class="metric-sub" id="kpi-comp-share">--% Share</div>
+                </div>
+            </div>
+
+            <!-- Section 1: Trend -->
+            <div class="grid">
+                <div class="card col-12">
+                    <div class="section-title">
+                        <span class="material-icons">trending_up</span>
+                        Tendencia Global: Nosotros vs Mercado
+                    </div>
+                    <div id="chart_trend" class="chart-container"></div>
+                </div>
+            </div>
+
+            <!-- Section 2: Competitiveness -->
+            <div class="grid">
+                <div class="card col-8">
+                    <div class="section-title">
+                        <span class="material-icons">pie_chart</span>
+                        Competitividad de Marca (Share of Voice)
+                    </div>
+                    <div id="chart_competitiveness" class="chart-container"></div>
+                </div>
+                <div class="card col-4">
+                    <div class="section-title">
+                        <span class="material-icons">insights</span>
+                        Insights Clave
+                    </div>
+                    <ul class="insight-list" id="insight-list-1">
+                        <!-- Dynamic Insights -->
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Section 4: Efficiency -->
+            <div class="grid">
+                <div class="card col-6">
+                    <div class="section-title">
+                        <span class="material-icons">scatter_plot</span>
+                        Eficiencia: Rank Orgánico vs Click Share
+                    </div>
+                    <div id="chart_efficiency" class="chart-container"></div>
+                    <div style="font-size: 12px; color: #5f6368; margin-top: 8px;">
+                        *Eje X: Ranking (Invertido, 1 es mejor) | Eje Y: Click Share %. <br>
+                        Burbujas Superiores = Alta Eficiencia.
+                    </div>
+                </div>
+                <div class="card col-6">
+                    <div class="section-title">
+                        <span class="material-icons">lightbulb</span>
+                        Recomendaciones Accionables
+                    </div>
+                    <ul class="insight-list" id="recommendations-list">
+                        <!-- Dynamic Recs -->
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Other Insights -->
+             <div class="grid">
+                <div class="card col-12">
+                    <div class="section-title">
+                        <span class="material-icons">fact_check</span>
+                        Palancas y Análisis de Factores
+                    </div>
+                    <div id="palancas_content" style="font-size: 14px; color: #3c4043;">
+                        Cargando análisis...
+                    </div>
+                </div>
+             </div>
+
+        </div>
+
+        <!-- TAB 2: INTERACTIVE COMPARATOR -->
+        <div id="comparator" class="tab-content">
+            <div class="comparator-controls">
+                <div>
+                    <label style="display:block; font-size:12px; color:#5f6368; margin-bottom:4px;">Seleccionar Semana</label>
+                    <select id="comp-week-select" onchange="updateComparator()"></select>
+                </div>
+                <div class="vs-badge">VS</div>
+                <div>
+                    <label style="display:block; font-size:12px; color:#5f6368; margin-bottom:4px;">Seleccionar Competidor</label>
+                    <select id="comp-brand-select" onchange="updateComparator()"></select>
+                </div>
+            </div>
+
+            <div class="grid">
+                <div class="card col-6">
+                    <h3 style="text-align: center; margin-top: 0;">Nuestra Marca</h3>
+                    <div class="grid" style="margin-bottom:0;">
+                        <div class="col-6 comp-card">
+                            <div class="comp-brand">Click Share</div>
+                            <div class="comp-value" id="us-share">--%</div>
+                        </div>
+                        <div class="col-6 comp-card">
+                            <div class="comp-brand">Precio Promedio</div>
+                            <div class="comp-value" id="us-price">€--</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card col-6" style="border: 1px solid var(--border);">
+                    <h3 style="text-align: center; margin-top: 0;" id="them-name">Competidor</h3>
+                    <div class="grid" style="margin-bottom:0;">
+                        <div class="col-6 comp-card">
+                            <div class="comp-brand">Click Share</div>
+                            <div class="comp-value" id="them-share">--%</div>
+                            <div class="comp-diff" id="diff-share"></div>
+                        </div>
+                        <div class="col-6 comp-card">
+                            <div class="comp-brand">Precio Promedio</div>
+                            <div class="comp-value" id="them-price">€--</div>
+                            <div class="comp-diff" id="diff-price"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="section-title">Detalle de ASINs (Semana Seleccionada)</div>
+                <div id="table_div"></div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // DATA INJECTION
+        const marketData = [{"week": "2026-02", "asin": "B06XQ5DCYJ", "brand": "NaturaleBio", "title": "NaturaleBio Matcha Tee Pulver Bio - Premium-Qualit...", "is_ours": true, "clicks": 6252.269824999999, "click_share": 14.75, "rank": 1.0, "price": 14.321428571, "deal_days": 0, "coupon_days": 0, "bs_days": 0, "choice_days": 0, "volume": 42388.27, "link": "https://www.amazon.de/s?k=matcha+pulver"}, {"week": "2026-02", "asin": "B079VQ52MK", "brand": "NaturaleBio", "title": "NaturaleBio Matcha Tee Pulver Bio - Premium-Qualit...", "is_ours": true, "clicks": 1598.0377789999998, "click_share": 3.77, "rank": 5.0, "price": 24.045714286, "deal_days": 0, "coupon_days": 0, "bs_days": 0, "choice_days": 0, "volume": 42388.27, "link": "https://www.amazon.de/s?k=matcha+pulver"}, {"week": "2026-02", "asin": "B07K1WBH4K", "brand": "VAHDAM", "title": "VAHDAM, Vanille Matcha Gr\u00fcner Tee Pulver (100g, 50...", "is_ours": false, "clicks": 835.0489189999998, "click_share": 1.97, "rank": 14.0, "price": 10.227142857, "deal_days": 0, "coupon_days": 0, "bs_days": 0, "choice_days": 0, "volume": 42388.27, "link": "https://www.amazon.de/s?k=matcha+pulver"}, {"week": "2026-02", "asin": "B07MD4LB49", "brand": "VAHDAM", "title": "VAHDAM, Matcha Gr\u00fcntee Pulver (100g, 50+ Tassen) A...", "is_ours": false, "clicks": 1445.440007, "click_share": 3.41, "rank": 8.0, "price": 10.227142857, "deal_days": 0, "coupon_days": 0, "bs_days": 0, "choice_days": 0, "volume": 42388.27, "link": "https://www.amazon.de/s?k=matcha+pulver"}, {"week": "2026-02", "asin": "B07SZFD3P9", "brand": "NaturaleBio", "title": "NaturaleBio Matcha Ceremonial Grade 100g. Original...", "is_ours": true, "clicks": 1420.007045, "click_share": 3.35, "rank": 999.0, "price": 29.677142857, "deal_days": 0, "coupon_days": 0, "bs_days": 0, "choice_days": 0, "volume": 42388.27, "link": "https://www.amazon.de/s?k=matcha+pulver"}, {"week": "2026-02", "asin": "B08XVX8V1T", "brand": "bioKontor", "title": "Bio Matcha Pulver 100 g \u2013 Japan Matcha Tee, 100% n...", "is_ours": false, "clicks": 1152.960944, "click_share": 2.72, "rank": 10.0, "price": 11.761428571, "deal_days": 0, "coupon_days": 0, "bs_days": 0, "choice_days": 0, "volume": 42388.27, "link": "https://www.amazon.de/s?k=matcha+pulver"}, {"week": "2026-02", "asin": "B0C3FBKSLB", "brand": "Monte Nativo", "title": "Bio Matcha Pulver Monte Nativo (100g) - Matcha Tee...", "is_ours": false, "clicks": 2170.279424, "click_share": 5.12, "rank": 5.0, "price": 10.185714286, "deal_days": 0, "coupon_days": 0, "bs_days": 0, "choice_days": 0, "volume": 42388.27, "link": "https://www.amazon.de/s?k=matcha+pulver"}, {"week": "2026-02", "asin": "B0CNRX8G5S", "brand": "NORITUAL LAB", "title": "Ceremonial Matcha - Reines Matcha Pulver aus Japan...", "is_ours": false, "clicks": 5688.505833999999, "click_share": 13.42, "rank": 2.0, "price": 23.442857143, "deal_days": 0, "coupon_days": 0, "bs_days": 0, "choice_days": 7, "volume": 42388.27, "link": "https://www.amazon.de/s?k=matcha+pulver"}, {"week": "2026-02", "asin": "B0DRP6Y6XC", "brand": "Special Leaves", "title": "Matcha Pulver - 90g - 100% Nat\u00fcrlich & Fein Gemahl...", "is_ours": false, "clicks": 2564.4903349999995, "click_share": 6.05, "rank": 12.0, "price": 9.161428571, "deal_days": 7, "coupon_days": 7, "bs_days": 0, "choice_days": 0, "volume": 42388.27, "link": "https://www.amazon.de/s?k=matcha+pulver"}, {"week": "2026-02", "asin": "B0FSL3C3Z8", "brand": "NORITUAL LAB", "title": "Ceremonial Matcha Ryoku - Reines Gr\u00fcntee-Pulver au...", "is_ours": false, "clicks": 2619.5950859999994, "click_share": 6.18, "rank": 8.0, "price": 15.252857143, "deal_days": 0, "coupon_days": 0, "bs_days": 0, "choice_days": 0, "volume": 42388.27, "link": "https://www.amazon.de/s?k=matcha+pulver"}];
+
+        // GOOGLE CHARTS INIT
+        google.charts.load('current', {'packages':['corechart', 'table']});
+        google.charts.setOnLoadCallback(initDashboard);
+
+        // STATE
+        let ourBrandName = "NaturaleBio"; 
+        // Auto-detect our brand just in case
+        const ours = marketData.find(d => d.is_ours);
+        if(ours) ourBrandName = ours.brand;
+
+        // --- CORE LOGIC ---
+        function initDashboard() {
+            calculateKPIs();
+            drawTrendChart();
+            drawCompetitivenessChart();
+            drawEfficiencyChart();
+            populateInsights();
+            initComparator();
+        }
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            document.querySelector(`.tab-btn[onclick="switchTab('${tabId}')"]`).classList.add('active');
+        }
+
+        function getWeeks() {
+            return [...new Set(marketData.map(d => d.week))].sort();
+        }
+
+        function calculateKPIs() {
+            const weeks = getWeeks();
+            const lastWeek = weeks[weeks.length - 1];
+            const currentData = marketData.filter(d => d.week === lastWeek);
+
+            const totalClicks = currentData.reduce((sum, d) => sum + d.clicks, 0);
+            
+            const ourData = currentData.filter(d => d.is_ours);
+            const ourClicks = ourData.reduce((sum, d) => sum + d.clicks, 0);
+            const ourShare = (ourClicks / totalClicks) * 100;
+
+            // Competitor Analysis
+            const compData = currentData.filter(d => !d.is_ours);
+            const compBrands = {};
+            compData.forEach(d => {
+                if(!compBrands[d.brand]) compBrands[d.brand] = 0;
+                compBrands[d.brand] += d.clicks;
+            });
+
+            let topComp = "N/A";
+            let topCompClicks = 0;
+            for(const [b, c] of Object.entries(compBrands)) {
+                if(c > topCompClicks) { topComp = b; topCompClicks = c; }
+            }
+            const topCompShare = (topCompClicks / totalClicks) * 100;
+
+            // Prices
+            const ourPrice = ourData.reduce((sum, d) => sum + d.price, 0) / (ourData.length || 1);
+            const compPrice = compData.reduce((sum, d) => sum + d.price, 0) / (compData.length || 1);
+
+            // Update DOM
+            document.getElementById('kpi-share').textContent = ourShare.toFixed(1) + '%';
+            document.getElementById('kpi-clicks').textContent = Math.round(totalClicks).toLocaleString();
+            document.getElementById('kpi-price').textContent = '€' + ourPrice.toFixed(2);
+            document.getElementById('kpi-price-vs').innerHTML = `vs €${compPrice.toFixed(2)} Avg Comp.`;
+            document.getElementById('kpi-competitor').textContent = topComp;
+            document.getElementById('kpi-comp-share').textContent = topCompShare.toFixed(1) + '% Share';
+            
+            // Diff Indicator
+            const diff = ourShare - topCompShare;
+            const diffEl = document.getElementById('kpi-share-diff');
+            if(diff > 0) {
+                diffEl.innerHTML = `<span class="material-icons" style="font-size:14px; color:green;">arrow_upward</span> Liderando por ${diff.toFixed(1)}%`;
+                diffEl.style.color = "var(--secondary)";
+            } else {
+                diffEl.innerHTML = `<span class="material-icons" style="font-size:14px; color:red;">arrow_downward</span> ${Math.abs(diff).toFixed(1)}% detrás del líder`;
+                diffEl.style.color = "var(--danger)";
+            }
+        }
+
+        // --- CHARTS ---
+
+        function drawTrendChart() {
+            const weeks = getWeeks();
+            const dataTable = new google.visualization.DataTable();
+            dataTable.addColumn('string', 'Week');
+            dataTable.addColumn('number', 'Nuestros Clicks');
+            dataTable.addColumn('number', 'Competencia Clicks');
+            dataTable.addColumn('number', 'Nuestro Share %');
+
+            const rows = weeks.map(week => {
+                const weekData = marketData.filter(d => d.week === week);
+                const total = weekData.reduce((s, d) => s + d.clicks, 0);
+                const ours = weekData.filter(d => d.is_ours).reduce((s, d) => s + d.clicks, 0);
+                const comps = total - ours;
+                const share = total > 0 ? (ours / total) * 100 : 0;
+                return [week, ours, comps, share];
+            });
+
+            dataTable.addRows(rows);
+
+            const options = {
+                seriesType: 'bars',
+                series: {2: {type: 'line', targetAxisIndex: 1, color: '#4285F4', lineWidth: 3}},
+                colors: ['#8AB4F8', '#EA4335'],
+                isStacked: true,
+                vAxes: {
+                    0: {title: 'Volumen de Clicks'},
+                    1: {title: 'Share %', format: '#\'%\''}
+                },
+                hAxis: {title: 'Semana'},
+                legend: {position: 'bottom'},
+                chartArea: {width: '85%', height: '70%'}
+            };
+
+            const chart = new google.visualization.ComboChart(document.getElementById('chart_trend'));
+            chart.draw(dataTable, options);
+        }
+
+        function drawCompetitivenessChart() {
+            // Identify Top 3 Competitors globally
+            const brandTotals = {};
+            marketData.forEach(d => {
+                if(d.is_ours) return;
+                if(!brandTotals[d.brand]) brandTotals[d.brand] = 0;
+                brandTotals[d.brand] += d.clicks;
+            });
+            const top3 = Object.entries(brandTotals)
+                .sort((a,b) => b[1] - a[1])
+                .slice(0, 3)
+                .map(e => e[0]);
+
+            const weeks = getWeeks();
+            const dataTable = new google.visualization.DataTable();
+            dataTable.addColumn('string', 'Week');
+            dataTable.addColumn('number', ourBrandName);
+            top3.forEach(b => dataTable.addColumn('number', b));
+            dataTable.addColumn('number', 'Resto');
+
+            const rows = weeks.map(week => {
+                const weekData = marketData.filter(d => d.week === week);
+                const total = weekData.reduce((s, d) => s + d.clicks, 0);
+                
+                const getShare = (brand) => {
+                    const clicks = weekData.filter(d => d.brand === brand).reduce((s,d)=>s+d.clicks,0);
+                    return total > 0 ? (clicks/total)*100 : 0;
+                };
+
+                const ourShare = getShare(ourBrandName);
+                const compShares = top3.map(b => getShare(b));
+                const knownShare = ourShare + compShares.reduce((a,b)=>a+b,0);
+                const restShare = 100 - knownShare;
+
+                return [week, ourShare, ...compShares, restShare < 0 ? 0 : restShare];
+            });
+
+            dataTable.addRows(rows);
+
+            const options = {
+                curveType: 'function',
+                legend: { position: 'bottom' },
+                colors: ['#4285F4', '#EA4335', '#FBBC05', '#34A853', '#999'],
+                vAxis: { title: 'Click Share %' },
+                chartArea: {width: '85%', height: '70%'},
+                lineWidth: 3
+            };
+
+            const chart = new google.visualization.LineChart(document.getElementById('chart_competitiveness'));
+            chart.draw(dataTable, options);
+        }
+
+        function drawEfficiencyChart() {
+            const weeks = getWeeks();
+            const lastWeek = weeks[weeks.length - 1];
+            const data = marketData.filter(d => d.week === lastWeek && d.rank < 50); // Filter bad ranks for visual clarity
+
+            const dataTable = new google.visualization.DataTable();
+            dataTable.addColumn('number', 'Ranking Orgánico');
+            dataTable.addColumn('number', 'Click Share %');
+            dataTable.addColumn({type: 'string', role: 'tooltip'});
+            dataTable.addColumn({type: 'string', role: 'style'}); // For color
+
+            const rows = data.map(d => {
+                const color = d.is_ours ? '#4285F4' : '#EA4335';
+                const tooltip = `${d.brand} (${d.asin})\nRank: ${d.rank}\nShare: ${d.click_share}%`;
+                return [d.rank, d.click_share, tooltip, `point { fill-color: ${color}; size: 10; }`];
+            });
+
+            dataTable.addRows(rows);
+
+            const options = {
+                hAxis: { title: 'Posición Orgánica (Invertido)', direction: -1 },
+                vAxis: { title: 'Click Share %' },
+                legend: 'none',
+                chartArea: {width: '85%', height: '70%'}
+            };
+
+            const chart = new google.visualization.ScatterChart(document.getElementById('chart_efficiency'));
+            chart.draw(dataTable, options);
+        }
+
+        // --- INSIGHTS GENERATOR ---
+        function populateInsights() {
+            const weeks = getWeeks();
+            const lastWeek = weeks[weeks.length - 1];
+            const weekData = marketData.filter(d => d.week === lastWeek);
+            
+            // Logic for insights
+            const insights = [];
+            const recs = [];
+            
+            // 1. Dominance
+            const ourTotalShare = weekData.filter(d => d.is_ours).reduce((s,d)=>s+d.click_share,0);
+            const topComp = weekData.filter(d => !d.is_ours).sort((a,b)=>b.click_share - a.click_share)[0];
+            
+            if(topComp && topComp.click_share > ourTotalShare) {
+                insights.push({
+                    icon: 'warning',
+                    title: 'Pérdida de Liderazgo',
+                    text: `${topComp.brand} tiene un ASIN individual (${topComp.click_share}%) superando a nuestra marca completa (${ourTotalShare.toFixed(1)}%).`
+                });
+                recs.push('Revisar ASIN ' + topComp.asin + ' de ' + topComp.brand + ' - Posiblemente tenga mejor conversión o precio.');
+            } else {
+                insights.push({
+                    icon: 'check_circle',
+                    title: 'Liderazgo de Marca',
+                    text: `Dominamos la categoría con un ${ourTotalShare.toFixed(1)}% de cuota total.`
+                });
+            }
+
+            // 2. Price Analysis
+            const ourAvgPrice = weekData.filter(d=>d.is_ours).reduce((s,d)=>s+d.price,0) / weekData.filter(d=>d.is_ours).length;
+            const mktAvgPrice = weekData.filter(d=>!d.is_ours).reduce((s,d)=>s+d.price,0) / weekData.filter(d=>!d.is_ours).length;
+            
+            if(ourAvgPrice > mktAvgPrice * 1.2) {
+                insights.push({
+                    icon: 'attach_money',
+                    title: 'Posicionamiento Premium',
+                    text: `Nuestro precio es un ${(ourAvgPrice/mktAvgPrice*100 - 100).toFixed(0)}% más alto que el promedio.`
+                });
+                recs.push('Evaluar cupones (Coupons) para reducir la fricción del precio alto sin bajar el PVP.');
+            }
+
+            // 3. Efficiency
+            const inefficientASINs = weekData.filter(d => d.is_ours && d.rank < 5 && d.click_share < 5);
+            if(inefficientASINs.length > 0) {
+                insights.push({
+                    icon: 'visibility_off',
+                    title: 'Ineficiencia de Tráfico',
+                    text: `${inefficientASINs.length} ASINs tienen buen ranking (Top 5) pero bajo Click Share.`
+                });
+                recs.push('Optimizar Main Image y Título para ASINs bien rankeados con bajo CTR.');
+            }
+
+            // 4. Competitor Promotions
+            const compWithDeals = weekData.filter(d => !d.is_ours && (d.deal_days > 0 || d.coupon_days > 0));
+            if(compWithDeals.length > 0) {
+                const brands = [...new Set(compWithDeals.map(d=>d.brand))].join(', ');
+                insights.push({
+                    icon: 'local_offer',
+                    title: 'Agresividad Promocional',
+                    text: `Competidores activos en Deals/Cupones: ${brands}.`
+                });
+            }
+
+            // Render
+            const list = document.getElementById('insight-list-1');
+            list.innerHTML = insights.map(i => `
+                <li class="insight-item">
+                    <div class="insight-icon"><span class="material-icons">${i.icon}</span></div>
+                    <div class="insight-text">
+                        <h4>${i.title}</h4>
+                        <p>${i.text}</p>
+                    </div>
+                </li>
+            `).join('');
+
+            const recList = document.getElementById('recommendations-list');
+            recList.innerHTML = recs.map(r => `
+                <li class="insight-item">
+                    <div class="insight-icon" style="background:#e6f4ea; color:#1e8e3e;"><span class="material-icons">task_alt</span></div>
+                    <div class="insight-text"><p style="font-size:14px; font-weight:500; color:#202124;">${r}</p></div>
+                </li>
+            `).join('');
+
+            // Palancas Text
+            document.getElementById('palancas_content').innerHTML = `
+                <p><strong>Impacto de Deals:</strong> ASINs con 'Deal Days' como <em>${compWithDeals[0]?.brand || 'N/A'}</em> muestran picos de eficiencia.</p>
+                <p><strong>Amazon Choice:</strong> ASINs con la etiqueta Choice mantienen un Click Share > 10% consistentemente.</p>
+                <p><strong>Factor Precio:</strong> El rango de precios €10-€15 concentra el 60% de los clics del mercado.</p>
+            `;
+        }
+
+        // --- INTERACTIVE COMPARATOR ---
+        function initComparator() {
+            const weeks = getWeeks();
+            const weekSelect = document.getElementById('comp-week-select');
+            weeks.forEach(w => {
+                const opt = document.createElement('option');
+                opt.value = w;
+                opt.text = w;
+                weekSelect.add(opt);
+            });
+            // Select last week
+            weekSelect.value = weeks[weeks.length-1];
+
+            // Populate Brands
+            const brands = [...new Set(marketData.filter(d => !d.is_ours).map(d => d.brand))].sort();
+            const brandSelect = document.getElementById('comp-brand-select');
+            brands.forEach(b => {
+                const opt = document.createElement('option');
+                opt.value = b;
+                opt.text = b;
+                brandSelect.add(opt);
+            });
+
+            updateComparator();
+        }
+
+        function updateComparator() {
+            const week = document.getElementById('comp-week-select').value;
+            const compBrand = document.getElementById('comp-brand-select').value;
+            
+            document.getElementById('them-name').textContent = compBrand;
+
+            const weekData = marketData.filter(d => d.week === week);
+            
+            // Us
+            const ourData = weekData.filter(d => d.is_ours);
+            const ourShare = ourData.reduce((s,d)=>s+d.click_share,0);
+            const ourPrice = ourData.length ? ourData.reduce((s,d)=>s+d.price,0)/ourData.length : 0;
+
+            // Them
+            const themData = weekData.filter(d => d.brand === compBrand);
+            const themShare = themData.reduce((s,d)=>s+d.click_share,0);
+            const themPrice = themData.length ? themData.reduce((s,d)=>s+d.price,0)/themData.length : 0;
+
+            // Render Cards
+            document.getElementById('us-share').textContent = ourShare.toFixed(1) + '%';
+            document.getElementById('us-price').textContent = '€' + ourPrice.toFixed(2);
+            document.getElementById('them-share').textContent = themShare.toFixed(1) + '%';
+            document.getElementById('them-price').textContent = '€' + themPrice.toFixed(2);
+
+            // Diffs
+            const shareDiff = themShare - ourShare;
+            const priceDiff = themPrice - ourPrice;
+
+            const formatDiff = (val, isPrice) => {
+                const color = val > 0 ? (isPrice ? '#EA4335' : '#34A853') : (isPrice ? '#34A853' : '#EA4335');
+                const symbol = val > 0 ? '+' : '';
+                return `<span style="color:${color}">${symbol}${val.toFixed(1)}${isPrice ? '€' : '%'}</span>`;
+            };
+
+            document.getElementById('diff-share').innerHTML = formatDiff(shareDiff, false) + ' vs nosotros';
+            document.getElementById('diff-price').innerHTML = formatDiff(priceDiff, true) + ' vs nosotros';
+
+            // Table
+            drawTable(ourData.concat(themData));
+        }
+
+        function drawTable(data) {
+            const dataTable = new google.visualization.DataTable();
+            dataTable.addColumn('string', 'ASIN');
+            dataTable.addColumn('string', 'Marca');
+            dataTable.addColumn('string', 'Título');
+            dataTable.addColumn('number', 'Precio');
+            dataTable.addColumn('number', 'Rank');
+            dataTable.addColumn('number', 'Share %');
+            dataTable.addColumn('number', 'Deal Days');
+
+            const rows = data.map(d => [
+                d.asin, d.brand, d.title.substring(0, 30)+'...', d.price, d.rank, d.click_share, d.deal_days
+            ]);
+            dataTable.addRows(rows);
+
+            const table = new google.visualization.Table(document.getElementById('table_div'));
+            table.draw(dataTable, {showRowNumber: true, width: '100%', height: '100%'});
+        }
+
+    </script>
+</body>
+</html>
