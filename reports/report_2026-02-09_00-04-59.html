@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Amazon ASIN Intelligence Report</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <script src="https://www.gstatic.com/charts/loader.js"></script>
+    <style>
+        :root {
+            --primary: #4285F4;
+            --secondary: #34A853;
+            --warning: #FBBC05;
+            --danger: #EA4335;
+            --bg: #F5F5F5;
+            --card: #FFFFFF;
+            --text: #202124;
+            --text-light: #5F6368;
+        }
+        body { font-family: 'Roboto', sans-serif; background-color: var(--bg); color: var(--text); margin: 0; padding: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        
+        /* Header */
+        header { background: var(--card); padding: 20px; border-radius: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.1); margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
+        h1 { margin: 0; font-size: 24px; color: var(--primary); }
+        .subtitle { color: var(--text-light); font-size: 14px; margin-top: 5px; }
+
+        /* Tabs */
+        .tabs { display: flex; gap: 10px; margin-bottom: 20px; }
+        .tab-btn { background: var(--card); border: none; padding: 10px 20px; border-radius: 20px; cursor: pointer; font-weight: 500; color: var(--text-light); transition: all 0.2s; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+        .tab-btn.active { background: var(--primary); color: white; box-shadow: 0 2px 4px rgba(66, 133, 244, 0.3); }
+
+        /* KPI Cards */
+        .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 20px; }
+        .kpi-card { background: var(--card); padding: 20px; border-radius: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.1); text-align: center; }
+        .kpi-val { font-size: 28px; font-weight: bold; color: var(--primary); margin: 10px 0; }
+        .kpi-label { font-size: 14px; color: var(--text-light); text-transform: uppercase; letter-spacing: 1px; }
+
+        /* Charts Grid */
+        .chart-row { display: grid; grid-template-columns: 1fr; gap: 20px; margin-bottom: 20px; }
+        @media(min-width: 768px) { .chart-row.split { grid-template-columns: 1fr 1fr; } }
+        
+        .chart-card { background: var(--card); padding: 20px; border-radius: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+        .chart-title { font-size: 18px; font-weight: 500; margin-bottom: 15px; border-left: 4px solid var(--primary); padding-left: 10px; }
+        .chart-container { width: 100%; height: 300px; }
+
+        /* Insights Section */
+        .insights-section { background: var(--card); padding: 25px; border-radius: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.1); margin-bottom: 20px; border-top: 5px solid var(--warning); }
+        .insight-item { display: flex; align-items: start; margin-bottom: 12px; }
+        .insight-icon { margin-right: 10px; color: var(--warning); }
+        .rec-item { display: flex; align-items: start; margin-bottom: 12px; }
+        .rec-icon { margin-right: 10px; color: var(--secondary); }
+
+        /* Comparator */
+        #comparator { display: none; }
+        .controls { background: var(--card); padding: 15px; border-radius: 8px; margin-bottom: 20px; display: flex; gap: 15px; align-items: center; }
+        select { padding: 8px; border-radius: 4px; border: 1px solid #ddd; }
+
+        /* Utility */
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <div>
+            <h1>Amazon Competitive Intelligence</h1>
+            <div class="subtitle" id="report-subtitle">Report Generated: Live Analysis</div>
+        </div>
+        <div style="text-align: right;">
+             <span class="material-icons" style="color: var(--primary); font-size: 36px;">analytics</span>
+        </div>
+    </header>
+
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('dashboard')">Dashboard</button>
+        <button class="tab-btn" onclick="switchTab('comparator')">Comparator</button>
+    </div>
+
+    <!-- DASHBOARD TAB -->
+    <div id="dashboard">
+        <!-- KPI Row -->
+        <div class="kpi-grid">
+            <div class="kpi-card">
+                <div class="kpi-label">Market Share (Us)</div>
+                <div class="kpi-val" id="kpi-share">-</div>
+                <div class="kpi-sub" id="kpi-share-sub">vs Market</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">Avg Organic Rank</div>
+                <div class="kpi-val" id="kpi-rank">-</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">Price Position</div>
+                <div class="kpi-val" id="kpi-price">-</div>
+                <div class="kpi-sub" id="kpi-price-sub">vs Top Comp</div>
+            </div>
+             <div class="kpi-card">
+                <div class="kpi-label">Est. Weekly Clicks</div>
+                <div class="kpi-val" id="kpi-clicks">-</div>
+            </div>
+        </div>
+
+        <!-- Section 1: Trend & Brands -->
+        <div class="chart-row split">
+            <div class="chart-card">
+                <div class="chart-title">Global Trend (Clicks & Share)</div>
+                <div id="chart_trend" class="chart-container"></div>
+            </div>
+            <div class="chart-card">
+                <div class="chart-title">Competitiveness (Share %)</div>
+                <div id="chart_share" class="chart-container"></div>
+            </div>
+        </div>
+
+        <!-- Section 2: Levers & Efficiency -->
+        <div class="chart-row split">
+            <div class="chart-card">
+                <div class="chart-title">Promo Levers Impact</div>
+                <div id="chart_levers" class="chart-container"></div>
+            </div>
+            <div class="chart-card">
+                <div class="chart-title">Efficiency: Rank vs Share</div>
+                <div id="chart_scatter" class="chart-container"></div>
+            </div>
+        </div>
+
+        <!-- Section 3: Insights -->
+        <div class="chart-row split">
+             <div class="insights-section">
+                <div class="chart-title" style="border-color: var(--warning);">💡 Key Insights</div>
+                <div id="insights-container"></div>
+            </div>
+             <div class="insights-section">
+                <div class="chart-title" style="border-color: var(--secondary);">🚀 Recommendations</div>
+                <div id="recommendations-container"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- COMPARATOR TAB -->
+    <div id="comparator">
+        <div class="controls">
+            <label>Compare Against:</label>
+            <select id="comp-select" onchange="updateComparator()"></select>
+        </div>
+        <div class="chart-card">
+            <div class="chart-title">Head-to-Head Analysis</div>
+            <div id="table_comparator" style="width: 100%; min-height: 400px;"></div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    // INJECT DATA HERE
+    const marketData = [{"brand_aggregation": "naturalebio", "parent_asin": "Cacao powder", "reporting_date": "2026-01-10", "week_date": "2026-02", "keywords": "kakaopulver", "competitor_brand": "Nesquik", "asin": "B0CX24HT4W", "product_title": "Nestl\u00e9 Nesquik Original kakaohaltiges Getr\u00e4nkepulv...", "country_code": "de", "average_organic_rank": 8, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 3.8, "impression_share": 2.76, "price": 6.481428571, "click_share_rank": 9, "weekly_search_volume": 7007.96, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.de/s?k=kakaopulver"}, {"brand_aggregation": "naturalebio", "parent_asin": "Cacao powder", "reporting_date": "2026-01-10", "week_date": "2026-02", "keywords": "kakaopulver", "competitor_brand": "KABA", "asin": "B0D5QZYXPW", "product_title": "Kaba Choco 400g Beutel Trinkpulver, das Original K...", "country_code": "de", "average_organic_rank": 1, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7, "weekly_number_of_days_with_coupon": 0, "click_share": 9.08, "impression_share": 2.83, "price": 3.205714286, "click_share_rank": 1, "weekly_search_volume": 7007.96, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.de/s?k=kakaopulver"}, {"brand_aggregation": "naturalebio", "parent_asin": "Cacao powder", "reporting_date": "2026-01-10", "week_date": "2026-02", "keywords": "kakaopulver", "competitor_brand": "NaturaleBio", "asin": "B07DFPSNGJ", "product_title": "NaturaleBio Kakao Pulver Bio 1kg. Organic Cacao Po...", "country_code": "de", "average_organic_rank": 7, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 3.9, "impression_share": 2.76, "price": null, "click_share_rank": 8, "weekly_search_volume": 7007.96, "is_yaba_asin": "Y", "keywords_link": "https://www.amazon.de/s?k=kakaopulver"}, {"brand_aggregation": "naturalebio", "parent_asin": "Cacao powder", "reporting_date": "2026-01-10", "week_date": "2026-02", "keywords": "kakaopulver", "competitor_brand": "Sevenhills Wholefoods", "asin": "B00944FKNK", "product_title": "Sevenhills Wholefoods Bio Kakaopulver 500g, Rein u...", "country_code": "de", "average_organic_rank": 5, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 4.1, "impression_share": 2.7, "price": 19.29, "click_share_rank": 6, "weekly_search_volume": 7007.96, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.de/s?k=kakaopulver"}, {"brand_aggregation": "naturalebio", "parent_asin": "Cacao powder", "reporting_date": "2026-01-10", "week_date": "2026-02", "keywords": "kakaopulver", "competitor_brand": "SUCHARD EXPRESS", "asin": "B0D5R1W596", "product_title": "Suchard Express 400g Beutel, Getr\u00e4nkepulver f\u00fcr he...", "country_code": "de", "average_organic_rank": 4, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 5.74, "impression_share": 2.91, "price": 3.421428571, "click_share_rank": 3, "weekly_search_volume": 7007.96, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.de/s?k=kakaopulver"}, {"brand_aggregation": "naturalebio", "parent_asin": "Cacao powder", "reporting_date": "2026-01-10", "week_date": "2026-02", "keywords": "kakaopulver", "competitor_brand": null, "asin": "B01M6BB18S", "product_title": "Alnatura Bio Kakao schwach ent\u00f6lt, 125g", "country_code": "de", "average_organic_rank": 6, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 1, "weekly_number_of_days_with_coupon": 0, "click_share": 5.28, "impression_share": 2.73, "price": 5.134285714, "click_share_rank": 5, "weekly_search_volume": 7007.96, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.de/s?k=kakaopulver"}, {"brand_aggregation": "naturalebio", "parent_asin": "Cacao powder", "reporting_date": "2026-01-10", "week_date": "2026-02", "keywords": "kakaopulver", "competitor_brand": "sevenhills wholefoods", "asin": "B00M423I92", "product_title": "Sevenhills Wholefoods Bio Kakaopulver 1kg, Rein un...", "country_code": "de", "average_organic_rank": 4, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 3.75, "impression_share": 2.47, "price": 32.157142857, "click_share_rank": 10, "weekly_search_volume": 7007.96, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.de/s?k=kakaopulver"}, {"brand_aggregation": "naturalebio", "parent_asin": "Cacao powder", "reporting_date": "2026-01-10", "week_date": "2026-02", "keywords": "kakaopulver", "competitor_brand": "Sevenhills Wholefoods", "asin": "B00M423I92", "product_title": "Sevenhills Wholefoods Bio Kakaopulver 1kg, Rein un...", "country_code": "de", "average_organic_rank": 4, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 3.75, "impression_share": 2.47, "price": 32.157142857, "click_share_rank": 10, "weekly_search_volume": 7007.96, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.de/s?k=kakaopulver"}, {"brand_aggregation": "naturalebio", "parent_asin": "Cacao powder", "reporting_date": "2026-01-10", "week_date": "2026-02", "keywords": "kakaopulver", "competitor_brand": null, "asin": "B0BG2ZNJLT", "product_title": "Cortegas Cacao Puro - 100% Kakaopulver f\u00fcr hochwer...", "country_code": "de", "average_organic_rank": 6, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 5.36, "impression_share": 2.51, "price": 10.401428571, "click_share_rank": 4, "weekly_search_volume": 7007.96, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.de/s?k=kakaopulver"}, {"brand_aggregation": "naturalebio", "parent_asin": "Cacao powder", "reporting_date": "2026-01-10", "week_date": "2026-02", "keywords": "kakaopulver", "competitor_brand": "vom-Achterhof", "asin": "B0768LH1CP", "product_title": "Kakao Pulver Bio 500g | Kakao-Pulver mit feinstem ...", "country_code": "de", "average_organic_rank": 12, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 7.31, "impression_share": 4.56, "price": 24.401428571, "click_share_rank": 2, "weekly_search_volume": 7007.96, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.de/s?k=kakaopulver"}, {"brand_aggregation": "naturalebio", "parent_asin": "Cacao powder", "reporting_date": "2026-01-10", "week_date": "2026-02", "keywords": "kakaopulver", "competitor_brand": "vom-Achterhof", "asin": "B0768L7FV1", "product_title": "Kakao Pulver Bio 1000g | Kakao-Pulver mit feinstem...", "country_code": "de", "average_organic_rank": 10, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 3.96, "impression_share": 3.22, "price": 35.122857143, "click_share_rank": 7, "weekly_search_volume": 7007.96, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.de/s?k=kakaopulver"}];
+
+    // GOOGLE CHARTS INIT
+    google.charts.load('current', {'packages':['corechart', 'bar', 'table']});
+    google.charts.setOnLoadCallback(initApp);
+
+    let processedData = {};
+
+    function initApp() {
+        processData();
+        renderDashboard();
+        setupComparator();
+    }
+
+    // ---------------------------------------------------------
+    // 1. DATA PROCESSING (Vanilla JS)
+    // ---------------------------------------------------------
+    function processData() {
+        // Helper: Identify Brand
+        const getBrand = (row) => {
+            if (row.competitor_brand) return row.competitor_brand.trim();
+            if (row.product_title) return row.product_title.split(' ')[0].trim();
+            return "Unknown";
+        };
+
+        // Enrich Data
+        const enriched = marketData.map(row => {
+            const brand = getBrand(row);
+            const isUs = row.is_yaba_asin === 'Y';
+            // Estimate clicks: (Search Vol * Share) / 100. 
+            // Note: If share is 3.8, it means 3.8%.
+            const estClicks = (row.weekly_search_volume * row.click_share) / 100;
+            return {
+                ...row,
+                brand: brand,
+                isUs: isUs,
+                estClicks: estClicks,
+                price: parseFloat(row.price) || 0
+            };
+        });
+
+        // 1. Identify Our Brand Name
+        const ourRows = enriched.filter(r => r.isUs);
+        const ourBrandName = ourRows.length > 0 ? ourRows[0].brand : "Our Brand";
+
+        // 2. Aggregate Trend (By Week)
+        // Group by Week -> Sum Clicks, Avg Share (Us vs Them)
+        const weeks = [...new Set(enriched.map(d => d.week_date))].sort();
+        const trendData = weeks.map(week => {
+            const weekData = enriched.filter(d => d.week_date === week);
+            const totalClicks = weekData.reduce((sum, d) => sum + d.estClicks, 0);
+            
+            const usData = weekData.filter(d => d.isUs);
+            const compData = weekData.filter(d => !d.isUs);
+
+            const usShare = usData.reduce((sum, d) => sum + d.click_share, 0); // Share is additive if ASINs don't overlap much, or we take raw sum for total brand share
+            const compShare = compData.reduce((sum, d) => sum + d.click_share, 0);
+
+            return [week, totalClicks, usShare, compShare];
+        });
+
+        // 3. Competitiveness (Top Brands)
+        // Find Top 3 Competitors by Avg Share
+        const brandShares = {};
+        enriched.forEach(r => {
+            if(!brandShares[r.brand]) brandShares[r.brand] = 0;
+            brandShares[r.brand] += r.click_share;
+        });
+        
+        // Remove Us from Top List to find competitors
+        const compBrands = Object.keys(brandShares)
+            .filter(b => b !== ourBrandName)
+            .sort((a,b) => brandShares[b] - brandShares[a])
+            .slice(0, 3);
+            
+        // Prepare Line Chart Data
+        const shareOverTime = weeks.map(week => {
+            const weekData = enriched.filter(d => d.week_date === week);
+            const getShare = (b) => {
+                return weekData.filter(d => d.brand === b)
+                       .reduce((sum, d) => sum + d.click_share, 0);
+            };
+            return [week, getShare(ourBrandName), ...compBrands.map(b => getShare(b))];
+        });
+
+        // 4. Efficiency & Levers
+        // Aggregating for the LAST week available
+        const lastWeek = weeks[weeks.length - 1];
+        const currentData = enriched.filter(d => d.week_date === lastWeek);
+        
+        // Metrics for KPIs
+        const usCurrent = currentData.filter(d => d.isUs);
+        const topCompCurrent = currentData.filter(d => d.brand === compBrands[0]); // Top competitor
+        
+        const kpi = {
+            share: usCurrent.reduce((s,d) => s + d.click_share, 0).toFixed(1) + '%',
+            rank: usCurrent.length ? (usCurrent.reduce((s,d) => s + d.average_organic_rank, 0) / usCurrent.length).toFixed(1) : '-',
+            clicks: Math.round(usCurrent.reduce((s,d) => s + d.estClicks, 0)),
+            price: usCurrent.length && usCurrent[0].price > 0 ? '€' + usCurrent[0].price.toFixed(2) : 'N/A',
+            topCompPrice: topCompCurrent.length && topCompCurrent[0].price > 0 ? '€' + topCompCurrent[0].price.toFixed(2) : 'N/A'
+        };
+
+        processedData = {
+            raw: enriched,
+            ourBrand: ourBrandName,
+            competitors: compBrands,
+            trend: trendData,
+            shareHistory: shareOverTime,
+            current: currentData,
+            kpi: kpi,
+            weeks: weeks
+        };
+    }
+
+    // ---------------------------------------------------------
+    // 2. RENDERING LOGIC
+    // ---------------------------------------------------------
+    function renderDashboard() {
+        const d = processedData;
+
+        // KPIs
+        document.getElementById('kpi-share').innerText = d.kpi.share;
+        document.getElementById('kpi-rank').innerText = d.kpi.rank;
+        document.getElementById('kpi-price').innerText = d.kpi.price;
+        document.getElementById('kpi-price-sub').innerText = `vs Leader (${d.kpi.topCompPrice})`;
+        document.getElementById('kpi-clicks').innerText = d.kpi.clicks;
+
+        // 1. Trend Chart
+        const dataTrend = new google.visualization.DataTable();
+        dataTrend.addColumn('string', 'Week');
+        dataTrend.addColumn('number', 'Total Clicks');
+        dataTrend.addColumn('number', 'Our Share %');
+        dataTrend.addColumn('number', 'Comp Share %');
+        dataTrend.addRows(d.trend);
+
+        const optsTrend = {
+            seriesType: 'bars',
+            series: {1: {type: 'line', targetAxisIndex: 1}, 2: {type: 'line', targetAxisIndex: 1}},
+            vAxes: {0: {title: 'Est. Clicks'}, 1: {title: 'Click Share %'}},
+            colors: ['#DADCE0', '#4285F4', '#EA4335'],
+            legend: {position: 'bottom'}
+        };
+        new google.visualization.ComboChart(document.getElementById('chart_trend')).draw(dataTrend, optsTrend);
+
+        // 2. Share Chart
+        const dataShare = new google.visualization.DataTable();
+        dataShare.addColumn('string', 'Week');
+        dataShare.addColumn('number', d.ourBrand);
+        d.competitors.forEach(c => dataShare.addColumn('number', c));
+        dataShare.addRows(d.shareHistory);
+        
+        const optsShare = {
+            curveType: 'function',
+            legend: {position: 'bottom'},
+            colors: ['#4285F4', '#EA4335', '#FBBC05', '#34A853']
+        };
+        new google.visualization.LineChart(document.getElementById('chart_share')).draw(dataShare, optsShare);
+
+        // 3. Levers (Bar Chart)
+        // Compare Our Avg vs Market Avg for Deals/Coupons
+        const usAvgs = getAvgLevers(d.current.filter(r => r.isUs));
+        const compAvgs = getAvgLevers(d.current.filter(r => !r.isUs));
+        
+        const dataLevers = google.visualization.arrayToDataTable([
+            ['Lever', 'Us', 'Market Avg'],
+            ['Deal Days', usAvgs.deals, compAvgs.deals],
+            ['Coupon Days', usAvgs.coupons, compAvgs.coupons],
+            ['Rank (Inv)', 10 - usAvgs.rank, 10 - compAvgs.rank] // Invert rank for visual
+        ]);
+        new google.visualization.ColumnChart(document.getElementById('chart_levers')).draw(dataLevers, {colors: ['#4285F4', '#9AA0A6'], legend: {position: 'bottom'}});
+
+        // 4. Efficiency Scatter
+        const dataScatter = new google.visualization.DataTable();
+        dataScatter.addColumn('number', 'Organic Rank (Inv)');
+        dataScatter.addColumn('number', 'Click Share %');
+        dataScatter.addColumn({type: 'string', role: 'tooltip'});
+        dataScatter.addColumn({type: 'string', role: 'style'}); // Color
+
+        const scatterRows = d.current.map(r => {
+            const color = r.isUs ? 'point { fill-color: #4285F4; size: 10; }' : 'point { fill-color: #9AA0A6; }';
+            return [r.average_organic_rank, r.click_share, `${r.brand}: ${r.product_title.substring(0,30)}...`, color];
+        });
+        dataScatter.addRows(scatterRows);
+
+        new google.visualization.ScatterChart(document.getElementById('chart_scatter')).draw(dataScatter, {
+            hAxis: {title: 'Rank (Lower is Better)', direction: -1}, // Invert axis
+            vAxis: {title: 'Click Share %'},
+            legend: 'none'
+        });
+
+        // 5. Generate Text Insights
+        generateInsights(d);
+    }
+
+    function getAvgLevers(rows) {
+        if(!rows.length) return {deals: 0, coupons: 0, rank: 0};
+        const sum = (k) => rows.reduce((a,b) => a + (b[k]||0), 0);
+        return {
+            deals: sum('weekly_number_of_days_with_deal') / rows.length,
+            coupons: sum('weekly_number_of_days_with_coupon') / rows.length,
+            rank: sum('average_organic_rank') / rows.length
+        };
+    }
+
+    function generateInsights(d) {
+        const insightsDiv = document.getElementById('insights-container');
+        const recsDiv = document.getElementById('recommendations-container');
+        
+        // Logic for Insights
+        const us = d.current.find(r => r.isUs) || {};
+        const leader = d.current.filter(r => !r.isUs).sort((a,b) => b.click_share - a.click_share)[0] || {};
+        
+        let insights = [];
+        let recs = [];
+
+        // Insight 1: Share Gap
+        const shareGap = (leader.click_share || 0) - (us.click_share || 0);
+        if(shareGap > 0) {
+            insights.push(`<b>Market Dominance:</b> ${leader.brand} leads with ${leader.click_share}% share vs our ${us.click_share}%.`);
+            recs.push(`<b>Audit Competitor Listings:</b> Analyze ${leader.brand}'s images and A+ content to understand conversion drivers.`);
+        } else {
+            insights.push(`<b>Leadership:</b> We are leading the category with ${us.click_share}% share.`);
+        }
+
+        // Insight 2: Pricing
+        if(us.price && leader.price) {
+            const priceDiff = ((us.price - leader.price) / leader.price) * 100;
+            if(priceDiff > 10) {
+                insights.push(`<b>Price Sensitivity:</b> We are ${priceDiff.toFixed(0)}% more expensive than the leader.`);
+                recs.push(`<b>Price Test:</b> Consider a temporary 10% coupon to bridge the price gap.`);
+            } else if (priceDiff < -10) {
+                 insights.push(`<b>Price Opportunity:</b> We are significantly cheaper. Check if we are leaving margin on the table.`);
+            }
+        } else if (!us.price) {
+            insights.push(`<b>Critical Data Gap:</b> Our ASIN price is missing or unavailable.`);
+            recs.push(`<b>Fix Availability:</b> Ensure the ASIN is in stock and the Buy Box is won.`);
+        }
+
+        // Insight 3: Promo Activity
+        if(leader.weekly_number_of_days_with_coupon > 0 && (!us.weekly_number_of_days_with_coupon || us.weekly_number_of_days_with_coupon == 0)) {
+            insights.push(`<b>Promo Gap:</b> Competitor ${leader.brand} is using Coupons aggressively (${leader.weekly_number_of_days_with_coupon} days/week).`);
+            recs.push(`<b>Activate Coupons:</b> Launch a "Green Badge" coupon to match competitor visibility on SERP.`);
+        }
+
+        // Insight 4: Rank Efficiency
+        if(us.average_organic_rank > 5) {
+            insights.push(`<b>Visibility Risk:</b> Our average organic rank is ${us.average_organic_rank.toFixed(1)}, limiting impressions.`);
+            recs.push(`<b>Keyword Push:</b> Increase PPC bids on main keywords to regain Top 3 organic positions.`);
+        }
+
+        // Insight 5: Badges
+        if(leader.weekly_number_of_days_with_amazon_choice_badge > 0 && !us.weekly_number_of_days_with_amazon_choice_badge) {
+             insights.push(`<b>Social Proof:</b> Competitor holds the 'Amazon Choice' badge.`);
+        }
+
+        // Render
+        insightsDiv.innerHTML = insights.map(t => `<div class="insight-item"><span class="material-icons insight-icon">lightbulb</span><span>${t}</span></div>`).join('');
+        recsDiv.innerHTML = recs.map(t => `<div class="rec-item"><span class="material-icons rec-icon">task_alt</span><span>${t}</span></div>`).join('');
+    }
+
+    // ---------------------------------------------------------
+    // 3. COMPARATOR TAB
+    // ---------------------------------------------------------
+    function setupComparator() {
+        const select = document.getElementById('comp-select');
+        processedData.competitors.forEach(c => {
+            const opt = document.createElement('option');
+            opt.value = c;
+            opt.innerText = c;
+            select.appendChild(opt);
+        });
+        updateComparator();
+    }
+
+    function updateComparator() {
+        const compName = document.getElementById('comp-select').value;
+        const d = processedData;
+        const usRow = d.current.find(r => r.isUs) || {};
+        // Find best ASIN for competitor
+        const compRow = d.current.find(r => r.brand === compName) || {};
+
+        const data = google.visualization.arrayToDataTable([
+            ['Metric', 'Us (' + d.ourBrand + ')', compName],
+            ['Click Share %', usRow.click_share || 0, compRow.click_share || 0],
+            ['Price (€)', usRow.price || 0, compRow.price || 0],
+            ['Organic Rank', usRow.average_organic_rank || 0, compRow.average_organic_rank || 0],
+            ['Coupon Days', usRow.weekly_number_of_days_with_coupon || 0, compRow.weekly_number_of_days_with_coupon || 0],
+            ['Deal Days', usRow.weekly_number_of_days_with_deal || 0, compRow.weekly_number_of_days_with_deal || 0]
+        ]);
+
+        const table = new google.visualization.Table(document.getElementById('table_comparator'));
+        table.draw(data, {showRowNumber: false, width: '100%', height: '100%'});
+    }
+
+    function switchTab(tabId) {
+        document.getElementById('dashboard').style.display = tabId === 'dashboard' ? 'block' : 'none';
+        document.getElementById('comparator').style.display = tabId === 'comparator' ? 'block' : 'none';
+        
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        event.target.classList.add('active');
+    }
+
+</script>
+</body>
+</html>
