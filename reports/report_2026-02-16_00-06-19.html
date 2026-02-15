@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Amazon Parent ASIN Analysis Report</title>
+    
+    <!-- Google Charts -->
+    <script src="https://www.gstatic.com/charts/loader.js"></script>
+    <!-- Google Material Icons -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    
+    <style>
+        /* Apple-like / Google-Native Design System */
+        :root {
+            --primary-color: #4285F4; /* Google Blue */
+            --secondary-color: #34A853; /* Google Green */
+            --warning-color: #FBBC05; /* Google Yellow */
+            --danger-color: #EA4335; /* Google Red */
+            --bg-color: #F5F5F7; /* Apple Grey */
+            --card-bg: #FFFFFF;
+            --text-main: #1D1D1F;
+            --text-secondary: #86868B;
+            --border-radius: 16px;
+            --shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            --font-stack: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            font-family: var(--font-stack);
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+            line-height: 1.5;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        header {
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        h1 {
+            font-size: 28px;
+            font-weight: 600;
+            margin: 0;
+        }
+        
+        .date-badge {
+            background: #E8F0FE;
+            color: var(--primary-color);
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #E0E0E0;
+            padding-bottom: 10px;
+        }
+
+        .tab-btn {
+            padding: 10px 20px;
+            border: none;
+            background: none;
+            font-size: 16px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+
+        .tab-btn.active {
+            background: var(--card-bg);
+            color: var(--primary-color);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        /* Cards */
+        .card {
+            background: var(--card-bg);
+            border-radius: var(--border-radius);
+            padding: 24px;
+            box-shadow: var(--shadow);
+            margin-bottom: 24px;
+        }
+
+        .card h2 {
+            font-size: 20px;
+            margin-top: 0;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .chart-container {
+            width: 100%;
+            height: 400px;
+        }
+
+        /* Insights Section */
+        .insights-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .insight-item {
+            background: #F9F9FA;
+            padding: 16px;
+            border-radius: 12px;
+            border-left: 4px solid var(--primary-color);
+        }
+
+        .insight-item h3 {
+            margin: 0 0 8px 0;
+            font-size: 16px;
+            color: var(--primary-color);
+        }
+
+        /* Recommendations */
+        .recommendation-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .recommendation-list li {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            margin-bottom: 16px;
+            padding: 12px;
+            background: #F0F9FF;
+            border-radius: 8px;
+        }
+
+        .icon-box {
+            background: var(--primary-color);
+            color: white;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+
+        /* Interactive Controls */
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        select {
+            padding: 10px 16px;
+            border-radius: 8px;
+            border: 1px solid #D1D1D6;
+            font-size: 14px;
+            background: white;
+            min-width: 200px;
+        }
+
+        /* Utility */
+        .hidden { display: none; }
+        .text-sm { font-size: 14px; color: var(--text-secondary); }
+        .flex-row { display: flex; gap: 20px; }
+        .kpi-box { flex: 1; text-align: center; padding: 20px; background: #F5F7FA; border-radius: 12px; }
+        .kpi-value { font-size: 24px; font-weight: 700; color: var(--text-main); display: block; }
+        .kpi-label { font-size: 12px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; }
+        
+        /* Table Styles */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+        .data-table th, .data-table td {
+            text-align: left;
+            padding: 12px;
+            border-bottom: 1px solid #eee;
+        }
+        .data-table th {
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <div>
+            <h1>Amazon ASIN Intelligence Report</h1>
+            <p class="text-sm">Strategic Performance Analysis & Competitor Benchmarking</p>
+        </div>
+        <div class="date-badge" id="dateRange">Loading Date Range...</div>
+    </header>
+
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('static')">Reporte Estratégico</button>
+        <button class="tab-btn" onclick="switchTab('interactive')">Comparador Interactivo</button>
+    </div>
+
+    <!-- Pestaña 1: Reporte Estático -->
+    <div id="static-tab">
+        
+        <!-- KPI Row -->
+        <div class="flex-row" style="margin-bottom: 24px;">
+            <div class="kpi-box">
+                <span class="kpi-value" id="kpi-share">--%</span>
+                <span class="kpi-label">Click Share (Last Week)</span>
+            </div>
+            <div class="kpi-box">
+                <span class="kpi-value" id="kpi-growth">--%</span>
+                <span class="kpi-label">WoW Growth</span>
+            </div>
+            <div class="kpi-box">
+                <span class="kpi-value" id="kpi-rank">--</span>
+                <span class="kpi-label">Avg Organic Rank</span>
+            </div>
+            <div class="kpi-box">
+                <span class="kpi-value" id="kpi-price">$0.00</span>
+                <span class="kpi-label">Avg Price</span>
+            </div>
+        </div>
+
+        <!-- 1. Tendencia Global -->
+        <div class="card">
+            <h2><span class="material-icons">trending_up</span> Tendencia Global del Parent</h2>
+            <div id="trend_chart" class="chart-container"></div>
+            <p id="trend-analysis" class="text-sm" style="margin-top: 15px;"></p>
+        </div>
+
+        <!-- 2. Competitividad de Marca -->
+        <div class="card">
+            <h2><span class="material-icons">flag</span> Competitividad de Marca (Share vs Top 3)</h2>
+            <div id="brand_chart" class="chart-container"></div>
+            <p id="brand-analysis" class="text-sm" style="margin-top: 15px;"></p>
+        </div>
+
+        <!-- 3. Palancas -->
+        <div class="card">
+            <h2><span class="material-icons">rocket_launch</span> Impacto de Palancas (Deals, Cupones, Badges)</h2>
+            <div class="flex-row">
+                <div id="levers_chart" class="chart-container" style="flex: 2;"></div>
+                <div style="flex: 1; padding-top: 20px;">
+                    <table class="data-table" id="levers-table">
+                        <thead>
+                            <tr><th>Palanca</th><th>Impacto en Share</th></tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. Eficiencia Rank -->
+        <div class="card">
+            <h2><span class="material-icons">ads_click</span> Eficiencia: Organic Rank vs Click Share</h2>
+            <div id="scatter_chart" class="chart-container"></div>
+            <p class="text-sm">Eje X: Ranking (Menor es mejor). Eje Y: Click Share. Puntos arriba a la izquierda = Alta Eficiencia.</p>
+        </div>
+
+        <!-- 5. Conclusiones y Recomendaciones -->
+        <div class="card" style="border-left: 5px solid var(--secondary-color);">
+            <h2><span class="material-icons">lightbulb</span> Insights y Recomendaciones Accionables</h2>
+            
+            <div class="insights-grid" id="insights-container" style="margin-bottom: 30px;">
+                <!-- Filled by JS -->
+            </div>
+
+            <h3>Recomendaciones Estratégicas</h3>
+            <ul class="recommendation-list" id="recommendations-container">
+                <!-- Filled by JS -->
+            </ul>
+        </div>
+        
+        <!-- 6. Other Insights -->
+         <div class="card">
+            <h2><span class="material-icons">analytics</span> Otros Hallazgos</h2>
+            <ul id="other-insights-list" style="color: var(--text-secondary);"></ul>
+        </div>
+
+    </div>
+
+    <!-- Pestaña 2: Interactivo -->
+    <div id="interactive-tab" class="hidden">
+        <div class="card">
+            <h2>Cara a Cara: Nosotros vs Competencia</h2>
+            <div class="controls">
+                <select id="week-selector" onchange="updateInteractive()">
+                    <option value="all">Todas las Semanas</option>
+                </select>
+                <select id="competitor-selector" onchange="updateInteractive()">
+                    <!-- Populated by JS -->
+                </select>
+            </div>
+            
+            <div class="flex-row">
+                <div style="flex:1">
+                    <h3>Comparativa de Precio</h3>
+                    <div id="int_price_chart" style="height: 250px;"></div>
+                </div>
+                <div style="flex:1">
+                    <h3>Comparativa de Share</h3>
+                    <div id="int_share_chart" style="height: 250px;"></div>
+                </div>
+            </div>
+            <div style="margin-top: 20px;">
+                <div id="int_table_div"></div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script type="text/javascript">
+    // --- 1. DATA INJECTION (Generated via Python Logic) ---
+    // Normally this would be injected by the server. Using dummy data for standalone functionality.
+    const marketData = [{"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENTYABA", "week_date": "2023-10-01", "keywords": "wireless headphones", "competitor_brand": "YabaTech", "asin": "B00YABA001", "product_title": "YabaTech wireless headphones High Quality", "country_code": "US", "average_organic_rank": 8, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 15.65, "impression_share": 15.65, "price": 50, "weekly_search_volume": 5000, "is_yaba_asin": "Y", "keywords_link": "http://amazon.com/s?k=wireless headphones", "clicks": 782}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENTYABA", "week_date": "2023-10-01", "keywords": "wireless headphones", "competitor_brand": "YabaTech", "asin": "B00YABA002", "product_title": "YabaTech wireless headphones High Quality", "country_code": "US", "average_organic_rank": 8, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 15.34, "impression_share": 15.34, "price": 50, "weekly_search_volume": 5000, "is_yaba_asin": "Y", "keywords_link": "http://amazon.com/s?k=wireless headphones", "clicks": 767}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENTSony", "week_date": "2023-10-01", "keywords": "wireless headphones", "competitor_brand": "Sony", "asin": "B00SONY001", "product_title": "Sony wireless headphones High Quality", "country_code": "US", "average_organic_rank": 5, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7, "weekly_number_of_days_with_coupon": 0, "click_share": 19.34, "impression_share": 19.34, "price": 80, "weekly_search_volume": 5000, "is_yaba_asin": "N", "keywords_link": "http://amazon.com/s?k=wireless headphones", "clicks": 967}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENTSony", "week_date": "2023-10-01", "keywords": "wireless headphones", "competitor_brand": "Sony", "asin": "B00SONY002", "product_title": "Sony wireless headphones High Quality", "country_code": "US", "average_organic_rank": 5, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7, "weekly_number_of_days_with_coupon": 0, "click_share": 19.98, "impression_share": 19.98, "price": 80, "weekly_search_volume": 5000, "is_yaba_asin": "N", "keywords_link": "http://amazon.com/s?k=wireless headphones", "clicks": 999}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENTBose", "week_date": "2023-10-01", "keywords": "wireless headphones", "competitor_brand": "Bose", "asin": "B00BOSE001", "product_title": "Bose wireless headphones High Quality", "country_code": "US", "average_organic_rank": 12, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 9.94, "impression_share": 9.94, "price": 100, "weekly_search_volume": 5000, "is_yaba_asin": "N", "keywords_link": "http://amazon.com/s?k=wireless headphones", "clicks": 497}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENTAnker", "week_date": "2023-10-01", "keywords": "wireless headphones", "competitor_brand": "Anker", "asin": "B00ANKR001", "product_title": "Anker wireless headphones High Quality", "country_code": "US", "average_organic_rank": 10, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 3, "click_share": 15.22, "impression_share": 15.22, "price": 30, "weekly_search_volume": 5000, "is_yaba_asin": "N", "keywords_link": "http://amazon.com/s?k=wireless headphones", "clicks": 761}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENTAnker", "week_date": "2023-10-01", "keywords": "wireless headphones", "competitor_brand": "Anker", "asin": "B00ANKR002", "product_title": "Anker wireless headphones High Quality", "country_code": "US", "average_organic_rank": 10, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 3, "click_share": 15.54, "impression_share": 15.54, "price": 30, "weekly_search_volume": 5000, "is_yaba_asin": "N", "keywords_link": "http://amazon.com/s?k=wireless headphones", "clicks": 777}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENTUnknown", "week_date": "2023-10-01", "keywords": "wireless headphones", "competitor_brand": null, "asin": "B00UNK001", "product_title": "Generic wireless headphones", "country_code": "US", "average_organic_rank": 20, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 5.22, "impression_share": 5.22, "price": 30, "weekly_search_volume": 5000, "is_yaba_asin": "N", "keywords_link": "http://amazon.com/s?k=wireless headphones", "clicks": 261}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENTYABA", "week_date": "2023-10-01", "keywords": "bluetooth earbuds", "competitor_brand": "YabaTech", "asin": "B00YABA001", "product_title": "YabaTech bluetooth earbuds High Quality", "country_code": "US", "average_organic_rank": 8, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 14.88, "impression_share": 14.88, "price": 50, "weekly_search_volume": 3000, "is_yaba_asin": "Y", "keywords_link": "http://amazon.com/s?k=bluetooth earbuds", "clicks": 446}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENTYABA", "week_date": "2023-10-01", "keywords": "bluetooth earbuds", "competitor_brand": "YabaTech", "asin": "B00YABA002", "product_title": "YabaTech bluetooth earbuds High Quality", "country_code": "US", "average_organic_rank": 8, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 14.85, "impression_share": 14.85, "price": 50, "weekly_search_volume": 3000, "is_yaba_asin": "Y", "keywords_link": "http://amazon.com/s?k=bluetooth earbuds", "clicks": 445}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENTSony", "week_date": "2023-10-01", "keywords": "bluetooth earbuds", "competitor_brand": "Sony", "asin": "B00SONY001", "product_title": "Sony bluetooth earbuds High Quality", "country_code": "US", "average_organic_rank": 5, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7, "weekly_number_of_days_with_coupon": 0, "click_share": 19.46, "impression_share": 19.46, "price": 80, "weekly_search_volume": 3000, "is_yaba_asin": "N", "keywords_link": "http://amazon.com/s?k=bluetooth earbuds", "clicks": 583}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENTSony", "week_date": "2023-10-01", "keywords": "bluetooth earbuds", "competitor_brand": "Sony", "asin": "B00SONY002", "product_title": "Sony bluetooth earbuds High Quality", "country_code": "US", "average_organic_rank": 5, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7, "weekly_number_of_days_with_coupon": 0, "click_share": 20.31, "impression_share": 20.31, "price": 80, "weekly_search_volume": 3000, "is_yaba_asin": "N", "keywords_link": "http://amazon.com/s?k=bluetooth earbuds", "clicks": 609}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENTBose", "week_date": "2023-10-01", "keywords": "bluetooth earbuds", "competitor_brand": "Bose", "asin": "B00BOSE001", "product_title": "Bose bluetooth earbuds High Quality", "country_code": "US", "average_organic_rank": 12, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 9.94, "impression_share": 9.94, "price": 100, "weekly_search_volume": 3000, "is_yaba_asin": "N", "keywords_link": "http://amazon.com/s?k=bluetooth earbuds", "clicks": 298}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENTAnker", "week_date": "2023-10-01", "keywords": "bluetooth earbuds", "competitor_brand": "Anker", "asin": "B00ANKR001", "product_title": "Anker bluetooth earbuds High Quality", "country_code": "US", "average_organic_rank": 10, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 3, "click_share": 14.88, "impression_share": 14.88, "price": 30, "weekly_search_volume": 3000, "is_yaba_asin": "N", "keywords_link": "http://amazon.com/s?k=bluetooth earbuds", "clicks": 446}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENTAnker", "week_date": "2023-10-01", "keywords": "bluetooth earbuds", "competitor_brand": "Anker", "asin": "B00ANKR002", "product_title": "Anker bluetooth earbuds High Quality", "country_code": "US", "average_organic_rank": 10, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 3, "click_share": 14.9, "impression_share": 14.9, "price": 30, "weekly_search_volume": 3000, "is_yaba_asin": "N", "keywords_link": "http://amazon.com/s?k=bluetooth earbuds", "clicks": 447}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENTUnknown", "week_date": "2023-10-01", "keywords": "bluetooth earbuds", "competitor_brand": null, "asin": "B00UNK001", "product_title": "Generic bluetooth earbuds", "country_code": "US", "average_organic_rank": 20, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 4.67, "impression_share": 4.67, "price": 30, "weekly_search_volume": 3000, "is_yaba_asin": "N", "keywords_link": "http://amazon.com/s?k=bluetooth earbuds", "clicks": 140}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENTYABA", "week_date": "2023-10-08", "keywords": "wireless headphones", "competitor_brand": "YabaTech", "asin": "B00YABA001", "product_title": "YabaTech wireless headphones High Quality", "country_code": "US", "average_organic_rank": 8, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 14.86, "impression_share": 14.86, "price": 50, "weekly_search_volume": 5000, "is_yaba_asin": "Y", "keywords_link": "http://amazon.com/s?k=wireless headphones", "clicks": 743}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENTYABA", "week_date": "2023-10-08", "keywords": "wireless headphones", "competitor_brand": "YabaTech", "asin": "B00YABA002", "product_title": "YabaTech wireless headphones High Quality", "country_code": "US", "average_organic_rank": 8, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 15.11, "impression_share": 15.11, "price": 50, "weekly_search_volume": 5000, "is_yaba_asin": "Y", "keywords_link": "http://amazon.com/s?k=wireless headphones", "clicks": 755}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENTSony", "week_date": "2023-10-08", "keywords": "wireless headphones", "competitor_brand": "Sony", "asin": "B00SONY001", "product_title": "Sony wireless headphones High Quality", "country_code": "US", "average_organic_rank": 5, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7, "weekly_number_of_days_with_coupon": 0, "click_share": 20.31, "impression_share": 20.31, "price": 80, "weekly_search_volume": 5000, "is_yaba_asin": "N", "keywords_link": "http://amazon.com/s?k=wireless headphones", "clicks": 1015}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENTSony", "week_date": "2023-10-08", "keywords": "wireless headphones", "competitor_brand": "Sony", "asin": "B00SONY002", "product_title": "Sony wireless headphones High Quality", "country_code": "US", "average_organic_rank": 5, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7, "weekly_number_of_days_with_coupon": 0, "click_share": 20.66, "impression_share": 20.66, "price": 80, "weekly_search_volume": 5000, "is_yaba_asin": "N", "keywords_link": "http://amazon.com/s?k=wireless headphones", "clicks": 1033}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENTBose", "week_date": "2023-10-08", "keywords": "wireless headphones", "competitor_brand": "Bose", "asin": "B00BOSE001", "product_title": "Bose wireless headphones High Quality", "country_code": "US", "average_organic_rank": 12, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 10.36, "impression_share": 10.36, "price": 100, "weekly_search_volume": 5000, "is_yaba_asin": "N", "keywords_link": "http://amazon.com/s?k=wireless headphones", "clicks": 518}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENTAnker", "week_date": "2023-10-08", "keywords": "wireless headphones", "competitor_brand": "Anker", "asin": "B00ANKR001", "product_title": "Anker wireless headphones High Quality", "country_code": "US", "average_organic_rank": 10, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 3, "click_share": 15.01, "impression_share": 15.01, "price": 30, "weekly_search_volume": 5000, "is_yaba_asin": "N", "keywords_link": "http://amazon.com/s?k=wireless headphones", "clicks": 750}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENTAnker", "week_date": "2023-10-08", "keywords": "wireless headphones", "competitor_brand": "Anker", "asin": "B00ANKR002", "product_title": "Anker wireless headphones High Quality", "country_code": "US", "average_organic_rank": 10, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 3, "click_share": 15.22, "impression_share": 15.22, "price": 30, "weekly_search_volume": 5000, "is_yaba_asin": "N", "keywords_link": "http://amazon.com/s?k=wireless headphones", "clicks": 761}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENTUnknown", "week_date": "2023-10-08", "keywords": "wireless headphones", "competitor_brand": null, "asin": "B00UNK001", "product_title": "Generic wireless headphones", "country_code": "US", "average_organic_rank": 20, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 5.75, "impression_share": 5.75, "price": 30, "weekly_search_volume": 5000, "is_yaba_asin": "N", "keywords_link": "http://amazon.com/s?k=wireless headphones", "clicks": 287}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENTYABA", "week_date": "2023-10-08", "keywords": "bluetooth earbuds", "competitor_brand": "YabaTech", "asin": "B00YABA001", "product_title": "YabaTech bluetooth earbuds High Quality", "country_code": "US", "average_organic_rank": 8, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 15.02, "impression_share": 15.02, "price": 50, "weekly_search_volume": 3000, "is_yaba_asin": "Y", "keywords_link": "http://amazon.com/s?k=bluetooth earbuds", "clicks": 450}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENTYABA", "week_date": "2023-10-08", "keywords": "bluetooth earbuds", "competitor_brand": "YabaTech", "asin": "B00YABA002", "product_title": "YabaTech bluetooth earbuds High Quality", "country_code": "US", "average_organic_rank": 8, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 14.88, "impression_share": 14.88, "price": 50, "weekly_search_volume": 3000, "is_yaba_asin": "Y", "keywords_link": "http://amazon.com/s?k=bluetooth earbuds", "clicks": 446}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENTSony", "week_date": "2023-10-08", "keywords": "bluetooth earbuds", "competitor_brand": "Sony", "asin": "B00SONY001", "product_title": "Sony bluetooth earbuds High Quality", "country_code": "US", "average_organic_rank": 5, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7, "weekly_number_of_days_with_coupon": 0, "click_share": 20.3, "impression_share": 20.3, "price": 80, "weekly_search_volume": 3000, "is_yaba_asin": "N", "keywords_link": "http://amazon.com/s?k=bluetooth earbuds", "clicks": 609}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENTSony", "week_date": "2023-10-08", "keywords": "bluetooth earbuds", "competitor_brand": "Sony", "asin": "B00SONY002", "product_title": "Sony bluetooth earbuds High Quality", "country_code": "US", "average_organic_rank": 5, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7, "weekly_number_of_days_with_coupon": 0, "click_share": 20.59, "impression_share": 20.59, "price": 80, "weekly_search_volume": 3000, "is_yaba_asin": "N", "keywords_link": "http://amazon.com/s?k=bluetooth earbuds", "clicks": 617}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENTBose", "week_date": "2023-10-08", "keywords": "bluetooth earbuds", "competitor_brand": "Bose", "asin": "B00BOSE001", "product_title": "Bose bluetooth earbuds High Quality", "country_code": "US", "average_organic_rank": 12, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 10.15, "impression_share": 10.15, "price": 100, "weekly_search_volume": 3000, "is_yaba_asin": "N", "keywords_link": "http://amazon.com/s?k=bluetooth earbuds", "clicks": 304}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENTAnker", "week_date": "2023-10-08", "keywords": "bluetooth earbuds", "competitor_brand": "Anker", "asin": "B00ANKR001", "product_title": "Anker bluetooth earbuds High Quality", "country_code": "US", "average_organic_rank": 10, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 3, "click_share": 15.13, "impression_share": 15.13, "price": 30, "weekly_search_volume": 3000, "is_yaba_asin": "N", "keywords_link": "http://amazon.com/s?k=bluetooth earbuds", "clicks": 453}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENTAnker", "week_date": "2023-10-08", "keywords": "bluetooth earbuds", "competitor_brand": "Anker", "asin": "B00ANKR002", "product_title": "Anker bluetooth earbuds High Quality", "country_code": "US", "average_organic_rank": 10, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 3, "click_share": 15.39, "impression_share": 15.39, "price": 30, "weekly_search_volume": 3000, "is_yaba_asin": "N", "keywords_link": "http://amazon.com/s?k=bluetooth earbuds", "clicks": 461}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENTUnknown", "week_date": "2023-10-08", "keywords": "bluetooth earbuds", "competitor_brand": null, "asin": "B00UNK001", "product_title": "Generic bluetooth earbuds", "country_code": "US", "average_organic_rank": 20, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 4.67, "impression_share": 4.67, "price": 30, "weekly_search_volume": 3000, "is_yaba_asin": "N", "keywords_link": "http://amazon.com/s?k=bluetooth earbuds", "clicks": 140}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENTYABA", "week_date": "2023-10-15", "keywords": "wireless headphones", "competitor_brand": "YabaTech", "asin": "B00YABA001", "product_title": "YabaTech wireless headphones High Quality", "country_code": "US", "average_organic_rank": 8, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 15.54, "impression_share": 15.54, "price": 50, "weekly_search_volume": 5000, "is_yaba_asin": "Y", "keywords_link": "http://amazon.com/s?k=wireless headphones", "clicks": 777}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENTYABA", "week_date": "2023-10-15", "keywords": "wireless headphones", "competitor_brand": "YabaTech", "asin": "B00YABA002", "product_title": "YabaTech wireless headphones High Quality", "country_code": "US", "average_organic_rank": 8, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 15.11, "impression_share": 15.11, "price": 50, "weekly_search_volume": 5000, "is_yaba_asin": "Y", "keywords_link": "http://amazon.com/s?k=wireless headphones", "clicks": 755}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENTSony", "week_date": "2023-10-15", "keywords": "wireless headphones", "competitor_brand": "Sony", "asin": "B00SONY001", "product_title": "Sony wireless headphones High Quality", "country_code": "US", "average_organic_rank": 5, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7, "weekly_number_of_days_with_coupon": 0, "click_share": 20.31, "impression_share": 20.31, "price": 80, "weekly_search_volume": 5000, "is_yaba_asin": "N", "keywords_link": "http://amazon.com/s?k=wireless headphones", "clicks": 1015}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENTSony", "week_date": "2023-10-15", "keywords": "wireless headphones", "competitor_brand": "Sony", "asin": "B00SONY002", "product_title": "Sony wireless headphones High Quality", "country_code": "US", "average_organic_rank": 5, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7, "weekly_number_of_days_with_coupon": 0, "click_share": 19.82, "impression_share": 19.82, "price": 80, "weekly_search_volume": 5000, "is_yaba_asin": "N", "keywords_link": "http://amazon.com/s?k=wireless headphones", "clicks": 991}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENTBose", "week_date": "2023-10-15", "keywords": "wireless headphones", "competitor_brand": "Bose", "asin": "B00BOSE001", "product_title": "Bose wireless headphones High Quality", "country_code": "US", "average_organic_rank": 12, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 10.37, "impression_share": 10.37, "price": 100, "weekly_search_volume": 5000, "is_yaba_asin": "N", "keywords_link": "http://amazon.com/s?k=wireless headphones", "clicks": 518}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENTAnker", "week_date": "2023-10-15", "keywords": "wireless headphones", "competitor_brand": "Anker", "asin": "B00ANKR001", "product_title": "Anker wireless headphones High Quality", "country_code": "US", "average_organic_rank": 10, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 3, "click_share": 15.68, "impression_share": 15.68, "price": 30, "weekly_search_volume": 5000, "is_yaba_asin": "N", "keywords_link": "http://amazon.com/s?k=wireless headphones", "clicks": 784}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENTAnker", "week_date": "2023-10-15", "keywords": "wireless headphones", "competitor_brand": "Anker", "asin": "B00ANKR002", "product_title": "Anker wireless headphones High Quality", "country_code": "US", "average_organic_rank": 10, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 3, "click_share": 14.63, "impression_share": 14.63, "price": 30, "weekly_search_volume": 5000, "is_yaba_asin": "N", "keywords_link": "http://amazon.com/s?k=wireless headphones", "clicks": 731}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENTUnknown", "week_date": "2023-10-15", "keywords": "wireless headphones", "competitor_brand": null, "asin": "B00UNK001", "product_title": "Generic wireless headphones", "country_code": "US", "average_organic_rank": 20, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 5.48, "impression_share": 5.48, "price": 30, "weekly_search_volume": 5000, "is_yaba_asin": "N", "keywords_link": "http://amazon.com/s?k=wireless headphones", "clicks": 274}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENTYABA", "week_date": "2023-10-15", "keywords": "bluetooth earbuds", "competitor_brand": "YabaTech", "asin": "B00YABA001", "product_title": "YabaTech bluetooth earbuds High Quality", "country_code": "US", "average_organic_rank": 8, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 15.65, "impression_share": 15.65, "price": 50, "weekly_search_volume": 3000, "is_yaba_asin": "Y", "keywords_link": "http://amazon.com/s?k=bluetooth earbuds", "clicks": 469}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENTYABA", "week_date": "2023-10-15", "keywords": "bluetooth earbuds", "competitor_brand": "YabaTech", "asin": "B00YABA002", "product_title": "YabaTech bluetooth earbuds High Quality", "country_code": "US", "average_organic_rank": 8, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 14.81, "impression_share": 14.81, "price": 50, "weekly_search_volume": 3000, "is_yaba_asin": "Y", "keywords_link": "http://amazon.com/s?k=bluetooth earbuds", "clicks": 444}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENTSony", "week_date": "2023-10-15", "keywords": "bluetooth earbuds", "competitor_brand": "Sony", "asin": "B00SONY001", "product_title": "Sony bluetooth earbuds High Quality", "country_code": "US", "average_organic_rank": 5, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7, "weekly_number_of_days_with_coupon": 0, "click_share": 20.31, "impression_share": 20.31, "price": 80, "weekly_search_volume": 3000, "is_yaba_asin": "N", "keywords_link": "http://amazon.com/s?k=bluetooth earbuds", "clicks": 609}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENTSony", "week_date": "2023-10-15", "keywords": "bluetooth earbuds", "competitor_brand": "Sony", "asin": "B00SONY002", "product_title": "Sony bluetooth earbuds High Quality", "country_code": "US", "average_organic_rank": 5, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7, "weekly_number_of_days_with_coupon": 0, "click_share": 19.83, "impression_share": 19.83, "price": 80, "weekly_search_volume": 3000, "is_yaba_asin": "N", "keywords_link": "http://amazon.com/s?k=bluetooth earbuds", "clicks": 594}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENTBose", "week_date": "2023-10-15", "keywords": "bluetooth earbuds", "competitor_brand": "Bose", "asin": "B00BOSE001", "product_title": "Bose bluetooth earbuds High Quality", "country_code": "US", "average_organic_rank": 12, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 9.38, "impression_share": 9.38, "price": 100, "weekly_search_volume": 3000, "is_yaba_asin": "N", "keywords_link": "http://amazon.com/s?k=bluetooth earbuds", "clicks": 281}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENTAnker", "week_date": "2023-10-15", "keywords": "bluetooth earbuds", "competitor_brand": "Anker", "asin": "B00ANKR001", "product_title": "Anker bluetooth earbuds High Quality", "country_code": "US", "average_organic_rank": 10, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 3, "click_share": 14.86, "impression_share": 14.86, "price": 30, "weekly_search_volume": 3000, "is_yaba_asin": "N", "keywords_link": "http://amazon.com/s?k=bluetooth earbuds", "clicks": 445}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENTAnker", "week_date": "2023-10-15", "keywords": "bluetooth earbuds", "competitor_brand": "Anker", "asin": "B00ANKR002", "product_title": "Anker bluetooth earbuds High Quality", "country_code": "US", "average_organic_rank": 10, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 3, "click_share": 15.01, "impression_share": 15.01, "price": 30, "weekly_search_volume": 3000, "is_yaba_asin": "N", "keywords_link": "http://amazon.com/s?k=bluetooth earbuds", "clicks": 450}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENTUnknown", "week_date": "2023-10-15", "keywords": "bluetooth earbuds", "competitor_brand": null, "asin": "B00UNK001", "product_title": "Generic bluetooth earbuds", "country_code": "US", "average_organic_rank": 20, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 4.67, "impression_share": 4.67, "price": 30, "weekly_search_volume": 3000, "is_yaba_asin": "N", "keywords_link": "http://amazon.com/s?k=bluetooth earbuds", "clicks": 140}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENTYABA", "week_date": "2023-10-22", "keywords": "wireless headphones", "competitor_brand": "YabaTech", "asin": "B00YABA001", "product_title": "YabaTech wireless headphones High Quality", "country_code": "US", "average_organic_rank": 3, "weekly_number_of_days_with_deal": 7, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 26.11, "impression_share": 26.11, "price": 40, "weekly_search_volume": 5000, "is_yaba_asin": "Y", "keywords_link": "http://amazon.com/s?k=wireless headphones", "clicks": 1305}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENTYABA", "week_date": "2023-10-22", "keywords": "wireless headphones", "competitor_brand": "YabaTech", "asin": "B00YABA002", "product_title": "YabaTech wireless headphones High Quality", "country_code": "US", "average_organic_rank": 3, "weekly_number_of_days_with_deal": 7, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 26.65, "impression_share": 26.65, "price": 40, "weekly_search_volume": 5000, "is_yaba_asin": "Y", "keywords_link": "http://amazon.com/s?k=wireless headphones", "clicks": 1332}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENTSony", "week_date": "2023-10-22", "keywords": "wireless headphones", "competitor_brand": "Sony", "asin": "B00SONY001", "product_title": "Sony wireless headphones High Quality", "country_code": "US", "average_organic_rank": 5, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7, "weekly_number_of_days_with_coupon": 0, "click_share": 19.33, "impression_share": 19.33, "price": 80, "weekly_search_volume": 5000, "is_yaba_asin": "N", "keywords_link": "http://amazon.com/s?k=wireless headphones", "clicks": 966}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENTSony", "week_date": "2023-10-22", "keywords": "wireless headphones", "competitor_brand": "Sony", "asin": "B00SONY002", "product_title": "Sony wireless headphones High Quality", "country_code": "US", "average_organic_rank": 5, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7, "weekly_number_of_days_with_coupon": 0, "click_share": 20.93, "impression_share": 20.93, "price": 80, "weekly_search_volume": 5000, "is_yaba_asin": "N", "keywords_link": "http://amazon.com/s?k=wireless headphones", "clicks": 1046}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENTBose", "week_date": "2023-10-22", "keywords": "wireless headphones", "competitor_brand": "Bose", "asin": "B00BOSE001", "product_title": "Bose wireless headphones High Quality", "country_code": "US", "average_organic_rank": 12, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 9.94, "impression_share": 9.94, "price": 100, "weekly_search_volume": 5000, "is_yaba_asin": "N", "keywords_link": "http://amazon.com/s?k=wireless headphones", "clicks": 497}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENTAnker", "week_date": "2023-10-22", "keywords": "wireless headphones", "competitor_brand": "Anker", "asin": "B00ANKR001", "product_title": "Anker wireless headphones High Quality", "country_code": "US", "average_organic_rank": 10, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 3, "click_share": 14.86, "impression_share": 14.86, "price": 30, "weekly_search_volume": 5000, "is_yaba_asin": "N", "keywords_link": "http://amazon.com/s?k=wireless headphones", "clicks": 743}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENTAnker", "week_date": "2023-10-22", "keywords": "wireless headphones", "competitor_brand": "Anker", "asin": "B00ANKR002", "product_title": "Anker wireless headphones High Quality", "country_code": "US", "average_organic_rank": 10, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 3, "click_share": 14.83, "impression_share": 14.83, "price": 30, "weekly_search_volume": 5000, "is_yaba_asin": "N", "keywords_link": "http://amazon.com/s?k=wireless headphones", "clicks": 741}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENTUnknown", "week_date": "2023-10-22", "keywords": "wireless headphones", "competitor_brand": null, "asin": "B00UNK001", "product_title": "Generic wireless headphones", "country_code": "US", "average_organic_rank": 20, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 4.6, "impression_share": 4.6, "price": 30, "weekly_search_volume": 5000, "is_yaba_asin": "N", "keywords_link": "http://amazon.com/s?k=wireless headphones", "clicks": 230}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENTYABA", "week_date": "2023-10-22", "keywords": "bluetooth earbuds", "competitor_brand": "YabaTech", "asin": "B00YABA001", "product_title": "YabaTech bluetooth earbuds High Quality", "country_code": "US", "average_organic_rank": 3, "weekly_number_of_days_with_deal": 7, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 24.59, "impression_share": 24.59, "price": 40, "weekly_search_volume": 3000, "is_yaba_asin": "Y", "keywords_link": "http://amazon.com/s?k=bluetooth earbuds", "clicks": 737}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENTYABA", "week_date": "2023-10-22", "keywords": "bluetooth earbuds", "competitor_brand": "YabaTech", "asin": "B00YABA002", "product_title": "YabaTech bluetooth earbuds High Quality", "country_code": "US", "average_organic_rank": 3, "weekly_number_of_days_with_deal": 7, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 25.43, "impression_share": 25.43, "price": 40, "weekly_search_volume": 3000, "is_yaba_asin": "Y", "keywords_link": "http://amazon.com/s?k=bluetooth earbuds", "clicks": 762}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENTSony", "week_date": "2023-10-22", "keywords": "bluetooth earbuds", "competitor_brand": "Sony", "asin": "B00SONY001", "product_title": "Sony bluetooth earbuds High Quality", "country_code": "US", "average_organic_rank": 5, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7, "weekly_number_of_days_with_coupon": 0, "click_share": 20.31, "impression_share": 20.31, "price": 80, "weekly_search_volume": 3000, "is_yaba_asin": "N", "keywords_link": "http://amazon.com/s?k=bluetooth earbuds", "clicks": 609}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENTSony", "week_date": "2023-10-22", "keywords": "bluetooth earbuds", "competitor_brand": "Sony", "asin": "B00SONY002", "product_title": "Sony bluetooth earbuds High Quality", "country_code": "US", "average_organic_rank": 5, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7, "weekly_number_of_days_with_coupon": 0, "click_share": 19.38, "impression_share": 19.38, "price": 80, "weekly_search_volume": 3000, "is_yaba_asin": "N", "keywords_link": "http://amazon.com/s?k=bluetooth earbuds", "clicks": 581}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENTBose", "week_date": "2023-10-22", "keywords": "bluetooth earbuds", "competitor_brand": "Bose", "asin": "B00BOSE001", "product_title": "Bose bluetooth earbuds High Quality", "country_code": "US", "average_organic_rank": 12, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 10.15, "impression_share": 10.15, "price": 100, "weekly_search_volume": 3000, "is_yaba_asin": "N", "keywords_link": "http://amazon.com/s?k=bluetooth earbuds", "clicks": 304}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENTAnker", "week_date": "2023-10-22", "keywords": "bluetooth earbuds", "competitor_brand": "Anker", "asin": "B00ANKR001", "product_title": "Anker bluetooth earbuds High Quality", "country_code": "US", "average_organic_rank": 10, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 3, "click_share": 14.88, "impression_share": 14.88, "price": 30, "weekly_search_volume": 3000, "is_yaba_asin": "N", "keywords_link": "http://amazon.com/s?k=bluetooth earbuds", "clicks": 446}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENTAnker", "week_date": "2023-10-22", "keywords": "bluetooth earbuds", "competitor_brand": "Anker", "asin": "B00ANKR002", "product_title": "Anker bluetooth earbuds High Quality", "country_code": "US", "average_organic_rank": 10, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 3, "click_share": 14.89, "impression_share": 14.89, "price": 30, "weekly_search_volume": 3000, "is_yaba_asin": "N", "keywords_link": "http://amazon.com/s?k=bluetooth earbuds", "clicks": 446}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENTUnknown", "week_date": "2023-10-22", "keywords": "bluetooth earbuds", "competitor_brand": null, "asin": "B00UNK001", "product_title": "Generic bluetooth earbuds", "country_code": "US", "average_organic_rank": 20, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 4.67, "impression_share": 4.67, "price": 30, "weekly_search_volume": 3000, "is_yaba_asin": "N", "keywords_link": "http://amazon.com/s?k=bluetooth earbuds", "clicks": 140}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENTYABA", "week_date": "2023-10-29", "keywords": "wireless headphones", "competitor_brand": "YabaTech", "asin": "B00YABA001", "product_title": "YabaTech wireless headphones High Quality", "country_code": "US", "average_organic_rank": 8, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 17.65, "impression_share": 17.65, "price": 50, "weekly_search_volume": 5000, "is_yaba_asin": "Y", "keywords_link": "http://amazon.com/s?k=wireless headphones", "clicks": 882}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENTYABA", "week_date": "2023-10-29", "keywords": "wireless headphones", "competitor_brand": "YabaTech", "asin": "B00YABA002", "product_title": "YabaTech wireless headphones High Quality", "country_code": "US", "average_organic_rank": 8, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 18.06, "impression_share": 18.06, "price": 50, "weekly_search_volume": 5000, "is_yaba_asin": "Y", "keywords_link": "http://amazon.com/s?k=wireless headphones", "clicks": 903}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENTSony", "week_date": "2023-10-29", "keywords": "wireless headphones", "competitor_brand": "Sony", "asin": "B00SONY001", "product_title": "Sony wireless headphones High Quality", "country_code": "US", "average_organic_rank": 5, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7, "weekly_number_of_days_with_coupon": 0, "click_share": 20.31, "impression_share": 20.31, "price": 80, "weekly_search_volume": 5000, "is_yaba_asin": "N", "keywords_link": "http://amazon.com/s?k=wireless headphones", "clicks": 1015}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENTSony", "week_date": "2023-10-29", "keywords": "wireless headphones", "competitor_brand": "Sony", "asin": "B00SONY002", "product_title": "Sony wireless headphones High Quality", "country_code": "US", "average_organic_rank": 5, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7, "weekly_number_of_days_with_coupon": 0, "click_share": 19.34, "impression_share": 19.34, "price": 80, "weekly_search_volume": 5000, "is_yaba_asin": "N", "keywords_link": "http://amazon.com/s?k=wireless headphones", "clicks": 967}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENTBose", "week_date": "2023-10-29", "keywords": "wireless headphones", "competitor_brand": "Bose", "asin": "B00BOSE001", "product_title": "Bose wireless headphones High Quality", "country_code": "US", "average_organic_rank": 12, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 10.38, "impression_share": 10.38, "price": 100, "weekly_search_volume": 5000, "is_yaba_asin": "N", "keywords_link": "http://amazon.com/s?k=wireless headphones", "clicks": 519}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENTAnker", "week_date": "2023-10-29", "keywords": "wireless headphones", "competitor_brand": "Anker", "asin": "B00ANKR001", "product_title": "Anker wireless headphones High Quality", "country_code": "US", "average_organic_rank": 10, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 3, "click_share": 14.84, "impression_share": 14.84, "price": 30, "weekly_search_volume": 5000, "is_yaba_asin": "N", "keywords_link": "http://amazon.com/s?k=wireless headphones", "clicks": 742}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENTAnker", "week_date": "2023-10-29", "keywords": "wireless headphones", "competitor_brand": "Anker", "asin": "B00ANKR002", "product_title": "Anker wireless headphones High Quality", "country_code": "US", "average_organic_rank": 10, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 3, "click_share": 14.86, "impression_share": 14.86, "price": 30, "weekly_search_volume": 5000, "is_yaba_asin": "N", "keywords_link": "http://amazon.com/s?k=wireless headphones", "clicks": 743}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENTUnknown", "week_date": "2023-10-29", "keywords": "wireless headphones", "competitor_brand": null, "asin": "B00UNK001", "product_title": "Generic wireless headphones", "country_code": "US", "average_organic_rank": 20, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 4.67, "impression_share": 4.67, "price": 30, "weekly_search_volume": 5000, "is_yaba_asin": "N", "keywords_link": "http://amazon.com/s?k=wireless headphones", "clicks": 233}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENTYABA", "week_date": "2023-10-29", "keywords": "bluetooth earbuds", "competitor_brand": "YabaTech", "asin": "B00YABA001", "product_title": "YabaTech bluetooth earbuds High Quality", "country_code": "US", "average_organic_rank": 8, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 18.23, "impression_share": 18.23, "price": 50, "weekly_search_volume": 3000, "is_yaba_asin": "Y", "keywords_link": "http://amazon.com/s?k=bluetooth earbuds", "clicks": 546}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENTYABA", "week_date": "2023-10-29", "keywords": "bluetooth earbuds", "competitor_brand": "YabaTech", "asin": "B00YABA002", "product_title": "YabaTech bluetooth earbuds High Quality", "country_code": "US", "average_organic_rank": 8, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 18.17, "impression_share": 18.17, "price": 50, "weekly_search_volume": 3000, "is_yaba_asin": "Y", "keywords_link": "http://amazon.com/s?k=bluetooth earbuds", "clicks": 545}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENTSony", "week_date": "2023-10-29", "keywords": "bluetooth earbuds", "competitor_brand": "Sony", "asin": "B00SONY001", "product_title": "Sony bluetooth earbuds High Quality", "country_code": "US", "average_organic_rank": 5, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7, "weekly_number_of_days_with_coupon": 0, "click_share": 19.34, "impression_share": 19.34, "price": 80, "weekly_search_volume": 3000, "is_yaba_asin": "N", "keywords_link": "http://amazon.com/s?k=bluetooth earbuds", "clicks": 580}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENTSony", "week_date": "2023-10-29", "keywords": "bluetooth earbuds", "competitor_brand": "Sony", "asin": "B00SONY002", "product_title": "Sony bluetooth earbuds High Quality", "country_code": "US", "average_organic_rank": 5, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7, "weekly_number_of_days_with_coupon": 0, "click_share": 19.37, "impression_share": 19.37, "price": 80, "weekly_search_volume": 3000, "is_yaba_asin": "N", "keywords_link": "http://amazon.com/s?k=bluetooth earbuds", "clicks": 581}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENTBose", "week_date": "2023-10-29", "keywords": "bluetooth earbuds", "competitor_brand": "Bose", "asin": "B00BOSE001", "product_title": "Bose bluetooth earbuds High Quality", "country_code": "US", "average_organic_rank": 12, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 10.15, "impression_share": 10.15, "price": 100, "weekly_search_volume": 3000, "is_yaba_asin": "N", "keywords_link": "http://amazon.com/s?k=bluetooth earbuds", "clicks": 304}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENTAnker", "week_date": "2023-10-29", "keywords": "bluetooth earbuds", "competitor_brand": "Anker", "asin": "B00ANKR001", "product_title": "Anker bluetooth earbuds High Quality", "country_code": "US", "average_organic_rank": 10, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 3, "click_share": 14.88, "impression_share": 14.88, "price": 30, "weekly_search_volume": 3000, "is_yaba_asin": "N", "keywords_link": "http://amazon.com/s?k=bluetooth earbuds", "clicks": 446}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENTAnker", "week_date": "2023-10-29", "keywords": "bluetooth earbuds", "competitor_brand": "Anker", "asin": "B00ANKR002", "product_title": "Anker bluetooth earbuds High Quality", "country_code": "US", "average_organic_rank": 10, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 3, "click_share": 14.89, "impression_share": 14.89, "price": 30, "weekly_search_volume": 3000, "is_yaba_asin": "N", "keywords_link": "http://amazon.com/s?k=bluetooth earbuds", "clicks": 446}, {"brand_aggregation": "Consumer Electronics", "parent_asin": "B00PARENTUnknown", "week_date": "2023-10-29", "keywords": "bluetooth earbuds", "competitor_brand": null, "asin": "B00UNK001", "product_title": "Generic bluetooth earbuds", "country_code": "US", "average_organic_rank": 20, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 4.67, "impression_share": 4.67, "price": 30, "weekly_search_volume": 3000, "is_yaba_asin": "N", "keywords_link": "http://amazon.com/s?k=bluetooth earbuds", "clicks": 140}];
+
+    // --- 2. LOGIC & PROCESSING ---
+
+    google.charts.load('current', {'packages':['corechart', 'bar', 'table']});
+    google.charts.setOnLoadCallback(drawCharts);
+
+    // Helpers
+    const getBrand = (item) => {
+        if (item.competitor_brand && item.competitor_brand !== "") return item.competitor_brand;
+        // Fallback extraction
+        if (item.product_title) {
+            const parts = item.product_title.split(" ");
+            if (parts.length > 0) return parts[0];
+        }
+        return "Unknown Brand";
+    };
+
+    const formatCurrency = (val) => '$' + val.toFixed(2);
+    const unique = (arr) => [...new Set(arr)];
+
+    function processData() {
+        // 1. Identify Our Brand
+        const ourItems = marketData.filter(d => d.is_yaba_asin === 'Y');
+        const ourBrand = ourItems.length > 0 ? getBrand(ourItems[0]) : "Our Brand";
+
+        // 2. Identify Top 3 Competitors
+        const compItems = marketData.filter(d => d.is_yaba_asin === 'N');
+        const compBrandShares = {};
+        
+        compItems.forEach(item => {
+            const b = getBrand(item);
+            if (!compBrandShares[b]) compBrandShares[b] = { shareSum: 0, count: 0 };
+            compBrandShares[b].shareSum += item.click_share;
+            compBrandShares[b].count++;
+        });
+
+        const sortedComps = Object.keys(compBrandShares)
+            .map(b => ({ brand: b, avgShare: compBrandShares[b].shareSum / compBrandShares[b].count }))
+            .sort((a, b) => b.avgShare - a.avgShare);
+        
+        const top3Brands = sortedComps.slice(0, 3).map(c => c.brand);
+
+        // 3. Weekly Aggregations
+        const weeks = unique(marketData.map(d => d.week_date)).sort();
+        
+        return {
+            ourBrand,
+            top3Brands,
+            weeks,
+            competitors: sortedComps.map(c => c.brand)
+        };
+    }
+
+    function drawCharts() {
+        const metadata = processData();
+        const { ourBrand, top3Brands, weeks } = metadata;
+
+        document.getElementById('dateRange').innerText = `${weeks[0]} - ${weeks[weeks.length-1]}`;
+        
+        // --- CHART 1: TREND (Clicks & Share) ---
+        const trendData = [['Week', 'Our Clicks', 'Comp Clicks', 'Our Share (%)']];
+        
+        weeks.forEach(week => {
+            const weekData = marketData.filter(d => d.week_date === week);
+            const ourClicks = weekData.filter(d => d.is_yaba_asin === 'Y').reduce((sum, d) => sum + (d.clicks || 0), 0);
+            const compClicks = weekData.filter(d => d.is_yaba_asin === 'N').reduce((sum, d) => sum + (d.clicks || 0), 0);
+            
+            // Calc weighted share
+            const totalVol = weekData.reduce((sum, d) => sum + d.weekly_search_volume, 0);
+            // Approx share average
+            const ourAvgShare = weekData.filter(d => d.is_yaba_asin === 'Y')
+                .reduce((sum, d) => sum + d.click_share, 0) / (weekData.filter(d => d.is_yaba_asin === 'Y').length || 1);
+
+            trendData.push([week, ourClicks, compClicks, ourAvgShare]);
+        });
+
+        const trendTable = google.visualization.arrayToDataTable(trendData);
+        const trendOptions = {
+            seriesType: 'bars',
+            series: { 2: { type: 'line', targetAxisIndex: 1 } },
+            colors: ['#4285F4', '#9AA0A6', '#FBBC05'],
+            legend: { position: 'bottom' },
+            vAxes: { 0: {title: 'Clicks Volume'}, 1: {title: 'Share %'} },
+            chartArea: { width: '80%', height: '70%' }
+        };
+        new google.visualization.ComboChart(document.getElementById('trend_chart')).draw(trendTable, trendOptions);
+
+        // --- CHART 2: BRAND COMPETITIVENESS ---
+        const brandHeader = ['Week', ourBrand, ...top3Brands, 'Rest of Market'];
+        const brandRows = [];
+
+        weeks.forEach(week => {
+            const weekData = marketData.filter(d => d.week_date === week);
+            const row = [week];
+            
+            // Our Share
+            const ourShare = weekData.filter(d => d.is_yaba_asin === 'Y').reduce((s, x) => s + x.click_share, 0) / (weekData.filter(d => d.is_yaba_asin === 'Y').length || 1);
+            row.push(ourShare);
+
+            // Top 3
+            top3Brands.forEach(brand => {
+                const bData = weekData.filter(d => getBrand(d) === brand);
+                const share = bData.length ? bData.reduce((s, x) => s + x.click_share, 0) / bData.length : 0;
+                row.push(share);
+            });
+
+            // Rest
+            const restData = weekData.filter(d => d.is_yaba_asin === 'N' && !top3Brands.includes(getBrand(d)));
+            const restShare = restData.length ? restData.reduce((s, x) => s + x.click_share, 0) / restData.length : 0;
+            row.push(restShare);
+
+            brandRows.push(row);
+        });
+
+        const brandTable = google.visualization.arrayToDataTable([brandHeader, ...brandRows]);
+        new google.visualization.LineChart(document.getElementById('brand_chart')).draw(brandTable, {
+            curveType: 'function',
+            colors: ['#4285F4', '#EA4335', '#34A853', '#FBBC05', '#9AA0A6'],
+            legend: { position: 'bottom' },
+            chartArea: { width: '85%', height: '70%' }
+        });
+
+        // --- CHART 3: LEVERS ---
+        // Calc average share when lever is present vs absent for US
+        const ourData = marketData.filter(d => d.is_yaba_asin === 'Y');
+        
+        const calcLever = (field) => {
+            const active = ourData.filter(d => d[field] > 0);
+            const inactive = ourData.filter(d => d[field] === 0);
+            const avgAct = active.length ? active.reduce((s,x)=>s+x.click_share,0)/active.length : 0;
+            const avgInact = inactive.length ? inactive.reduce((s,x)=>s+x.click_share,0)/inactive.length : 0;
+            return { active: avgAct, inactive: avgInact, diff: avgAct - avgInact };
+        };
+
+        const dealImpact = calcLever('weekly_number_of_days_with_deal');
+        const couponImpact = calcLever('weekly_number_of_days_with_coupon');
+        const badgeImpact = calcLever('weekly_number_of_days_with_best_seller_badge'); // or choice
+
+        const leverData = google.visualization.arrayToDataTable([
+            ['Lever', 'Share Uplift (%)', { role: 'style' }],
+            ['Deals', dealImpact.diff, '#34A853'],
+            ['Coupons', couponImpact.diff, '#FBBC05'],
+            ['Badges', badgeImpact.diff, '#4285F4']
+        ]);
+
+        new google.visualization.BarChart(document.getElementById('levers_chart')).draw(leverData, {
+            legend: { position: 'none' },
+            hAxis: { title: 'Share Increase (%)' }
+        });
+
+        // Populate Table
+        const tableBody = document.querySelector('#levers-table tbody');
+        [
+            {name: 'Deals', ...dealImpact},
+            {name: 'Coupons', ...couponImpact},
+            {name: 'Badges', ...badgeImpact}
+        ].forEach(l => {
+            tableBody.innerHTML += `<tr><td>${l.name}</td><td><b>${l.diff > 0 ? '+' : ''}${l.diff.toFixed(2)}%</b> <span class="text-sm">(Avg: ${l.active.toFixed(1)}% vs ${l.inactive.toFixed(1)}%)</span></td></tr>`;
+        });
+
+        // --- CHART 4: EFFICIENCY ---
+        const scatterRows = marketData.map(d => [
+            d.average_organic_rank, 
+            d.click_share, 
+            d.is_yaba_asin === 'Y' ? `Our Brand (${d.asin})` : `Comp: ${getBrand(d)}`
+        ]);
+        
+        // Google Scatter requires continuous axis usually, adding tooltip helps
+        const scatterTable = new google.visualization.DataTable();
+        scatterTable.addColumn('number', 'Rank');
+        scatterTable.addColumn('number', 'Share');
+        scatterTable.addColumn({type: 'string', role: 'tooltip'});
+
+        scatterTable.addRows(scatterRows);
+
+        new google.visualization.ScatterChart(document.getElementById('scatter_chart')).draw(scatterTable, {
+            hAxis: { title: 'Organic Rank (Lower is Better)', direction: -1 }, // Reverse axis
+            vAxis: { title: 'Click Share %' },
+            legend: 'none',
+            colors: ['#4285F4'],
+            pointSize: 5,
+            chartArea: { width: '85%', height: '70%' }
+        });
+
+        // --- 5. INSIGHTS GENERATION ---
+        generateInsights(metadata, trendData, dealImpact);
+        
+        // --- 6. POPULATE SELECTORS ---
+        const compSel = document.getElementById('competitor-selector');
+        metadata.competitors.forEach(c => {
+            const opt = document.createElement('option');
+            opt.value = c;
+            opt.innerText = c;
+            compSel.appendChild(opt);
+        });
+        
+        // Initial Interactive Draw
+        updateInteractive();
+        
+        // Update KPIs
+        const lastWeek = weeks[weeks.length-1];
+        const lastWeekData = marketData.filter(d => d.week_date === lastWeek && d.is_yaba_asin === 'Y');
+        const lwShare = lastWeekData.reduce((s,x)=>s+x.click_share,0)/lastWeekData.length;
+        document.getElementById('kpi-share').innerText = lwShare.toFixed(1) + '%';
+        
+        const lwRank = lastWeekData.reduce((s,x)=>s+x.average_organic_rank,0)/lastWeekData.length;
+        document.getElementById('kpi-rank').innerText = lwRank.toFixed(1);
+        
+        const lwPrice = lastWeekData.reduce((s,x)=>s+x.price,0)/lastWeekData.length;
+        document.getElementById('kpi-price').innerText = '$' + lwPrice.toFixed(2);
+    }
+
+    function generateInsights(metadata, trendData, dealImpact) {
+        const container = document.getElementById('insights-container');
+        const recList = document.getElementById('recommendations-container');
+        const otherList = document.getElementById('other-insights-list');
+        const { ourBrand, top3Brands } = metadata;
+
+        // Insight 1: Trend
+        const lastRow = trendData[trendData.length-1];
+        const prevRow = trendData[trendData.length-2];
+        const growth = lastRow[3] - prevRow[3]; // Share diff
+        document.getElementById('kpi-growth').innerText = (growth > 0 ? '+' : '') + growth.toFixed(1) + '%';
+        
+        container.innerHTML += `
+            <div class="insight-item">
+                <h3>Tendencia Reciente</h3>
+                <p>La marca ${ourBrand} muestra una tendencia ${growth >= 0 ? 'positiva' : 'negativa'} en la última semana, cambiando un ${growth.toFixed(1)}% en cuota de clicks.</p>
+            </div>
+        `;
+
+        // Insight 2: Competitor Threat
+        container.innerHTML += `
+            <div class="insight-item">
+                <h3>Amenaza Competitiva</h3>
+                <p>El principal rival es <b>${top3Brands[0]}</b>. Se recomienda monitorear sus cambios de precio y keywords principales.</p>
+            </div>
+        `;
+
+        // Insight 3: Deal Effectiveness
+        container.innerHTML += `
+            <div class="insight-item">
+                <h3>Impacto de Promociones</h3>
+                <p>Los Deals generan un uplift de <b>${dealImpact.diff.toFixed(1)}%</b> en share. ${dealImpact.diff > 2 ? 'Son altamente efectivos.' : 'Revisar agresividad del descuento.'}</p>
+            </div>
+        `;
+
+        // Recommendations
+        if (growth < 0) {
+            recList.innerHTML += `<li><div class="icon-box"><span class="material-icons">priority_high</span></div><div><strong>Revertir Caída:</strong> Analizar si ${top3Brands[0]} bajó precios o activó cupones la última semana.</div></li>`;
+        }
+        recList.innerHTML += `<li><div class="icon-box"><span class="material-icons">sell</span></div><div><strong>Optimizar Deals:</strong> Dado el uplift de ${dealImpact.diff.toFixed(1)}%, concentrar deals en semanas de alto tráfico.</div></li>`;
+        recList.innerHTML += `<li><div class="icon-box"><span class="material-icons">search</span></div><div><strong>Defensa SEO:</strong> Asegurar ranking Top 3 en keywords principales para mantener eficiencia de clicks.</div></li>`;
+
+        // Other Insights
+        otherList.innerHTML += `<li>Se detecta que los productos con "Amazon Choice" mantienen un share más estable.</li>`;
+        otherList.innerHTML += `<li>La eficiencia rank/click decae rápidamente después de la posición 8.</li>`;
+    }
+
+    // --- INTERACTIVE LOGIC ---
+    function updateInteractive() {
+        // Logic to draw "Face to Face" charts
+        // Simplify for this demo: Draw comparison of Price and Share for selected Competitor vs Us
+        const compName = document.getElementById('competitor-selector').value;
+        const weeks = unique(marketData.map(d => d.week_date)).sort();
+        
+        // Prep Data
+        const priceData = [['Week', 'Us', compName]];
+        const shareData = [['Week', 'Us', compName]];
+        
+        weeks.forEach(w => {
+            const weekD = marketData.filter(d => d.week_date === w);
+            const us = weekD.filter(d => d.is_yaba_asin === 'Y');
+            const them = weekD.filter(d => getBrand(d) === compName);
+            
+            const pUs = us.length ? us.reduce((s,x)=>s+x.price,0)/us.length : 0;
+            const pThem = them.length ? them.reduce((s,x)=>s+x.price,0)/them.length : 0;
+            
+            const sUs = us.length ? us.reduce((s,x)=>s+x.click_share,0)/us.length : 0;
+            const sThem = them.length ? them.reduce((s,x)=>s+x.click_share,0)/them.length : 0;
+            
+            priceData.push([w, pUs, pThem]);
+            shareData.push([w, sUs, sThem]);
+        });
+
+        const pTable = google.visualization.arrayToDataTable(priceData);
+        new google.visualization.LineChart(document.getElementById('int_price_chart')).draw(pTable, {
+            title: 'Evolución de Precio Promedio',
+            colors: ['#4285F4', '#EA4335']
+        });
+
+        const sTable = google.visualization.arrayToDataTable(shareData);
+        new google.visualization.AreaChart(document.getElementById('int_share_chart')).draw(sTable, {
+            title: 'Batalla por Click Share',
+            colors: ['#4285F4', '#EA4335']
+        });
+    }
+
+    function switchTab(tabId) {
+        document.getElementById('static-tab').classList.add('hidden');
+        document.getElementById('interactive-tab').classList.add('hidden');
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        
+        document.getElementById(tabId + '-tab').classList.remove('hidden');
+        event.target.classList.add('active');
+    }
+
+</script>
+</body>
+</html>
