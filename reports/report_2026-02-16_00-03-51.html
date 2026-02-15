@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yaba Intelligence: Parent ASIN Report</title>
+    
+    <!-- Google Material Icons -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Google Charts -->
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+
+    <style>
+        :root {
+            --primary: #4285F4; /* Google Blue */
+            --success: #34A853; /* Google Green */
+            --warning: #FBBC05; /* Google Yellow */
+            --danger: #EA4335;  /* Google Red */
+            --bg: #F8F9FA;
+            --surface: #FFFFFF;
+            --text-main: #202124;
+            --text-sec: #5F6368;
+            --border: #DADCE0;
+            --radius: 16px;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg);
+            color: var(--text-main);
+            margin: 0;
+            padding: 0;
+            line-height: 1.5;
+        }
+
+        /* Layout */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 32px;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--text-main);
+            margin: 0;
+        }
+
+        .header .subtitle {
+            color: var(--text-sec);
+            font-size: 14px;
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 24px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 0;
+        }
+
+        .tab-btn {
+            background: none;
+            border: none;
+            padding: 12px 24px;
+            font-family: inherit;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-sec);
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .tab-btn.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Cards & Grid */
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+        .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+        .grid-full { width: 100%; margin-bottom: 24px; }
+
+        .card {
+            background: var(--surface);
+            border-radius: var(--radius);
+            padding: 24px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            margin-bottom: 24px;
+        }
+
+        .card h2 {
+            font-size: 18px;
+            margin-top: 0;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Metrics */
+        .kpi-row {
+            display: flex;
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+
+        .kpi-card {
+            flex: 1;
+            background: var(--surface);
+            padding: 20px;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            border-left: 5px solid var(--primary);
+        }
+
+        .kpi-label { font-size: 12px; color: var(--text-sec); text-transform: uppercase; letter-spacing: 0.5px; }
+        .kpi-value { font-size: 28px; font-weight: 700; margin: 8px 0; }
+        .kpi-trend { font-size: 14px; display: flex; align-items: center; gap: 4px; }
+        .trend-up { color: var(--success); }
+        .trend-down { color: var(--danger); }
+
+        /* Charts */
+        .chart-box {
+            width: 100%;
+            height: 400px;
+        }
+
+        /* Tables & Lists */
+        .insight-list li {
+            margin-bottom: 12px;
+            padding-left: 24px;
+            position: relative;
+        }
+        .insight-list li::before {
+            content: "•";
+            color: var(--primary);
+            font-weight: bold;
+            font-size: 20px;
+            position: absolute;
+            left: 0;
+            top: -2px;
+        }
+
+        /* Badges */
+        .badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .badge-yaba { background: #E8F0FE; color: var(--primary); }
+        .badge-comp { background: #FCE8E6; color: var(--danger); }
+
+        /* Controls */
+        select {
+            padding: 8px 16px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            font-family: inherit;
+            background: white;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .grid-2, .grid-3 { grid-template-columns: 1fr; }
+            .kpi-row { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div>
+                <h1>Yaba Intelligence Report</h1>
+                <div class="subtitle">Parent ASIN Analysis • Powered by Google Charts</div>
+            </div>
+            <div id="date-range" class="badge badge-yaba">Cargando fechas...</div>
+        </header>
+
+        <!-- Navigation -->
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('static')">📊 Reporte Estratégico</button>
+            <button class="tab-btn" onclick="switchTab('interactive')">⚔️ Comparador Interactivo</button>
+        </div>
+
+        <!-- TAB 1: STATIC REPORT -->
+        <div id="static" class="tab-content active">
+            
+            <!-- KPI Overview -->
+            <div class="kpi-row" id="kpi-container">
+                <!-- Injected via JS -->
+            </div>
+
+            <!-- Section 1: Global Trend -->
+            <div class="card">
+                <h2><span class="material-icons">show_chart</span> 1. Tendencia Global del Parent (Clicks & Share)</h2>
+                <div id="chart_global_trend" class="chart-box"></div>
+                <p class="subtitle" id="global_insight_text">Analizando volumen total vs nuestra captura de valor...</p>
+            </div>
+
+            <!-- Section 2: Brand Competitiveness -->
+            <div class="card">
+                <h2><span class="material-icons">emoji_events</span> 2. Competitividad de Marca (Share %)</h2>
+                <div id="chart_brand_share" class="chart-box"></div>
+                <div class="grid-2">
+                    <div id="top_competitors_list"></div>
+                    <div>
+                        <h3>Dinámica de Mercado</h3>
+                        <p id="market_dynamics_text" style="color: var(--text-sec); font-size: 14px;"></p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid-2">
+                <!-- Section 3: Efficiency -->
+                <div class="card">
+                    <h2><span class="material-icons">gps_fixed</span> 3. Rank vs Click Share (Eficiencia)</h2>
+                    <div id="chart_efficiency" class="chart-box"></div>
+                    <p style="font-size: 12px; color: var(--text-sec);">* Eje X: Rank Orgánico (Invertido) | Eje Y: Click Share</p>
+                </div>
+
+                <!-- Section 4: Drivers -->
+                <div class="card">
+                    <h2><span class="material-icons">tune</span> 4. Palancas de Crecimiento</h2>
+                    <div id="chart_drivers" class="chart-box"></div>
+                </div>
+            </div>
+
+            <!-- Section 5: Insights & Recommendations -->
+            <div class="card" style="border-left: 5px solid var(--warning);">
+                <h2><span class="material-icons">lightbulb</span> 5. Conclusiones y Recomendaciones</h2>
+                <div class="grid-2">
+                    <div>
+                        <h3 style="color: var(--text-main);">Insights Clave</h3>
+                        <ul class="insight-list" id="insights_list">
+                            <!-- JS Generated -->
+                        </ul>
+                    </div>
+                    <div>
+                        <h3 style="color: var(--primary);">Plan de Acción</h3>
+                        <ul class="insight-list" id="recommendations_list">
+                            <!-- JS Generated -->
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 2: INTERACTIVE COMPARATOR -->
+        <div id="interactive" class="tab-content">
+            <div class="card">
+                <div style="display: flex; gap: 16px; margin-bottom: 20px; align-items: center;">
+                    <span class="material-icons">compare_arrows</span>
+                    <h2 style="margin:0;">Cara a Cara</h2>
+                    <select id="comp_selector" onchange="updateComparator()">
+                        <option value="">Selecciona Competidor...</option>
+                    </select>
+                    <select id="week_selector" onchange="updateComparator()">
+                        <option value="">Todas las Semanas</option>
+                    </select>
+                </div>
+
+                <div class="grid-2">
+                    <div id="comparator_stats">
+                        <!-- Stat injection -->
+                    </div>
+                    <div id="chart_comparator" class="chart-box"></div>
+                </div>
+                
+                <div style="margin-top: 20px;">
+                     <h3>Detalle de Variantes</h3>
+                     <div id="table_variants_div"></div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+        // ---------------------------------------------------------
+        // 1. DATA INJECTION (SIMULATED FOR DEMO)
+        // ---------------------------------------------------------
+        // REPLACE THIS BLOCK WITH YOUR REAL PROCESSED CSV DATA
+        const marketData = [
+            // Week 1
+            {week_date: '2023-10-01', parent_asin: 'P1', asin: 'A001', is_yaba_asin: 'Y', competitor_brand: 'YabaTech', product_title: 'Yaba Pro Gadget 100g', price: 29.99, click_share: 0.15, weekly_search_volume: 10000, average_organic_rank: 3, weekly_number_of_days_with_deal: 0, weekly_number_of_days_with_best_seller_badge: 7},
+            {week_date: '2023-10-01', parent_asin: 'P1', asin: 'C001', is_yaba_asin: 'N', competitor_brand: 'CompA', product_title: 'CompA Super 100g', price: 35.00, click_share: 0.20, weekly_search_volume: 10000, average_organic_rank: 1, weekly_number_of_days_with_deal: 0, weekly_number_of_days_with_best_seller_badge: 0},
+            {week_date: '2023-10-01', parent_asin: 'P1', asin: 'C002', is_yaba_asin: 'N', competitor_brand: 'CompB', product_title: 'CompB Eco', price: 25.00, click_share: 0.05, weekly_search_volume: 10000, average_organic_rank: 12, weekly_number_of_days_with_deal: 7, weekly_number_of_days_with_best_seller_badge: 0},
+            {week_date: '2023-10-01', parent_asin: 'P1', asin: 'C003', is_yaba_asin: 'N', competitor_brand: 'CompC', product_title: 'CompC Basic', price: 19.99, click_share: 0.10, weekly_search_volume: 10000, average_organic_rank: 5, weekly_number_of_days_with_deal: 0, weekly_number_of_days_with_best_seller_badge: 0},
+            
+            // Week 2
+            {week_date: '2023-10-08', parent_asin: 'P1', asin: 'A001', is_yaba_asin: 'Y', competitor_brand: 'YabaTech', product_title: 'Yaba Pro Gadget 100g', price: 29.99, click_share: 0.14, weekly_search_volume: 12000, average_organic_rank: 4, weekly_number_of_days_with_deal: 0, weekly_number_of_days_with_best_seller_badge: 7},
+            {week_date: '2023-10-08', parent_asin: 'P1', asin: 'C001', is_yaba_asin: 'N', competitor_brand: 'CompA', product_title: 'CompA Super 100g', price: 34.50, click_share: 0.22, weekly_search_volume: 12000, average_organic_rank: 1, weekly_number_of_days_with_deal: 2, weekly_number_of_days_with_best_seller_badge: 0},
+            {week_date: '2023-10-08', parent_asin: 'P1', asin: 'C002', is_yaba_asin: 'N', competitor_brand: 'CompB', product_title: 'CompB Eco', price: 25.00, click_share: 0.06, weekly_search_volume: 12000, average_organic_rank: 10, weekly_number_of_days_with_deal: 0, weekly_number_of_days_with_best_seller_badge: 0},
+            
+            // Week 3
+            {week_date: '2023-10-15', parent_asin: 'P1', asin: 'A001', is_yaba_asin: 'Y', competitor_brand: 'YabaTech', product_title: 'Yaba Pro Gadget 100g', price: 27.99, click_share: 0.18, weekly_search_volume: 11000, average_organic_rank: 2, weekly_number_of_days_with_deal: 3, weekly_number_of_days_with_best_seller_badge: 7},
+            {week_date: '2023-10-15', parent_asin: 'P1', asin: 'C001', is_yaba_asin: 'N', competitor_brand: 'CompA', product_title: 'CompA Super 100g', price: 35.00, click_share: 0.19, weekly_search_volume: 11000, average_organic_rank: 1, weekly_number_of_days_with_deal: 0, weekly_number_of_days_with_best_seller_badge: 0},
+            {week_date: '2023-10-15', parent_asin: 'P1', asin: 'C002', is_yaba_asin: 'N', competitor_brand: 'CompB', product_title: 'CompB Eco', price: 25.00, click_share: 0.08, weekly_search_volume: 11000, average_organic_rank: 8, weekly_number_of_days_with_deal: 0, weekly_number_of_days_with_best_seller_badge: 0},
+
+            // Week 4 (Latest)
+            {week_date: '2023-10-22', parent_asin: 'P1', asin: 'A001', is_yaba_asin: 'Y', competitor_brand: 'YabaTech', product_title: 'Yaba Pro Gadget 100g', price: 29.99, click_share: 0.16, weekly_search_volume: 11500, average_organic_rank: 3, weekly_number_of_days_with_deal: 0, weekly_number_of_days_with_best_seller_badge: 7},
+            {week_date: '2023-10-22', parent_asin: 'P1', asin: 'C001', is_yaba_asin: 'N', competitor_brand: 'CompA', product_title: 'CompA Super 100g', price: 35.00, click_share: 0.20, weekly_search_volume: 11500, average_organic_rank: 1, weekly_number_of_days_with_deal: 0, weekly_number_of_days_with_best_seller_badge: 0},
+            {week_date: '2023-10-22', parent_asin: 'P1', asin: 'C002', is_yaba_asin: 'N', competitor_brand: 'CompB', product_title: 'CompB Eco', price: 22.00, click_share: 0.12, weekly_search_volume: 11500, average_organic_rank: 6, weekly_number_of_days_with_deal: 7, weekly_number_of_days_with_best_seller_badge: 0}, // Aggressive promotion
+            {week_date: '2023-10-22', parent_asin: 'P1', asin: 'C003', is_yaba_asin: 'N', competitor_brand: 'CompC', product_title: 'CompC Basic', price: 19.99, click_share: 0.05, weekly_search_volume: 11500, average_organic_rank: 15, weekly_number_of_days_with_deal: 0, weekly_number_of_days_with_best_seller_badge: 0},
+        ];
+
+        // ---------------------------------------------------------
+        // 2. DATA PROCESSING CORE
+        // ---------------------------------------------------------
+
+        // Helper: Extract brand if null
+        function getBrand(row) {
+            if (row.competitor_brand) return row.competitor_brand;
+            // Fallback logic
+            if (row.product_title) return row.product_title.split(' ')[0];
+            return "Unknown Brand";
+        }
+
+        // Helper: Calculate Estimated Clicks (Proxy)
+        function getClicks(row) {
+            return (row.click_share || 0) * (row.weekly_search_volume || 0);
+        }
+
+        // 1. Identify OUR Brand
+        const ourAsins = marketData.filter(d => d.is_yaba_asin === 'Y');
+        const ourBrandName = ourAsins.length > 0 ? getBrand(ourAsins[0]) : "Our Brand";
+
+        // 2. Get Unique Weeks
+        const weeks = [...new Set(marketData.map(d => d.week_date))].sort();
+        const latestWeek = weeks[weeks.length - 1];
+        const previousWeek = weeks[weeks.length - 2];
+
+        document.getElementById('date-range').innerText = `Periodo: ${weeks[0]} a ${latestWeek}`;
+
+        // ---------------------------------------------------------
+        // 3. GOOGLE CHARTS SETUP
+        // ---------------------------------------------------------
+        google.charts.load('current', {'packages':['corechart', 'table', 'bar']});
+        google.charts.setOnLoadCallback(drawDashboard);
+
+        function drawDashboard() {
+            drawGlobalTrend();
+            drawBrandCompetitiveness();
+            drawEfficiency();
+            drawDrivers();
+            populateInsights();
+            setupInteractive();
+        }
+
+        // ---------------------------------------------------------
+        // CHART 1: Global Trend (Dual Axis: Total Clicks vs Our Share)
+        // ---------------------------------------------------------
+        function drawGlobalTrend() {
+            // Aggregate by week
+            const weekData = weeks.map(week => {
+                const weekRows = marketData.filter(d => d.week_date === week);
+                const totalClicks = weekRows.reduce((sum, r) => sum + getClicks(r), 0);
+                
+                const ourRows = weekRows.filter(d => d.is_yaba_asin === 'Y');
+                const ourClicks = ourRows.reduce((sum, r) => sum + getClicks(r), 0);
+                
+                const ourShare = totalClicks > 0 ? (ourClicks / totalClicks) : 0;
+                
+                return [week, totalClicks, ourShare];
+            });
+
+            const data = new google.visualization.DataTable();
+            data.addColumn('string', 'Semana');
+            data.addColumn('number', 'Volumen Mercado (Clicks)');
+            data.addColumn('number', 'Nuestra Cuota');
+
+            data.addRows(weekData);
+
+            const options = {
+                vAxes: {
+                    0: {title: 'Clicks Totales', gridlines: {color: '#f3f3f3'}},
+                    1: {title: 'Nuestra Cuota %', format: '#%'}
+                },
+                hAxis: {title: 'Semana'},
+                seriesType: 'bars',
+                series: {1: {type: 'line', targetAxisIndex: 1, color: '#4285F4', lineWidth: 3}},
+                colors: ['#E0E0E0'],
+                legend: {position: 'top'},
+                animation: {startup: true, duration: 1000, easing: 'out'}
+            };
+
+            const chart = new google.visualization.ComboChart(document.getElementById('chart_global_trend'));
+            chart.draw(data, options);
+
+            // Insight logic
+            const lastShare = weekData[weekData.length-1][2];
+            const prevShare = weekData[weekData.length-2][2];
+            const diff = lastShare - prevShare;
+            const trendText = diff > 0 ? "ganando tracción" : "perdiendo terreno";
+            document.getElementById('global_insight_text').innerHTML = 
+                `En la última semana, el mercado generó <b>${Math.round(weekData[weekData.length-1][1])} clicks estimados</b>. 
+                Nuestra marca está <b>${trendText}</b> con una variación de ${(diff*100).toFixed(2)} pts.`;
+        }
+
+        // ---------------------------------------------------------
+        // CHART 2: Competitiveness (Line Chart)
+        // ---------------------------------------------------------
+        function drawBrandCompetitiveness() {
+            // 1. Identify Top 3 Competitors by Avg Share
+            const brandMap = {};
+            marketData.forEach(r => {
+                const b = getBrand(r);
+                if (b === ourBrandName) return; // Skip us for now
+                if (!brandMap[b]) brandMap[b] = 0;
+                brandMap[b] += (r.click_share || 0);
+            });
+            
+            const topCompetitors = Object.entries(brandMap)
+                .sort((a,b) => b[1] - a[1])
+                .slice(0, 3)
+                .map(e => e[0]);
+
+            const brandsToTrack = [ourBrandName, ...topCompetitors];
+
+            // 2. Build Data Table
+            const data = new google.visualization.DataTable();
+            data.addColumn('string', 'Semana');
+            brandsToTrack.forEach(b => data.addColumn('number', b));
+            data.addColumn('number', 'Otros');
+
+            const rows = weeks.map(week => {
+                const weekRows = marketData.filter(d => d.week_date === week);
+                const row = [week];
+                let trackedSum = 0;
+
+                brandsToTrack.forEach(brand => {
+                    const brandRows = weekRows.filter(r => getBrand(r) === brand);
+                    // Avg share across keywords/asins for that brand
+                    // Simplification: Sum of Click Share (assuming normalized, if not average)
+                    // Better: Sum(Clicks) / TotalMarketClicks
+                    const totalMarketClicks = weekRows.reduce((sum, r) => sum + getClicks(r), 0);
+                    const brandClicks = brandRows.reduce((sum, r) => sum + getClicks(r), 0);
+                    const share = totalMarketClicks > 0 ? (brandClicks / totalMarketClicks) : 0;
+                    row.push(share);
+                    trackedSum += share;
+                });
+
+                row.push(Math.max(0, 1 - trackedSum)); // Others
+                return row;
+            });
+
+            data.addRows(rows);
+
+            // Formatting
+            const formatter = new google.visualization.NumberFormat({pattern: '#.0%'});
+            for(let i=1; i<=brandsToTrack.length+1; i++) {
+                formatter.format(data, i);
+            }
+
+            const options = {
+                curveType: 'function',
+                legend: { position: 'bottom' },
+                vAxis: { format: '#%', gridlines: {color: '#f3f3f3'} },
+                chartArea: { width: '85%', height: '70%' },
+                colors: ['#4285F4', '#EA4335', '#FBBC05', '#34A853', '#9AA0A6'],
+                lineWidth: 3
+            };
+
+            const chart = new google.visualization.LineChart(document.getElementById('chart_brand_share'));
+            chart.draw(data, options);
+
+            // Fill Competitor List
+            const compList = document.getElementById('top_competitors_list');
+            compList.innerHTML = `<h3>Principales Rivales</h3>` + 
+                topCompetitors.map(c => `<div class="badge badge-comp" style="display:inline-block; margin:2px;">${c}</div>`).join('');
+            
+            document.getElementById('market_dynamics_text').innerText = 
+                `El mercado está liderado por ${brandsToTrack[rows[rows.length-1].slice(1, -1).reduce((iMax, x, i, arr) => x > arr[iMax] ? i : iMax, 0)]}. 
+                ${ourBrandName} muestra una tendencia ${rows[rows.length-1][1] > rows[0][1] ? 'alcista' : 'bajista'} respecto al inicio del periodo.`;
+        }
+
+        // ---------------------------------------------------------
+        // CHART 3: Efficiency (Scatter: Rank vs Share)
+        // ---------------------------------------------------------
+        function drawEfficiency() {
+            // Use latest week data
+            const currentData = marketData.filter(d => d.week_date === latestWeek);
+            
+            const data = new google.visualization.DataTable();
+            data.addColumn('number', 'Rank Orgánico (Invertido)');
+            data.addColumn('number', 'Click Share');
+            data.addColumn({type: 'string', role: 'tooltip'});
+            data.addColumn({type: 'string', role: 'style'});
+
+            const rows = currentData.map(d => {
+                const isUs = d.is_yaba_asin === 'Y';
+                const color = isUs ? '#4285F4' : '#9AA0A6';
+                const label = `${getBrand(d)} - ${d.product_title}`;
+                // Invert rank for visual (Rank 1 is high)
+                return [d.average_organic_rank, d.click_share, label, `point { fill-color: ${color}; size: ${isUs?10:5}; }`];
+            });
+
+            data.addRows(rows);
+
+            const options = {
+                hAxis: { title: 'Rank Orgánico (Menor es mejor)', direction: -1 }, // Invert axis
+                vAxis: { title: 'Click Share', format: '#%' },
+                legend: 'none',
+                tooltip: { isHtml: true }
+            };
+
+            const chart = new google.visualization.ScatterChart(document.getElementById('chart_efficiency'));
+            chart.draw(data, options);
+        }
+
+        // ---------------------------------------------------------
+        // CHART 4: Drivers (Bar Chart Impact)
+        // ---------------------------------------------------------
+        function drawDrivers() {
+            // Simple correlation analysis: Compare Our Share in weeks with Deal vs No Deal
+            const ourRows = marketData.filter(d => d.is_yaba_asin === 'Y');
+            
+            let dealShare = 0, dealCount = 0;
+            let noDealShare = 0, noDealCount = 0;
+            let bsShare = 0, bsCount = 0;
+
+            ourRows.forEach(r => {
+                if (r.weekly_number_of_days_with_deal > 0) {
+                    dealShare += r.click_share; dealCount++;
+                } else {
+                    noDealShare += r.click_share; noDealCount++;
+                }
+                if (r.weekly_number_of_days_with_best_seller_badge > 0) {
+                    bsShare += r.click_share; bsCount++;
+                }
+            });
+
+            const avgDeal = dealCount ? dealShare/dealCount : 0;
+            const avgNoDeal = noDealCount ? noDealShare/noDealCount : 0;
+            const avgBS = bsCount ? bsShare/bsCount : 0;
+
+            const data = google.visualization.arrayToDataTable([
+                ['Palanca', 'Share Promedio', { role: 'style' }],
+                ['Sin Deal', avgNoDeal, '#9AA0A6'],
+                ['Con Deal', avgDeal, '#EA4335'],
+                ['Best Seller', avgBS, '#FBBC05']
+            ]);
+
+            const options = {
+                vAxis: { format: '#%' },
+                legend: { position: 'none' },
+                bar: { groupWidth: "50%" }
+            };
+
+            const chart = new google.visualization.ColumnChart(document.getElementById('chart_drivers'));
+            chart.draw(data, options);
+        }
+
+        // ---------------------------------------------------------
+        // 5. KPI & INSIGHTS GENERATION
+        // ---------------------------------------------------------
+        function populateInsights() {
+            // KPIs
+            const lastWeekData = marketData.filter(d => d.week_date === latestWeek);
+            const prevWeekData = marketData.filter(d => d.week_date === previousWeek);
+
+            const calcShare = (data) => {
+                const total = data.reduce((s, r) => s + getClicks(r), 0);
+                const ours = data.filter(d => d.is_yaba_asin === 'Y').reduce((s, r) => s + getClicks(r), 0);
+                return total ? ours/total : 0;
+            };
+
+            const shareNow = calcShare(lastWeekData);
+            const sharePrev = calcShare(prevWeekData);
+            const shareDiff = shareNow - sharePrev;
+
+            // Find avg price ours vs comp
+            const getAvgPrice = (data, isUs) => {
+                const subset = data.filter(d => (isUs ? d.is_yaba_asin==='Y' : d.is_yaba_asin==='N'));
+                if (!subset.length) return 0;
+                return subset.reduce((s,r) => s+r.price,0) / subset.length;
+            };
+
+            const ourPrice = getAvgPrice(lastWeekData, true);
+            const compPrice = getAvgPrice(lastWeekData, false);
+
+            // Render KPIs
+            document.getElementById('kpi-container').innerHTML = `
+                <div class="kpi-card">
+                    <div class="kpi-label">Click Share Actual</div>
+                    <div class="kpi-value">${(shareNow*100).toFixed(1)}%</div>
+                    <div class="kpi-trend ${shareDiff >= 0 ? 'trend-up':'trend-down'}">
+                        <span class="material-icons">${shareDiff >= 0 ? 'trending_up':'trending_down'}</span>
+                        ${(shareDiff*100).toFixed(2)} pts vs sem. anterior
+                    </div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Competitividad Precio</div>
+                    <div class="kpi-value">${(ourPrice/compPrice * 100).toFixed(0)}%</div>
+                    <div class="kpi-trend">
+                        <span style="color:var(--text-sec)">Index vs Competencia (100 = Igual)</span>
+                    </div>
+                </div>
+            `;
+
+            // Insights Logic
+            const insights = [];
+            const recs = [];
+
+            if (shareDiff < 0) {
+                insights.push(`<b>Alerta de Cuota:</b> Hemos perdido ${(Math.abs(shareDiff)*100).toFixed(2)}% de cuota esta semana.`);
+                recs.push(`Revisar agresividad de precios en competidores directos.`);
+            } else {
+                insights.push(`<b>Momentum Positivo:</b> Ganancia de cuota sostenida.`);
+            }
+
+            if (ourPrice > compPrice * 1.1) {
+                insights.push(`<b>Premium de Precio:</b> Estamos un 10%+ caros que la media.`);
+                recs.push(`Evaluar cupones de 'clipping' para reducir la barrera de entrada sin bajar PVP.`);
+            }
+
+            // Deal Impact
+            const ourDeals = lastWeekData.some(d => d.is_yaba_asin==='Y' && d.weekly_number_of_days_with_deal > 0);
+            if (!ourDeals) {
+                recs.push(`Activar Deals en semanas de alto tráfico para recuperar visibilidad.`);
+            }
+
+            document.getElementById('insights_list').innerHTML = insights.map(i => `<li>${i}</li>`).join('');
+            document.getElementById('recommendations_list').innerHTML = recs.map(i => `<li>${i}</li>`).join('');
+        }
+
+        // ---------------------------------------------------------
+        // 6. INTERACTIVE COMPARATOR
+        // ---------------------------------------------------------
+        function setupInteractive() {
+            // Populate Selectors
+            const brands = [...new Set(marketData.filter(d => d.is_yaba_asin === 'N').map(getBrand))];
+            const selComp = document.getElementById('comp_selector');
+            brands.forEach(b => {
+                const opt = document.createElement('option');
+                opt.value = b;
+                opt.innerText = b;
+                selComp.appendChild(opt);
+            });
+
+            const selWeek = document.getElementById('week_selector');
+            weeks.forEach(w => {
+                const opt = document.createElement('option');
+                opt.value = w;
+                opt.innerText = w;
+                selWeek.appendChild(opt);
+            });
+
+            // Set defaults if data exists
+            if(brands.length > 0) selComp.value = brands[0];
+            updateComparator();
+        }
+
+        function updateComparator() {
+            const compBrand = document.getElementById('comp_selector').value;
+            const week = document.getElementById('week_selector').value;
+            
+            if (!compBrand) return;
+
+            // Filter Data
+            let filtered = marketData.filter(d => 
+                (getBrand(d) === ourBrandName || getBrand(d) === compBrand)
+            );
+
+            if (week) {
+                filtered = filtered.filter(d => d.week_date === week);
+            }
+
+            // Stats Aggregation
+            const getStats = (brand) => {
+                const rows = filtered.filter(d => getBrand(d) === brand);
+                if (!rows.length) return { share: 0, price: 0, rank: 0 };
+                const share = rows.reduce((s,r) => s + r.click_share, 0) / (week ? 1 : weeks.length); // Rough avg
+                const price = rows.reduce((s,r) => s + r.price, 0) / rows.length;
+                const rank = rows.reduce((s,r) => s + r.average_organic_rank, 0) / rows.length;
+                return { share, price, rank };
+            };
+
+            const us = getStats(ourBrandName);
+            const them = getStats(compBrand);
+
+            document.getElementById('comparator_stats').innerHTML = `
+                <table style="width:100%; text-align:left; border-collapse: collapse;">
+                    <tr style="border-bottom:1px solid var(--border)">
+                        <th style="padding:8px">Métrica</th>
+                        <th style="color:var(--primary)">Nosotros</th>
+                        <th style="color:var(--danger)">${compBrand}</th>
+                        <th>Delta</th>
+                    </tr>
+                    <tr>
+                        <td style="padding:8px">Avg Price</td>
+                        <td>$${us.price.toFixed(2)}</td>
+                        <td>$${them.price.toFixed(2)}</td>
+                        <td>${(us.price - them.price).toFixed(2)}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding:8px">Avg Rank</td>
+                        <td>${us.rank.toFixed(1)}</td>
+                        <td>${them.rank.toFixed(1)}</td>
+                        <td>${(them.rank - us.rank).toFixed(1)}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding:8px">Share Est.</td>
+                        <td>${(us.share*100).toFixed(1)}%</td>
+                        <td>${(them.share*100).toFixed(1)}%</td>
+                        <td>${((us.share - them.share)*100).toFixed(1)}%</td>
+                    </tr>
+                </table>
+            `;
+
+            // Draw Comparison Chart
+            const data = google.visualization.arrayToDataTable([
+                ['Metric', 'Nosotros', compBrand],
+                ['Precio Normalizado', 1, them.price/us.price],
+                ['Visibilidad (Share)', 1, them.share/us.share],
+                ['Eficiencia (Rank Inv)', 1, us.rank/them.rank] // Lower rank is better, so inverse ratio
+            ]);
+
+            const options = {
+                vAxis: {baselineColor: '#ccc'},
+                series: {
+                    0: {color: '#4285F4'},
+                    1: {color: '#EA4335'}
+                },
+                legend: {position: 'top'}
+            };
+
+            const chart = new google.visualization.BarChart(document.getElementById('chart_comparator'));
+            chart.draw(data, options);
+
+            // Variants Table
+            const tableData = new google.visualization.DataTable();
+            tableData.addColumn('string', 'ASIN');
+            tableData.addColumn('string', 'Título');
+            tableData.addColumn('string', 'Brand');
+            tableData.addColumn('number', 'Precio');
+            tableData.addColumn('number', 'Rank');
+            
+            const tableRows = filtered.map(r => [
+                r.asin, r.product_title.substring(0,30)+'...', getBrand(r), r.price, r.average_organic_rank
+            ]);
+            
+            tableData.addRows(tableRows);
+            const table = new google.visualization.Table(document.getElementById('table_variants_div'));
+            table.draw(tableData, {showRowNumber: true, width: '100%', height: '100%'});
+        }
+
+        // Helper Tab Switch
+        window.switchTab = function(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            event.target.classList.add('active');
+            
+            // Redraw charts on tab switch to fix hidden div rendering issues
+            if (tabId === 'interactive') updateComparator();
+        }
+
+        // Responsive Redraw
+        window.onresize = function() {
+            drawDashboard();
+            updateComparator();
+        };
+
+    </script>
+</body>
+</html>
