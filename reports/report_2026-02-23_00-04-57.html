@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Amazon Market Intelligence: Parent ASIN Report</title>
+    <!-- Google Charts Library -->
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <!-- Google Material Icons -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary: #1a73e8; /* Google Blue */
+            --secondary: #34a853; /* Google Green */
+            --warning: #fbbc04; /* Google Yellow */
+            --danger: #ea4335; /* Google Red */
+            --bg-color: #f8f9fa;
+            --card-bg: #ffffff;
+            --text-main: #202124;
+            --text-light: #5f6368;
+            --border-color: #dadce0;
+            --radius: 16px;
+            --shadow-sm: 0 1px 2px 0 rgba(60,64,67,0.3), 0 1px 3px 1px rgba(60,64,67,0.15);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+            line-height: 1.5;
+        }
+
+        /* Layout Utilities */
+        .container { max-width: 1200px; margin: 0 auto; }
+        .grid { display: grid; gap: 20px; }
+        .grid-2 { grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); }
+        .grid-4 { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+        
+        /* Components */
+        .card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-sm);
+            padding: 24px;
+            transition: box-shadow 0.3s ease;
+        }
+        .card:hover { box-shadow: var(--shadow-md); }
+        
+        .card-header { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            margin-bottom: 20px; 
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 12px;
+        }
+        .card-title { font-size: 1.1rem; font-weight: 600; color: var(--text-main); display: flex; align-items: center; gap: 8px; }
+        
+        /* Header */
+        header { margin-bottom: 30px; }
+        h1 { font-size: 1.8rem; font-weight: 700; margin: 0 0 8px 0; color: var(--primary); }
+        .subtitle { color: var(--text-light); font-size: 0.95rem; }
+
+        /* Tabs */
+        .tabs { display: flex; gap: 12px; margin-bottom: 24px; }
+        .tab-btn {
+            background: transparent;
+            border: none;
+            padding: 10px 20px;
+            font-size: 1rem;
+            font-weight: 500;
+            color: var(--text-light);
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s;
+        }
+        .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+        /* Metrics */
+        .metric-value { font-size: 2rem; font-weight: 700; color: var(--text-main); }
+        .metric-label { font-size: 0.85rem; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.5px; }
+        .trend-up { color: var(--secondary); font-size: 0.9rem; font-weight: 600; }
+        .trend-down { color: var(--danger); font-size: 0.9rem; font-weight: 600; }
+
+        /* Insights Box */
+        .insights-list { list-style: none; padding: 0; margin: 0; }
+        .insights-list li { 
+            margin-bottom: 12px; 
+            padding-left: 24px; 
+            position: relative; 
+            color: var(--text-main);
+        }
+        .insights-list li::before {
+            content: "•";
+            color: var(--primary);
+            font-weight: bold;
+            font-size: 1.2rem;
+            position: absolute;
+            left: 0;
+            top: -2px;
+        }
+
+        /* Interactive Controls */
+        .controls { display: flex; gap: 16px; margin-bottom: 20px; align-items: center; background: #fff; padding: 16px; border-radius: 12px; }
+        select {
+            padding: 8px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 0.95rem;
+            min-width: 200px;
+        }
+
+        /* Comparison Table Style */
+        .comp-row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #eee; }
+        .comp-label { color: var(--text-light); font-weight: 500; }
+        .comp-val { font-weight: 600; }
+        .comp-val.us { color: var(--primary); }
+        .comp-val.them { color: var(--danger); }
+        
+        /* Chart Containers */
+        .chart-container { width: 100%; height: 350px; }
+
+        /* Utilities */
+        .hidden { display: none; }
+        .badge { 
+            display: inline-block; 
+            padding: 4px 8px; 
+            border-radius: 4px; 
+            font-size: 0.75rem; 
+            font-weight: 600; 
+            background: #eee;
+        }
+        .badge-us { background: #e8f0fe; color: var(--primary); }
+        .badge-them { background: #fce8e6; color: var(--danger); }
+
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <span class="material-icons" style="font-size: 32px; color: var(--primary);">analytics</span>
+            <div>
+                <h1>Parent ASIN Intelligence Report</h1>
+                <div class="subtitle" id="report-period">Periodo: Cargando...</div>
+            </div>
+        </div>
+    </header>
+
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('static')">Reporte Estratégico</button>
+        <button class="tab-btn" onclick="switchTab('interactive')">Comparador Interactivo</button>
+    </div>
+
+    <!-- ================= STATIC REPORT TAB ================= -->
+    <div id="tab-static">
+        <!-- KPI Row -->
+        <div class="grid grid-4" style="margin-bottom: 24px;">
+            <div class="card">
+                <div class="metric-label">Total Clicks (Semana)</div>
+                <div class="metric-value" id="kpi-clicks">-</div>
+                <div id="kpi-clicks-trend">-</div>
+            </div>
+            <div class="card">
+                <div class="metric-label">Nuestro Click Share</div>
+                <div class="metric-value" id="kpi-share">-</div>
+                <div id="kpi-share-trend">-</div>
+            </div>
+            <div class="card">
+                <div class="metric-label">Precio Promedio (Nosotros)</div>
+                <div class="metric-value" id="kpi-price">-</div>
+                <div class="subtitle">vs Competencia: <span id="kpi-price-comp">-</span></div>
+            </div>
+            <div class="card">
+                <div class="metric-label">Eficiencia (Rank Promedio)</div>
+                <div class="metric-value" id="kpi-rank">-</div>
+                <div class="subtitle">Menor es mejor</div>
+            </div>
+        </div>
+
+        <!-- Section 1: Global Trend -->
+        <div class="card" style="margin-bottom: 24px;">
+            <div class="card-header">
+                <div class="card-title">
+                    <span class="material-icons">trending_up</span>
+                    1. Tendencia Global del Parent (Clicks & Share)
+                </div>
+            </div>
+            <div id="chart_trend" class="chart-container"></div>
+            <div class="subtitle" style="margin-top: 10px; font-size: 0.85rem;">
+                *Barras: Volumen de Clicks (Eje Izq). Línea: % Cuota de Mercado Total (Eje Der).
+            </div>
+        </div>
+
+        <!-- Section 2: Brand Competitiveness -->
+        <div class="card" style="margin-bottom: 24px;">
+            <div class="card-header">
+                <div class="card-title">
+                    <span class="material-icons">pie_chart</span>
+                    2. Competitividad de Marca (Share %)
+                </div>
+            </div>
+            <div id="chart_competitiveness" class="chart-container"></div>
+        </div>
+
+        <!-- Section 3 & 4: Drivers & Efficiency -->
+        <div class="grid grid-2" style="margin-bottom: 24px;">
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <span class="material-icons">speed</span>
+                        3. Impacto de Palancas (Deals/Badges)
+                    </div>
+                </div>
+                <div id="chart_drivers" class="chart-container"></div>
+                <div class="subtitle" style="font-size: 0.8rem;">Comparación de Click Share promedio cuando hay Deal vs No Deal.</div>
+            </div>
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <span class="material-icons">gps_fixed</span>
+                        4. Eficiencia: Organic Rank vs Share
+                    </div>
+                </div>
+                <div id="chart_efficiency" class="chart-container"></div>
+                <div class="subtitle" style="font-size: 0.8rem;">Eje X: Rank (Menor es mejor). Eje Y: Share. Puntos azules somos nosotros.</div>
+            </div>
+        </div>
+
+        <!-- Section 5: Conclusions -->
+        <div class="card" style="background: linear-gradient(to right, #ffffff, #f8faff); border-left: 4px solid var(--primary);">
+            <div class="card-header">
+                <div class="card-title">
+                    <span class="material-icons">lightbulb</span>
+                    5. Conclusiones Clave y Recomendaciones
+                </div>
+            </div>
+            <div class="grid grid-2">
+                <div>
+                    <h3 style="color: var(--primary); margin-top:0;">Insights Detectados</h3>
+                    <ul class="insights-list" id="insights-container">
+                        <li>Cargando análisis...</li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 style="color: var(--secondary); margin-top:0;">Recomendaciones Accionables</h3>
+                    <ul class="insights-list" id="recommendations-container">
+                        <li>Cargando recomendaciones...</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= INTERACTIVE TAB ================= -->
+    <div id="tab-interactive" class="hidden">
+        <div class="controls">
+            <div>
+                <label style="display:block; font-size: 0.8rem; color: var(--text-light); margin-bottom:4px;">Semana de Análisis</label>
+                <select id="select-week" onchange="updateInteractiveUI()"></select>
+            </div>
+            <div>
+                <label style="display:block; font-size: 0.8rem; color: var(--text-light); margin-bottom:4px;">Competidor a Comparar</label>
+                <select id="select-competitor" onchange="updateInteractiveUI()"></select>
+            </div>
+        </div>
+
+        <div class="grid grid-2">
+            <!-- Our ASIN Card -->
+            <div class="card" style="border-top: 4px solid var(--primary);">
+                <div class="card-header">
+                    <div class="card-title" style="color: var(--primary);">Nosotros (Promedio)</div>
+                </div>
+                <div id="us-metrics">
+                    <!-- Filled by JS -->
+                </div>
+            </div>
+
+            <!-- Competitor Card -->
+            <div class="card" style="border-top: 4px solid var(--danger);">
+                <div class="card-header">
+                    <div class="card-title" style="color: var(--danger);">Competidor: <span id="comp-name-display"></span></div>
+                </div>
+                <div id="them-metrics">
+                    <!-- Filled by JS -->
+                </div>
+            </div>
+        </div>
+        
+        <div class="card" style="margin-top: 24px;">
+            <div class="card-header">
+                <div class="card-title">Comparativa de Precios (Histórico)</div>
+            </div>
+            <div id="chart_price_compare" class="chart-container"></div>
+        </div>
+    </div>
+
+</div>
+
+<!-- DATA INJECTION -->
+<script>
+const marketData = [{"brand_aggregation":"naturalebio","parent_asin":"Matcha Premium","reporting_date":"2026-01-24","week_date":"2026-04","keywords":"matcha","competitor_brand":"Perfect Ted","asin":"B09DQ1PWGX","product_title":"PerfectTed Organic Matcha Powder, Ceremonial Grade...","country_code":"uk","average_organic_rank":8,"weekly_number_of_days_with_deal":0.0,"weekly_number_of_days_with_best_seller_badge":0.0,"weekly_number_of_days_with_amazon_choice_badge":0.0,"weekly_number_of_days_with_coupon":0.0,"click_share":16.86,"impression_share":6.13,"price":8.49,"click_share_rank":1,"weekly_search_volume":74877.39,"is_yaba_asin":"N","keywords_link":"https:\/\/www.amazon.co.uk\/s?k=matcha","resolved_brand":"Perfect Ted","is_our_brand":false,"estimated_clicks":12624.327954,"is_our_brand_str":"N","week_str":"2026-04"},{"brand_aggregation":"naturalebio","parent_asin":"Matcha Premium","reporting_date":"2026-02-07","week_date":"2026-06","keywords":"matcha","competitor_brand":"PureChimp","asin":"B00HNDSOCI","product_title":"PureChimp Ceremonial Grade Matcha Powder 50g. 100%...","country_code":"uk","average_organic_rank":13,"weekly_number_of_days_with_deal":6.0,"weekly_number_of_days_with_best_seller_badge":0.0,"weekly_number_of_days_with_amazon_choice_badge":0.0,"weekly_number_of_days_with_coupon":1.0,"click_share":2.26,"impression_share":3.13,"price":12.841428571,"click_share_rank":8,"weekly_search_volume":77029.23,"is_yaba_asin":"Y","keywords_link":"https:\/\/www.amazon.co.uk\/s?k=matcha","resolved_brand":"PureChimp","is_our_brand":true,"estimated_clicks":1740.860598,"is_our_brand_str":"Y","week_str":"2026-06"},{"brand_aggregation":"naturalebio","parent_asin":"Matcha Premium","reporting_date":"2026-01-24","week_date":"2026-04","keywords":"matcha","competitor_brand":"Perfect Ted","asin":"B0D9M91WZD","product_title":"PerfectTed Vanilla Bean Matcha Powder, Ceremonial ...","country_code":"uk","average_organic_rank":12,"weekly_number_of_days_with_deal":0.0,"weekly_number_of_days_with_best_seller_badge":0.0,"weekly_number_of_days_with_amazon_choice_badge":0.0,"weekly_number_of_days_with_coupon":0.0,"click_share":4.85,"impression_share":4.96,"price":8.45,"click_share_rank":6,"weekly_search_volume":74877.39,"is_yaba_asin":"N","keywords_link":"https:\/\/www.amazon.co.uk\/s?k=matcha","resolved_brand":"Perfect Ted","is_our_brand":false,"estimated_clicks":3631.553415,"is_our_brand_str":"N","week_str":"2026-04"},{"brand_aggregation":"naturalebio","parent_asin":"Matcha Premium","reporting_date":"2026-01-24","week_date":"2026-04","keywords":"matcha","competitor_brand":"Heapwell Superfoods","asin":"B06XTYYYJ8","product_title":"Heapwell Matcha Powder - 50g | High Grade Japanese...","country_code":"uk","average_organic_rank":8,"weekly_number_of_days_with_deal":6.0,"weekly_number_of_days_with_best_seller_badge":0.0,"weekly_number_of_days_with_amazon_choice_badge":0.0,"weekly_number_of_days_with_coupon":0.0,"click_share":8.05,"impression_share":5.6,"price":8.704285714,"click_share_rank":4,"weekly_search_volume":74877.39,"is_yaba_asin":"N","keywords_link":"https:\/\/www.amazon.co.uk\/s?k=matcha","resolved_brand":"Heapwell Superfoods","is_our_brand":false,"estimated_clicks":6027.629895,"is_our_brand_str":"N","week_str":"2026-04"},{"brand_aggregation":"naturalebio","parent_asin":"Matcha Premium","reporting_date":"2026-02-07","week_date":"2026-06","keywords":"matcha","competitor_brand":"Perfect Ted","asin":"B09DQ1PWGX","product_title":"PerfectTed Organic Matcha Powder, Ceremonial Grade...","country_code":"uk","average_organic_rank":1,"weekly_number_of_days_with_deal":0.0,"weekly_number_of_days_with_best_seller_badge":0.0,"weekly_number_of_days_with_amazon_choice_badge":0.0,"weekly_number_of_days_with_coupon":0.0,"click_share":22.4,"impression_share":5.68,"price":8.49,"click_share_rank":1,"weekly_search_volume":77029.23,"is_yaba_asin":"N","keywords_link":"https:\/\/www.amazon.co.uk\/s?k=matcha","resolved_brand":"Perfect Ted","is_our_brand":false,"estimated_clicks":17254.54752,"is_our_brand_str":"N","week_str":"2026-06"},{"brand_aggregation":"naturalebio","parent_asin":"Matcha Premium","reporting_date":"2026-02-07","week_date":"2026-06","keywords":"matcha","competitor_brand":"Perfect Ted","asin":"B0D9M91WZD","product_title":"PerfectTed Vanilla Bean Matcha Powder, Ceremonial ...","country_code":"uk","average_organic_rank":5,"weekly_number_of_days_with_deal":0.0,"weekly_number_of_days_with_best_seller_badge":0.0,"weekly_number_of_days_with_amazon_choice_badge":0.0,"weekly_number_of_days_with_coupon":0.0,"click_share":7.75,"impression_share":5.63,"price":8.5,"click_share_rank":3,"weekly_search_volume":77029.23,"is_yaba_asin":"N","keywords_link":"https:\/\/www.amazon.co.uk\/s?k=matcha","resolved_brand":"Perfect Ted","is_our_brand":false,"estimated_clicks":5969.765325,"is_our_brand_str":"N","week_str":"2026-06"},{"brand_aggregation":"naturalebio","parent_asin":"Matcha Premium","reporting_date":"2026-01-24","week_date":"2026-04","keywords":"matcha","competitor_brand":"SuperSelf","asin":"B082DKRSB4","product_title":"SuperSelf Organic Matcha Powder - Ceremonial Grade...","country_code":"uk","average_organic_rank":7,"weekly_number_of_days_with_deal":1.0,"weekly_number_of_days_with_best_seller_badge":0.0,"weekly_number_of_days_with_amazon_choice_badge":0.0,"weekly_number_of_days_with_coupon":7.0,"click_share":2.01,"impression_share":4.13,"price":19.18,"click_share_rank":8,"weekly_search_volume":74877.39,"is_yaba_asin":"N","keywords_link":"https:\/\/www.amazon.co.uk\/s?k=matcha","resolved_brand":"SuperSelf","is_our_brand":false,"estimated_clicks":1505.035539,"is_our_brand_str":"N","week_str":"2026-04"},{"brand_aggregation":"naturalebio","parent_asin":"Matcha Premium","reporting_date":"2026-01-24","week_date":"2026-04","keywords":"matcha","competitor_brand":"NaturaleBio","asin":"B079VQ52MK","product_title":"NaturaleBio Japanese Organic Matcha Green Tea Powd...","country_code":"uk","average_organic_rank":7,"weekly_number_of_days_with_deal":0.0,"weekly_number_of_days_with_best_seller_badge":0.0,"weekly_number_of_days_with_amazon_choice_badge":0.0,"weekly_number_of_days_with_coupon":0.0,"click_share":1.86,"impression_share":3.29,"price":20.99,"click_share_rank":9,"weekly_search_volume":74877.39,"is_yaba_asin":"Y","keywords_link":"https:\/\/www.amazon.co.uk\/s?k=matcha","resolved_brand":"NaturaleBio","is_our_brand":true,"estimated_clicks":1392.719454,"is_our_brand_str":"Y","week_str":"2026-04"},{"brand_aggregation":"naturalebio","parent_asin":"Matcha Premium","reporting_date":"2026-01-24","week_date":"2026-04","keywords":"matcha","competitor_brand":"PureChimp","asin":"B00HNDSOCI","product_title":"PureChimp Ceremonial Grade Matcha Powder 50g. 100%...","country_code":"uk","average_organic_rank":12,"weekly_number_of_days_with_deal":1.0,"weekly_number_of_days_with_best_seller_badge":0.0,"weekly_number_of_days_with_amazon_choice_badge":0.0,"weekly_number_of_days_with_coupon":2.0,"click_share":1.52,"impression_share":3.51,"price":14.5985714286,"click_share_rank":10,"weekly_search_volume":74877.39,"is_yaba_asin":"Y","keywords_link":"https:\/\/www.amazon.co.uk\/s?k=matcha","resolved_brand":"PureChimp","is_our_brand":true,"estimated_clicks":1138.136328,"is_our_brand_str":"Y","week_str":"2026-04"},{"brand_aggregation":"naturalebio","parent_asin":"Matcha Premium","reporting_date":"2026-01-24","week_date":"2026-04","keywords":"matcha","competitor_brand":"NaturaleBio","asin":"B06XQ5DCYJ","product_title":"NaturaleBio Japanese Organic Matcha Green Tea Powd...","country_code":"uk","average_organic_rank":1,"weekly_number_of_days_with_deal":0.0,"weekly_number_of_days_with_best_seller_badge":0.0,"weekly_number_of_days_with_amazon_choice_badge":7.0,"weekly_number_of_days_with_coupon":0.0,"click_share":12.46,"impression_share":3.54,"price":12.49,"click_share_rank":2,"weekly_search_volume":74877.39,"is_yaba_asin":"Y","keywords_link":"https:\/\/www.amazon.co.uk\/s?k=matcha","resolved_brand":"NaturaleBio","is_our_brand":true,"estimated_clicks":9329.722794,"is_our_brand_str":"Y","week_str":"2026-04"},{"brand_aggregation":"naturalebio","parent_asin":"Matcha Premium","reporting_date":"2026-01-24","week_date":"2026-04","keywords":"matcha","competitor_brand":"SuperSelf","asin":"B08YK2RPBZ","product_title":"SuperSelf Organic Matcha Powder - Ceremonial Grade...","country_code":"uk","average_organic_rank":4,"weekly_number_of_days_with_deal":0.0,"weekly_number_of_days_with_best_seller_badge":0.0,"weekly_number_of_days_with_amazon_choice_badge":0.0,"weekly_number_of_days_with_coupon":7.0,"click_share":8.6,"impression_share":3.65,"price":9.9,"click_share_rank":3,"weekly_search_volume":74877.39,"is_yaba_asin":"N","keywords_link":"https:\/\/www.amazon.co.uk\/s?k=matcha","resolved_brand":"SuperSelf","is_our_brand":false,"estimated_clicks":6439.45554,"is_our_brand_str":"N","week_str":"2026-04"},{"brand_aggregation":"naturalebio","parent_asin":"Matcha Premium","reporting_date":"2026-02-07","week_date":"2026-06","keywords":"matcha","competitor_brand":"Perfect Ted","asin":"B0F21VZMJQ","product_title":"PerfectTed Original Matcha Powder, Ceremonial Grad...","country_code":"uk","average_organic_rank":5,"weekly_number_of_days_with_deal":0.0,"weekly_number_of_days_with_best_seller_badge":0.0,"weekly_number_of_days_with_amazon_choice_badge":0.0,"weekly_number_of_days_with_coupon":0.0,"click_share":4.96,"impression_share":3.64,"price":18.99,"click_share_rank":7,"weekly_search_volume":77029.23,"is_yaba_asin":"N","keywords_link":"https:\/\/www.amazon.co.uk\/s?k=matcha","resolved_brand":"Perfect Ted","is_our_brand":false,"estimated_clicks":3820.649808,"is_our_brand_str":"N","week_str":"2026-06"},{"brand_aggregation":"naturalebio","parent_asin":"Matcha Premium","reporting_date":"2026-02-07","week_date":"2026-06","keywords":"matcha","competitor_brand":"SuperSelf","asin":"B08YK2RPBZ","product_title":"SuperSelf Organic Matcha Powder - Ceremonial Grade...","country_code":"uk","average_organic_rank":5,"weekly_number_of_days_with_deal":0.0,"weekly_number_of_days_with_best_seller_badge":0.0,"weekly_number_of_days_with_amazon_choice_badge":0.0,"weekly_number_of_days_with_coupon":0.0,"click_share":6.27,"impression_share":3.69,"price":9.9,"click_share_rank":4,"weekly_search_volume":77029.23,"is_yaba_asin":"N","keywords_link":"https:\/\/www.amazon.co.uk\/s?k=matcha","resolved_brand":"SuperSelf","is_our_brand":false,"estimated_clicks":4829.732721,"is_our_brand_str":"N","week_str":"2026-06"},{"brand_aggregation":"naturalebio","parent_asin":"Matcha Premium","reporting_date":"2026-02-07","week_date":"2026-06","keywords":"matcha","competitor_brand":"SuperSelf","asin":"B082DKRSB4","product_title":"SuperSelf Organic Matcha Powder - Ceremonial Grade...","country_code":"uk","average_organic_rank":12,"weekly_number_of_days_with_deal":1.0,"weekly_number_of_days_with_best_seller_badge":0.0,"weekly_number_of_days_with_amazon_choice_badge":0.0,"weekly_number_of_days_with_coupon":7.0,"click_share":1.87,"impression_share":2.97,"price":19.18,"click_share_rank":10,"weekly_search_volume":77029.23,"is_yaba_asin":"N","keywords_link":"https:\/\/www.amazon.co.uk\/s?k=matcha","resolved_brand":"SuperSelf","is_our_brand":false,"estimated_clicks":1440.446601,"is_our_brand_str":"N","week_str":"2026-06"},{"brand_aggregation":"naturalebio","parent_asin":"Matcha Premium","reporting_date":"2026-01-24","week_date":"2026-04","keywords":"matcha","competitor_brand":"","asin":"B08YRXQ2JH","product_title":"Double Dragon | 100% Organic | Premium Matcha Gree...","country_code":"uk","average_organic_rank":14,"weekly_number_of_days_with_deal":7.0,"weekly_number_of_days_with_best_seller_badge":0.0,"weekly_number_of_days_with_amazon_choice_badge":0.0,"weekly_number_of_days_with_coupon":0.0,"click_share":3.92,"impression_share":3.03,"price":5.89,"click_share_rank":7,"weekly_search_volume":74877.39,"is_yaba_asin":"N","keywords_link":"https:\/\/www.amazon.co.uk\/s?k=matcha","resolved_brand":"Double Dragon","is_our_brand":false,"estimated_clicks":2935.193688,"is_our_brand_str":"N","week_str":"2026-04"},{"brand_aggregation":"naturalebio","parent_asin":"Matcha Premium","reporting_date":"2026-02-07","week_date":"2026-06","keywords":"matcha","competitor_brand":"NaturaleBio","asin":"B06XQ5DCYJ","product_title":"NaturaleBio Japanese Organic Matcha Green Tea Powd...","country_code":"uk","average_organic_rank":2,"weekly_number_of_days_with_deal":0.0,"weekly_number_of_days_with_best_seller_badge":0.0,"weekly_number_of_days_with_amazon_choice_badge":7.0,"weekly_number_of_days_with_coupon":0.0,"click_share":12.02,"impression_share":4.18,"price":12.49,"click_share_rank":2,"weekly_search_volume":77029.23,"is_yaba_asin":"Y","keywords_link":"https:\/\/www.amazon.co.uk\/s?k=matcha","resolved_brand":"NaturaleBio","is_our_brand":true,"estimated_clicks":9258.913446,"is_our_brand_str":"Y","week_str":"2026-06"},{"brand_aggregation":"naturalebio","parent_asin":"Matcha Premium","reporting_date":"2026-02-07","week_date":"2026-06","keywords":"matcha","competitor_brand":"","asin":"B08YRXQ2JH","product_title":"Double Dragon | 100% Organic | Premium Matcha Gree...","country_code":"uk","average_organic_rank":8,"weekly_number_of_days_with_deal":0.0,"weekly_number_of_days_with_best_seller_badge":0.0,"weekly_number_of_days_with_amazon_choice_badge":0.0,"weekly_number_of_days_with_coupon":0.0,"click_share":5.34,"impression_share":3.07,"price":6.94,"click_share_rank":5,"weekly_search_volume":77029.23,"is_yaba_asin":"N","keywords_link":"https:\/\/www.amazon.co.uk\/s?k=matcha","resolved_brand":"Double Dragon","is_our_brand":false,"estimated_clicks":4113.360882,"is_our_brand_str":"N","week_str":"2026-06"},{"brand_aggregation":"naturalebio","parent_asin":"Matcha Premium","reporting_date":"2026-01-24","week_date":"2026-04","keywords":"matcha","competitor_brand":"Perfect Ted","asin":"B0F21VZMJQ","product_title":"PerfectTed Original Matcha Powder, Ceremonial Grad...","country_code":"uk","average_organic_rank":2,"weekly_number_of_days_with_deal":0.0,"weekly_number_of_days_with_best_seller_badge":0.0,"weekly_number_of_days_with_amazon_choice_badge":0.0,"weekly_number_of_days_with_coupon":0.0,"click_share":6.34,"impression_share":3.58,"price":16.99,"click_share_rank":5,"weekly_search_volume":74877.39,"is_yaba_asin":"N","keywords_link":"https:\/\/www.amazon.co.uk\/s?k=matcha","resolved_brand":"Perfect Ted","is_our_brand":false,"estimated_clicks":4747.226526,"is_our_brand_str":"N","week_str":"2026-04"},{"brand_aggregation":"naturalebio","parent_asin":"Matcha Premium","reporting_date":"2026-02-07","week_date":"2026-06","keywords":"matcha","competitor_brand":"Heapwell Superfoods","asin":"B06XTYYYJ8","product_title":"Heapwell Matcha Powder - 50g | High Grade Japanese...","country_code":"uk","average_organic_rank":8,"weekly_number_of_days_with_deal":0.0,"weekly_number_of_days_with_best_seller_badge":0.0,"weekly_number_of_days_with_amazon_choice_badge":0.0,"weekly_number_of_days_with_coupon":0.0,"click_share":5.2,"impression_share":5.17,"price":9.99,"click_share_rank":6,"weekly_search_volume":77029.23,"is_yaba_asin":"N","keywords_link":"https:\/\/www.amazon.co.uk\/s?k=matcha","resolved_brand":"Heapwell Superfoods","is_our_brand":false,"estimated_clicks":4005.51996,"is_our_brand_str":"N","week_str":"2026-06"}];
+
+// LOGIC
+let weeks = [];
+let brands = [];
+
+function initDashboard() {
+    processData();
+    updateSelectors();
+    
+    // Draw initial state
+    drawTrendChart();
+    drawCompetitivenessChart();
+    drawDriversChart();
+    drawEfficiencyChart();
+    generateTextInsights();
+    
+    // Default interactive state
+    if(weeks.length > 0 && brands.length > 0) {
+        updateInteractiveUI();
+    }
+}
+
+function processData() {
+    // Unique weeks
+    const weekSet = new Set(marketData.map(d => d.week_str));
+    weeks = Array.from(weekSet).sort();
+    
+    // Unique brands
+    const brandSet = new Set(marketData.map(d => d.resolved_brand));
+    brands = Array.from(brandSet).filter(b => b).sort();
+    
+    // Calculate KPIs for latest week
+    const lastWeek = weeks[weeks.length - 1];
+    const prevWeek = weeks.length > 1 ? weeks[weeks.length - 2] : null;
+    
+    const lastWeekData = marketData.filter(d => d.week_str === lastWeek);
+    const prevWeekData = prevWeek ? marketData.filter(d => d.week_str === prevWeek) : [];
+    
+    // Total Clicks
+    const totalClicks = lastWeekData.reduce((sum, d) => sum + d.estimated_clicks, 0);
+    const prevClicks = prevWeekData.reduce((sum, d) => sum + d.estimated_clicks, 0);
+    
+    // Our Share
+    const ourData = lastWeekData.filter(d => d.is_our_brand);
+    const ourClicks = ourData.reduce((sum, d) => sum + d.estimated_clicks, 0);
+    const ourShare = totalClicks > 0 ? (ourClicks / totalClicks) * 100 : 0;
+    
+    // Price
+    const ourPriceAvg = ourData.length > 0 
+        ? ourData.reduce((sum, d) => sum + d.price, 0) / ourData.length 
+        : 0;
+    
+    const compData = lastWeekData.filter(d => !d.is_our_brand);
+    const compPriceAvg = compData.length > 0 
+        ? compData.reduce((sum, d) => sum + d.price, 0) / compData.length 
+        : 0;
+        
+    // Rank Efficiency (Our Weighted Rank)
+    // Weighted by click share to represent "True Visibility"
+    let weightedRankSum = 0;
+    let shareSum = 0;
+    ourData.forEach(d => {
+        weightedRankSum += d.average_organic_rank * d.click_share;
+        shareSum += d.click_share;
+    });
+    const avgRank = shareSum > 0 ? weightedRankSum / shareSum : 0;
+
+    // Render KPIs
+    document.getElementById('report-period').innerText = `Semana: ${lastWeek}`;
+    document.getElementById('kpi-clicks').innerText = Math.round(totalClicks).toLocaleString();
+    document.getElementById('kpi-share').innerText = ourShare.toFixed(1) + '%';
+    document.getElementById('kpi-price').innerText = '£' + ourPriceAvg.toFixed(2);
+    document.getElementById('kpi-price-comp').innerText = '£' + compPriceAvg.toFixed(2);
+    document.getElementById('kpi-rank').innerText = avgRank.toFixed(1);
+}
+
+function drawTrendChart() {
+    const data = new google.visualization.DataTable();
+    data.addColumn('string', 'Semana');
+    data.addColumn('number', 'Clicks Competencia');
+    data.addColumn('number', 'Clicks Nosotros');
+    data.addColumn('number', 'Nuestra Share %');
+
+    weeks.forEach(week => {
+        const weekData = marketData.filter(d => d.week_str === week);
+        const usClicks = weekData.filter(d => d.is_our_brand).reduce((sum, d) => sum + d.estimated_clicks, 0);
+        const themClicks = weekData.filter(d => !d.is_our_brand).reduce((sum, d) => sum + d.estimated_clicks, 0);
+        const total = usClicks + themClicks;
+        const share = total > 0 ? (usClicks / total) * 100 : 0;
+        
+        data.addRow([week, themClicks, usClicks, share]);
+    });
+
+    const options = {
+        seriesType: 'bars',
+        series: {2: {type: 'line', targetAxisIndex: 1, color: '#1a73e8', lineWidth: 3}},
+        colors: ['#dadce0', '#8ab4f8'], // Grey for them, Light Blue for us (stacked)
+        isStacked: true,
+        vAxes: {0: {title: 'Volumen Clicks'}, 1: {title: 'Share %', format: '#\'%\''}},
+        legend: {position: 'bottom'},
+        chartArea: {width: '80%', height: '70%'}
+    };
+
+    const chart = new google.visualization.ComboChart(document.getElementById('chart_trend'));
+    chart.draw(data, options);
+}
+
+function drawCompetitivenessChart() {
+    // Identify top brands globally
+    const brandShares = {};
+    marketData.forEach(d => {
+        if(!brandShares[d.resolved_brand]) brandShares[d.resolved_brand] = 0;
+        brandShares[d.resolved_brand] += d.estimated_clicks;
+    });
+    
+    // Sort
+    const sortedBrands = Object.keys(brandShares).sort((a,b) => brandShares[b] - brandShares[a]);
+    // Top 3 + Us
+    const topBrands = sortedBrands.slice(0, 4); // Take top 4 just in case we are not in top 3
+    
+    const data = new google.visualization.DataTable();
+    data.addColumn('string', 'Semana');
+    topBrands.forEach(b => data.addColumn('number', b));
+
+    weeks.forEach(week => {
+        const row = [week];
+        const weekData = marketData.filter(d => d.week_str === week);
+        const totalClicks = weekData.reduce((sum, d) => sum + d.estimated_clicks, 0);
+        
+        topBrands.forEach(brand => {
+            const brandClicks = weekData.filter(d => d.resolved_brand === brand).reduce((sum, d) => sum + d.estimated_clicks, 0);
+            const share = totalClicks > 0 ? (brandClicks / totalClicks) * 100 : 0;
+            row.push(share);
+        });
+        data.addRow(row);
+    });
+
+    const options = {
+        curveType: 'function',
+        legend: { position: 'bottom' },
+        chartArea: {width: '85%', height: '70%'},
+        lineWidth: 3
+    };
+
+    const chart = new google.visualization.LineChart(document.getElementById('chart_competitiveness'));
+    chart.draw(data, options);
+}
+
+function drawDriversChart() {
+    // Calculate Average Share when Deal vs No Deal (aggregated by brand type)
+    // We split into: Us (Deal/NoDeal), Them (Deal/NoDeal)
+    
+    const getAvgShare = (isUs, hasDeal) => {
+        const subset = marketData.filter(d => 
+            d.is_our_brand === isUs && 
+            (hasDeal ? d.weekly_number_of_days_with_deal > 0 : d.weekly_number_of_days_with_deal === 0)
+        );
+        if(subset.length === 0) return 0;
+        return subset.reduce((sum, d) => sum + d.click_share, 0) / subset.length;
+    };
+
+    const usNoDeal = getAvgShare(true, false);
+    const usDeal = getAvgShare(true, true);
+    const themNoDeal = getAvgShare(false, false);
+    const themDeal = getAvgShare(false, true);
+
+    const data = google.visualization.arrayToDataTable([
+        ['Estado', 'Sin Deal', 'Con Deal'],
+        ['Nosotros', usNoDeal, usDeal],
+        ['Competencia (Avg)', themNoDeal, themDeal]
+    ]);
+
+    const options = {
+        chartArea: {width: '70%', height: '70%'},
+        legend: {position: 'top'},
+        colors: ['#dadce0', '#ea4335'], // Grey normal, Red deal
+        vAxis: {title: 'Avg Click Share %'}
+    };
+
+    const chart = new google.visualization.ColumnChart(document.getElementById('chart_drivers'));
+    chart.draw(data, options);
+}
+
+function drawEfficiencyChart() {
+    const data = new google.visualization.DataTable();
+    data.addColumn('number', 'Rank Orgánico');
+    data.addColumn('number', 'Click Share %');
+    data.addColumn({type: 'string', role: 'style'}); // Color
+    data.addColumn({type: 'string', role: 'tooltip'});
+
+    // Filter last week only for clearer view
+    const lastWeek = weeks[weeks.length - 1];
+    const subset = marketData.filter(d => d.week_str === lastWeek);
+
+    subset.forEach(d => {
+        const color = d.is_our_brand ? 'point { fill-color: #1a73e8; size: 6; }' : 'point { fill-color: #dadce0; size: 4; }';
+        const tooltip = `${d.resolved_brand}\nRank: ${d.average_organic_rank}\nShare: ${d.click_share}%\nPrice: ${d.price}`;
+        data.addRow([d.average_organic_rank, d.click_share, color, tooltip]);
+    });
+
+    const options = {
+        hAxis: {title: 'Posición Orgánica (Menor es mejor)', direction: 1}, // 1 is normal, but rank 1 is left usually
+        vAxis: {title: 'Click Share %'},
+        legend: 'none',
+        chartArea: {width: '85%', height: '70%'}
+    };
+
+    const chart = new google.visualization.ScatterChart(document.getElementById('chart_efficiency'));
+    chart.draw(data, options);
+}
+
+function generateTextInsights() {
+    const insights = [];
+    const recs = [];
+    const lastWeek = weeks[weeks.length - 1];
+    const prevWeek = weeks.length > 1 ? weeks[weeks.length - 2] : null;
+
+    // 1. Trend Analysis
+    const currentTotal = marketData.filter(d => d.week_str === lastWeek).reduce((s, d) => s + d.estimated_clicks, 0);
+    const prevTotal = prevWeek ? marketData.filter(d => d.week_str === prevWeek).reduce((s, d) => s + d.estimated_clicks, 0) : currentTotal;
+    const growth = ((currentTotal - prevTotal) / prevTotal) * 100;
+    
+    if(growth > 5) insights.push(`Tendencia alcista: El volumen de clicks creció un ${growth.toFixed(1)}% la última semana.`);
+    else if(growth < -5) insights.push(`Contracción de demanda: El volumen cayó un ${Math.abs(growth).toFixed(1)}%.`);
+    else insights.push(`Demanda estable: Variación de volumen menor al 5%.`);
+
+    // 2. Winner Analysis
+    const brandShares = {};
+    marketData.filter(d => d.week_str === lastWeek).forEach(d => {
+        if(!brandShares[d.resolved_brand]) brandShares[d.resolved_brand] = 0;
+        brandShares[d.resolved_brand] += d.click_share; // Sum share points (approx)
+    });
+    const winner = Object.keys(brandShares).reduce((a, b) => brandShares[a] > brandShares[b] ? a : b);
+    insights.push(`Líder de categoría: ${winner} domina con la mayor cuota de clicks esta semana.`);
+
+    // 3. Our Performance
+    const usData = marketData.filter(d => d.week_str === lastWeek && d.is_our_brand);
+    if(usData.length > 0) {
+        const topUs = usData.sort((a,b) => b.click_share - a.click_share)[0];
+        insights.push(`Nuestro mejor ASIN (${topUs.asin}) tiene ${topUs.click_share}% share a precio £${topUs.price}.`);
+        
+        // Rec: Rank
+        if(topUs.average_organic_rank > 5) {
+            recs.push(`Visibilidad Crítica: Nuestro top ASIN está en rank ${topUs.average_organic_rank}. Priorizar PPC/SEO para entrar en Top 3.`);
+        }
+    } else {
+        insights.push("Alerta: Sin presencia significativa de nuestra marca esta semana.");
+    }
+
+    // 4. Competitor Threat
+    const themData = marketData.filter(d => d.week_str === lastWeek && !d.is_our_brand);
+    if(themData.length > 0) {
+        const topThem = themData.sort((a,b) => b.click_share - a.click_share)[0];
+        insights.push(`Amenaza principal: ${topThem.resolved_brand} capta ${topThem.click_share}% share (Precio: £${topThem.price}).`);
+        
+        if(usData.length > 0 && topThem.price < usData[0].price * 0.9) {
+            recs.push(`Sensibilidad al Precio: El líder es >10% más barato. Evaluar cupón defensivo.`);
+        }
+    }
+
+    // Render
+    const iContainer = document.getElementById('insights-container');
+    const rContainer = document.getElementById('recommendations-container');
+    
+    iContainer.innerHTML = insights.map(t => `<li>${t}</li>`).join('');
+    rContainer.innerHTML = recs.length > 0 ? recs.map(t => `<li>${t}</li>`).join('') : '<li>Mantener estrategia actual, monitorear cambios de precio competidor.</li>';
+}
+
+// ================= INTERACTIVE LOGIC =================
+
+function updateSelectors() {
+    const weekSel = document.getElementById('select-week');
+    const compSel = document.getElementById('select-competitor');
+    
+    // Fill Weeks (Reverse order)
+    weeks.slice().reverse().forEach(w => {
+        const opt = document.createElement('option');
+        opt.value = w;
+        opt.text = w;
+        weekSel.add(opt);
+    });
+    
+    // Fill Competitors (excluding us)
+    const compSet = new Set(marketData.filter(d => !d.is_our_brand).map(d => d.resolved_brand));
+    Array.from(compSet).sort().forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c;
+        opt.text = c;
+        compSel.add(opt);
+    });
+}
+
+function updateInteractiveUI() {
+    const week = document.getElementById('select-week').value;
+    const comp = document.getElementById('select-competitor').value;
+    
+    if(!week || !comp) return;
+
+    // Filter Data
+    const weekData = marketData.filter(d => d.week_str === week);
+    const usData = weekData.filter(d => d.is_our_brand);
+    const themData = weekData.filter(d => d.resolved_brand === comp);
+
+    // Helpers
+    const calcAvg = (arr, key) => arr.length ? (arr.reduce((s,x) => s+x[key],0)/arr.length).toFixed(2) : '-';
+    const sum = (arr, key) => arr.length ? Math.round(arr.reduce((s,x) => s+x[key],0)) : 0;
+
+    // Fill Cards
+    const fillMetrics = (containerId, data, isUs) => {
+        const container = document.getElementById(containerId);
+        const styleClass = isUs ? 'us' : 'them';
+        
+        const price = calcAvg(data, 'price');
+        const share = sum(data, 'click_share'); // approx sum of shares
+        const rank = calcAvg(data, 'average_organic_rank');
+        const deals = data.filter(d => d.weekly_number_of_days_with_deal > 0).length;
+        
+        container.innerHTML = `
+            <div class="comp-row"><span class="comp-label">Precio Promedio</span><span class="comp-val ${styleClass}">£${price}</span></div>
+            <div class="comp-row"><span class="comp-label">Click Share Total</span><span class="comp-val ${styleClass}">${share}%</span></div>
+            <div class="comp-row"><span class="comp-label">Avg Organic Rank</span><span class="comp-val ${styleClass}">${rank}</span></div>
+            <div class="comp-row"><span class="comp-label">ASINs con Deal</span><span class="comp-val ${styleClass}">${deals}</span></div>
+            <div class="comp-row"><span class="comp-label">ASINs Activos</span><span class="comp-val ${styleClass}">${data.length}</span></div>
+        `;
+    };
+
+    fillMetrics('us-metrics', usData, true);
+    fillMetrics('them-metrics', themData, false);
+    document.getElementById('comp-name-display').innerText = comp;
+
+    drawPriceComparisonChart(comp);
+}
+
+function drawPriceComparisonChart(competitorName) {
+    const data = new google.visualization.DataTable();
+    data.addColumn('string', 'Semana');
+    data.addColumn('number', 'Precio Nosotros');
+    data.addColumn('number', `Precio ${competitorName}`);
+
+    weeks.forEach(w => {
+        const wData = marketData.filter(d => d.week_str === w);
+        
+        // Avg Price Us
+        const us = wData.filter(d => d.is_our_brand);
+        const pUs = us.length ? us.reduce((s,x)=>s+x.price,0)/us.length : null;
+        
+        // Avg Price Them
+        const them = wData.filter(d => d.resolved_brand === competitorName);
+        const pThem = them.length ? them.reduce((s,x)=>s+x.price,0)/them.length : null;
+        
+        data.addRow([w, pUs, pThem]);
+    });
+
+    const options = {
+        curveType: 'function',
+        legend: { position: 'bottom' },
+        colors: ['#1a73e8', '#ea4335'],
+        chartArea: {width: '85%', height: '70%'},
+        vAxis: { title: 'Precio (£)' }
+    };
+
+    const chart = new google.visualization.LineChart(document.getElementById('chart_price_compare'));
+    chart.draw(data, options);
+}
+
+function switchTab(tabName) {
+    document.getElementById('tab-static').classList.add('hidden');
+    document.getElementById('tab-interactive').classList.add('hidden');
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    
+    document.getElementById('tab-' + tabName).classList.remove('hidden');
+    // Find button with onclick containing tabName and add active
+    event.target.classList.add('active');
+}
+
+</script>
+</body>
+</html>
