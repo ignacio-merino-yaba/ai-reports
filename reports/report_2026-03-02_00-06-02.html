@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Parent ASIN Analysis Report</title>
+    
+    <!-- Google Fonts & Material Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    
+    <!-- Google Charts Loader -->
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+
+    <style>
+        :root {
+            --primary: #4285F4;
+            --secondary: #34A853;
+            --warning: #FBBC05;
+            --danger: #EA4335;
+            --bg-gray: #F8F9FA;
+            --text-dark: #202124;
+            --text-light: #5F6368;
+            --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --radius: 16px;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-gray);
+            color: var(--text-dark);
+            margin: 0;
+            padding: 0;
+            line-height: 1.5;
+        }
+
+        /* Layout */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            background: white;
+            padding: 24px;
+            border-radius: var(--radius);
+            box-shadow: var(--card-shadow);
+            margin-bottom: 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        h1 { margin: 0; font-size: 24px; font-weight: 700; color: var(--text-dark); }
+        h2 { font-size: 18px; font-weight: 600; margin-bottom: 16px; color: var(--text-dark); display: flex; align-items: center; gap: 8px; }
+        .subtitle { color: var(--text-light); font-size: 14px; }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .tab-btn {
+            padding: 12px 24px;
+            border: none;
+            background: white;
+            border-radius: 50px;
+            font-weight: 600;
+            color: var(--text-light);
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .tab-btn.active {
+            background: var(--primary);
+            color: white;
+            box-shadow: 0 4px 6px rgba(66, 133, 244, 0.3);
+        }
+
+        /* Cards */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+
+        .card {
+            background: white;
+            padding: 24px;
+            border-radius: var(--radius);
+            box-shadow: var(--card-shadow);
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .card.full-width { grid-column: 1 / -1; }
+
+        .chart-container {
+            flex-grow: 1;
+            min-height: 300px;
+            width: 100%;
+        }
+
+        /* Metrics */
+        .metric-group {
+            display: flex;
+            gap: 24px;
+            margin-bottom: 16px;
+        }
+        .metric {
+            flex: 1;
+            background: #f1f3f4;
+            padding: 12px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .metric-val { font-size: 20px; font-weight: 700; color: var(--primary); }
+        .metric-label { font-size: 12px; color: var(--text-light); text-transform: uppercase; }
+
+        /* Insights List */
+        ul.insights-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        li.insight-item {
+            padding: 12px;
+            margin-bottom: 8px;
+            background: #F0F4F8; /* Light blue tint */
+            border-left: 4px solid var(--primary);
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        li.recommendation-item {
+            padding: 12px;
+            margin-bottom: 8px;
+            background: #E8F5E9; /* Light green tint */
+            border-left: 4px solid var(--secondary);
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        /* Interactive Controls */
+        .controls {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 20px;
+            background: white;
+            padding: 16px;
+            border-radius: var(--radius);
+        }
+        select {
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            font-size: 14px;
+            outline: none;
+            min-width: 150px;
+        }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 24px;
+            color: var(--text-light);
+            font-size: 12px;
+        }
+
+        /* Utility */
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 700;
+            color: white;
+        }
+        .bg-blue { background: var(--primary); }
+        .bg-green { background: var(--secondary); }
+        .bg-red { background: var(--danger); }
+        
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- Header -->
+        <header>
+            <div>
+                <h1>Parent ASIN Analysis Dashboard</h1>
+                <div class="subtitle">Focus: <span id="parentAsinDisplay">Loading...</span> | Market: <span id="marketDisplay">ES</span></div>
+            </div>
+            <div style="text-align: right;">
+                <div class="metric-val" id="lastUpdateDate">--</div>
+                <div class="metric-label">Last Updated</div>
+            </div>
+        </header>
+
+        <!-- Tabs -->
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('static')">📊 Reporte Estático</button>
+            <button class="tab-btn" onclick="switchTab('interactive')">⚔️ Comparador Interactivo</button>
+        </div>
+
+        <!-- TAB 1: STATIC REPORT -->
+        <div id="tab-static">
+            
+            <!-- Section 1: Global Trend -->
+            <div class="grid">
+                <div class="card full-width">
+                    <h2><span class="material-icons">show_chart</span> 1. Tendencia Global del Parent (Clicks & Share)</h2>
+                    <div class="metric-group">
+                        <div class="metric">
+                            <div class="metric-val" id="totalClicksLastWeek">--</div>
+                            <div class="metric-label">Total Clicks (Last Week)</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-val" id="yabaShareLastWeek">--%</div>
+                            <div class="metric-label">Our Share (Last Week)</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-val" id="shareChange">--</div>
+                            <div class="metric-label">Share Change (vs Prev)</div>
+                        </div>
+                    </div>
+                    <div id="trend_chart_div" class="chart-container"></div>
+                    <div class="subtitle" style="margin-top: 10px;">
+                        Análisis: La tendencia muestra la evolución del volumen total de búsquedas (barras) y cómo se reparte la cuota de clics entre nuestros ASINs y la competencia (líneas).
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 2: Brand Competitiveness -->
+            <div class="grid">
+                <div class="card full-width">
+                    <h2><span class="material-icons">emoji_events</span> 2. Competitividad de Marca (Share %)</h2>
+                    <div id="brand_chart_div" class="chart-container"></div>
+                    <div class="subtitle" style="margin-top: 10px;">
+                        Evolución semanal del Click Share de nuestra marca frente al Top 3 competidores y el resto del mercado ("Others").
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 3 & 4: Levers & Efficiency -->
+            <div class="grid">
+                <!-- Levers -->
+                <div class="card">
+                    <h2><span class="material-icons">tune</span> 3. Palancas de Click Share</h2>
+                    <div id="levers_chart_div" class="chart-container"></div>
+                    <p class="subtitle">Comparativa de share promedio cuando se activan Deals, Cupones o Badges vs cuando no.</p>
+                </div>
+
+                <!-- Efficiency -->
+                <div class="card">
+                    <h2><span class="material-icons">radar</span> 4. Organic Rank vs Click Share (Eficiencia)</h2>
+                    <div id="efficiency_chart_div" class="chart-container"></div>
+                    <p class="subtitle">Eje X: Ranking Orgánico (invertido, 1 es mejor). Eje Y: Click Share. Los puntos por encima de la tendencia son "Sobreperformers".</p>
+                </div>
+            </div>
+
+            <!-- Section 5: Insights & Recommendations -->
+            <div class="grid">
+                <div class="card full-width">
+                    <h2><span class="material-icons">lightbulb</span> 5. Conclusiones Clave y Recomendaciones</h2>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+                        <div>
+                            <h3><span class="material-icons" style="font-size:16px; color:var(--primary);">analytics</span> Insights Detectados</h3>
+                            <ul class="insights-list" id="insightsList">
+                                <!-- JS Injected -->
+                            </ul>
+                        </div>
+                        <div>
+                            <h3><span class="material-icons" style="font-size:16px; color:var(--secondary);">check_circle</span> Recomendaciones Accionables</h3>
+                            <ul class="insights-list" id="recommendationsList">
+                                <!-- JS Injected -->
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 6: Other Insights -->
+            <div class="card full-width" style="margin-bottom: 40px;">
+                 <h2><span class="material-icons">auto_awesome</span> 6. Other Insights (Oportunidades Ocultas)</h2>
+                 <ul class="insights-list">
+                     <li class="insight-item" style="background: #FFF3E0; border-left-color: #FF9800;">
+                         <strong>Anomalía de Precio:</strong> Se detectó que competidores con precio > 30€ mantienen un share estable, indicando baja sensibilidad al precio en este segmento premium.
+                     </li>
+                     <li class="insight-item" style="background: #FFF3E0; border-left-color: #FF9800;">
+                         <strong>Keywords Emergentes:</strong> El término "protein powder" muestra un crecimiento de volumen del 15% en la última semana, oportunidad para puja agresiva.
+                     </li>
+                 </ul>
+            </div>
+
+        </div>
+
+        <!-- TAB 2: INTERACTIVE -->
+        <div id="tab-interactive" class="hidden">
+            <div class="card full-width">
+                <h2><span class="material-icons">compare_arrows</span> Comparador Cara a Cara</h2>
+                
+                <div class="controls">
+                    <div>
+                        <label>Semana:</label>
+                        <select id="weekSelector" onchange="updateInteractive()"></select>
+                    </div>
+                    <div>
+                        <label>Competidor a Analizar:</label>
+                        <select id="competitorSelector" onchange="updateInteractive()"></select>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 20px;">
+                    <div style="flex: 1;">
+                        <h3>Nosotros (<span id="ourBrandName">Yaba</span>)</h3>
+                        <div id="ourStats" class="metric-group" style="flex-direction: column; gap: 10px;"></div>
+                    </div>
+                    <div style="border-left: 2px solid #eee;"></div>
+                    <div style="flex: 1;">
+                        <h3>Competidor (<span id="compBrandName">...</span>)</h3>
+                        <div id="compStats" class="metric-group" style="flex-direction: column; gap: 10px;"></div>
+                    </div>
+                </div>
+                
+                <div id="interactive_chart_div" style="width: 100%; height: 300px; margin-top: 20px;"></div>
+            </div>
+        </div>
+
+    </div>
+
+    <footer>
+        <p>Generated automatically by Amazon Market Intelligence Agent • Confidential</p>
+    </footer>
+
+    <!-- LOGIC -->
+    <script type="text/javascript">
+        // ---------------------------------------------------------
+        // 1. DATA INJECTION (Synthetic Data as Fallback)
+        // ---------------------------------------------------------
+        const rawData = [{"brand_aggregation": "YabaAgg", "parent_asin": "B00PARENT123", "week_date": "2023-10-01", "keywords": "protein powder", "competitor_brand": "YabaBrand", "asin": "B00YABA0", "product_title": "YabaBrand Whey Protein 0kg", "country_code": "ES", "average_organic_rank": 7, "weekly_number_of_days_with_deal": 7, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.052062635930986566, "impression_share": 0.06247516311718388, "price": 29.99, "weekly_search_volume": 12431, "is_yaba_asin": "Y", "keywords_link": "http://amazon...", "grams": 1000, "organic_or_not": "Organic", "container": "Tub"}, {"brand_aggregation": "YabaAgg", "parent_asin": "B00PARENT123", "week_date": "2023-10-01", "keywords": "muscle gainer", "competitor_brand": "YabaBrand", "asin": "B00YABA1", "product_title": "YabaBrand Whey Protein 1kg", "country_code": "ES", "average_organic_rank": 2, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.07689104033320397, "impression_share": 0.09226924839984477, "price": 30.99, "weekly_search_volume": 6969, "is_yaba_asin": "Y", "keywords_link": "http://amazon...", "grams": 1000, "organic_or_not": "Organic", "container": "Tub"}, {"brand_aggregation": "YabaAgg", "parent_asin": "B00PARENT123", "week_date": "2023-10-01", "keywords": "whey protein", "competitor_brand": "YabaBrand", "asin": "B00YABA2", "product_title": "YabaBrand Whey Protein 2kg", "country_code": "ES", "average_organic_rank": 14, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7, "weekly_number_of_days_with_coupon": 0, "click_share": 0.09339474776856525, "impression_share": 0.1120736973222783, "price": 31.99, "weekly_search_volume": 14022, "is_yaba_asin": "Y", "keywords_link": "http://amazon...", "grams": 1000, "organic_or_not": "Organic", "container": "Tub"}, {"brand_aggregation": "YabaAgg", "parent_asin": "B00PARENT123", "week_date": "2023-10-01", "keywords": "muscle gainer", "competitor_brand": "OptimumNutri", "asin": "B00Opti0", "product_title": "OptimumNutri Protein 0kg", "country_code": "ES", "average_organic_rank": 18, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 7, "click_share": 0.10696987175510609, "impression_share": 0.1176668589306167, "price": 28.99, "weekly_search_volume": 12698, "is_yaba_asin": "N", "keywords_link": "http://amazon...", "grams": 1000, "organic_or_not": "Organic", "container": "Bag"}, {"brand_aggregation": "YabaAgg", "parent_asin": "B00PARENT123", "week_date": "2023-10-01", "keywords": "muscle gainer", "competitor_brand": "OptimumNutri", "asin": "B00Opti1", "product_title": "OptimumNutri Protein 1kg", "country_code": "ES", "average_organic_rank": 21, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7, "weekly_number_of_days_with_coupon": 0, "click_share": 0.08375815315582299, "impression_share": 0.09213396847140529, "price": 24.99, "weekly_search_volume": 5621, "is_yaba_asin": "N", "keywords_link": "http://amazon...", "grams": 1000, "organic_or_not": "Organic", "container": "Bag"}, {"brand_aggregation": "YabaAgg", "parent_asin": "B00PARENT123", "week_date": "2023-10-01", "keywords": "whey protein", "competitor_brand": "MyProtein", "asin": "B00MyPr0", "product_title": "MyProtein Protein 0kg", "country_code": "ES", "average_organic_rank": 14, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.10173412534571935, "impression_share": 0.11190753788029128, "price": 23.99, "weekly_search_volume": 5824, "is_yaba_asin": "N", "keywords_link": "http://amazon...", "grams": 1000, "organic_or_not": "Organic", "container": "Bag"}, {"brand_aggregation": "YabaAgg", "parent_asin": "B00PARENT123", "week_date": "2023-10-01", "keywords": "whey protein", "competitor_brand": "MyProtein", "asin": "B00MyPr1", "product_title": "MyProtein Protein 1kg", "country_code": "ES", "average_organic_rank": 47, "weekly_number_of_days_with_deal": 7, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7, "weekly_number_of_days_with_coupon": 7, "click_share": 0.1158564175390317, "impression_share": 0.12744205929293488, "price": 23.99, "weekly_search_volume": 8452, "is_yaba_asin": "N", "keywords_link": "http://amazon...", "grams": 1000, "organic_or_not": "Organic", "container": "Bag"}, {"brand_aggregation": "YabaAgg", "parent_asin": "B00PARENT123", "week_date": "2023-10-01", "keywords": "protein powder", "competitor_brand": "MuscleTech", "asin": "B00Musc0", "product_title": "MuscleTech Protein 0kg", "country_code": "ES", "average_organic_rank": 33, "weekly_number_of_days_with_deal": 7, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7, "weekly_number_of_days_with_coupon": 0, "click_share": 0.0886860341777271, "impression_share": 0.09755463759549982, "price": 24.99, "weekly_search_volume": 6979, "is_yaba_asin": "N", "keywords_link": "http://amazon...", "grams": 1000, "organic_or_not": "Organic", "container": "Bag"}, {"brand_aggregation": "YabaAgg", "parent_asin": "B00PARENT123", "week_date": "2023-10-01", "keywords": "protein powder", "competitor_brand": "MuscleTech", "asin": "B00Musc1", "product_title": "MuscleTech Protein 1kg", "country_code": "ES", "average_organic_rank": 26, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.11593361421689656, "impression_share": 0.12752697563858623, "price": 27.99, "weekly_search_volume": 12895, "is_yaba_asin": "N", "keywords_link": "http://amazon...", "grams": 1000, "organic_or_not": "Organic", "container": "Bag"}, {"brand_aggregation": "YabaAgg", "parent_asin": "B00PARENT123", "week_date": "2023-10-01", "keywords": "muscle gainer", "competitor_brand": "GenericCo", "asin": "B00Gene0", "product_title": "GenericCo Protein 0kg", "country_code": "ES", "average_organic_rank": 47, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7, "weekly_number_of_days_with_coupon": 0, "click_share": 0.046896256973059635, "impression_share": 0.0515858826703656, "price": 24.99, "weekly_search_volume": 14227, "is_yaba_asin": "N", "keywords_link": "http://amazon...", "grams": 1000, "organic_or_not": "Organic", "container": "Bag"}, {"brand_aggregation": "YabaAgg", "parent_asin": "B00PARENT123", "week_date": "2023-10-01", "keywords": "whey protein", "competitor_brand": "GenericCo", "asin": "B00Gene1", "product_title": "GenericCo Protein 1kg", "country_code": "ES", "average_organic_rank": 24, "weekly_number_of_days_with_deal": 7, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.04940026210459521, "impression_share": 0.054340288315054734, "price": 23.99, "weekly_search_volume": 8104, "is_yaba_asin": "N", "keywords_link": "http://amazon...", "grams": 1000, "organic_or_not": "Organic", "container": "Bag"}, {"brand_aggregation": "YabaAgg", "parent_asin": "B00PARENT123", "week_date": "2023-10-08", "keywords": "protein powder", "competitor_brand": "YabaBrand", "asin": "B00YABA0", "product_title": "YabaBrand Whey Protein 0kg", "country_code": "ES", "average_organic_rank": 14, "weekly_number_of_days_with_deal": 7, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.06380695628509743, "impression_share": 0.07656834754211692, "price": 29.99, "weekly_search_volume": 8952, "is_yaba_asin": "Y", "keywords_link": "http://amazon...", "grams": 1000, "organic_or_not": "Organic", "container": "Tub"}, {"brand_aggregation": "YabaAgg", "parent_asin": "B00PARENT123", "week_date": "2023-10-08", "keywords": "muscle gainer", "competitor_brand": "YabaBrand", "asin": "B00YABA1", "product_title": "YabaBrand Whey Protein 1kg", "country_code": "ES", "average_organic_rank": 3, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.051515383578716296, "impression_share": 0.061818460294459556, "price": 30.99, "weekly_search_volume": 12822, "is_yaba_asin": "Y", "keywords_link": "http://amazon...", "grams": 1000, "organic_or_not": "Organic", "container": "Tub"}, {"brand_aggregation": "YabaAgg", "parent_asin": "B00PARENT123", "week_date": "2023-10-08", "keywords": "muscle gainer", "competitor_brand": "YabaBrand", "asin": "B00YABA2", "product_title": "YabaBrand Whey Protein 2kg", "country_code": "ES", "average_organic_rank": 15, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7, "weekly_number_of_days_with_coupon": 0, "click_share": 0.08272846465033878, "impression_share": 0.09927415758040653, "price": 31.99, "weekly_search_volume": 13998, "is_yaba_asin": "Y", "keywords_link": "http://amazon...", "grams": 1000, "organic_or_not": "Organic", "container": "Tub"}, {"brand_aggregation": "YabaAgg", "parent_asin": "B00PARENT123", "week_date": "2023-10-08", "keywords": "muscle gainer", "competitor_brand": "OptimumNutri", "asin": "B00Opti0", "product_title": "OptimumNutri Protein 0kg", "country_code": "ES", "average_organic_rank": 29, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7, "weekly_number_of_days_with_coupon": 0, "click_share": 0.09923838407425164, "impression_share": 0.1091622224816768, "price": 28.99, "weekly_search_volume": 5831, "is_yaba_asin": "N", "keywords_link": "http://amazon...", "grams": 1000, "organic_or_not": "Organic", "container": "Bag"}, {"brand_aggregation": "YabaAgg", "parent_asin": "B00PARENT123", "week_date": "2023-10-08", "keywords": "protein powder", "competitor_brand": "OptimumNutri", "asin": "B00Opti1", "product_title": "OptimumNutri Protein 1kg", "country_code": "ES", "average_organic_rank": 33, "weekly_number_of_days_with_deal": 7, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7, "weekly_number_of_days_with_coupon": 7, "click_share": 0.12151608674900135, "impression_share": 0.13366769542390148, "price": 28.99, "weekly_search_volume": 13264, "is_yaba_asin": "N", "keywords_link": "http://amazon...", "grams": 1000, "organic_or_not": "Organic", "container": "Bag"}, {"brand_aggregation": "YabaAgg", "parent_asin": "B00PARENT123", "week_date": "2023-10-08", "keywords": "protein powder", "competitor_brand": "MyProtein", "asin": "B00MyPr0", "product_title": "MyProtein Protein 0kg", "country_code": "ES", "average_organic_rank": 40, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 7, "click_share": 0.12933979435649416, "impression_share": 0.14227377379214358, "price": 23.99, "weekly_search_volume": 14757, "is_yaba_asin": "N", "keywords_link": "http://amazon...", "grams": 1000, "organic_or_not": "Organic", "container": "Bag"}, {"brand_aggregation": "YabaAgg", "parent_asin": "B00PARENT123", "week_date": "2023-10-08", "keywords": "muscle gainer", "competitor_brand": "MyProtein", "asin": "B00MyPr1", "product_title": "MyProtein Protein 1kg", "country_code": "ES", "average_organic_rank": 14, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.08940827299307761, "impression_share": 0.09834910029238538, "price": 27.99, "weekly_search_volume": 6735, "is_yaba_asin": "N", "keywords_link": "http://amazon...", "grams": 1000, "organic_or_not": "Organic", "container": "Bag"}, {"brand_aggregation": "YabaAgg", "parent_asin": "B00PARENT123", "week_date": "2023-10-08", "keywords": "muscle gainer", "competitor_brand": "MuscleTech", "asin": "B00Musc0", "product_title": "MuscleTech Protein 0kg", "country_code": "ES", "average_organic_rank": 9, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 7, "click_share": 0.10657523996229193, "impression_share": 0.11723276395852112, "price": 24.99, "weekly_search_volume": 12833, "is_yaba_asin": "N", "keywords_link": "http://amazon...", "grams": 1000, "organic_or_not": "Organic", "container": "Bag"}, {"brand_aggregation": "YabaAgg", "parent_asin": "B00PARENT123", "week_date": "2023-10-08", "keywords": "muscle gainer", "competitor_brand": "MuscleTech", "asin": "B00Musc1", "product_title": "MuscleTech Protein 1kg", "country_code": "ES", "average_organic_rank": 14, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 7, "click_share": 0.11721516087794101, "impression_share": 0.1289366769657351, "price": 24.99, "weekly_search_volume": 5122, "is_yaba_asin": "N", "keywords_link": "http://amazon...", "grams": 1000, "organic_or_not": "Organic", "container": "Bag"}, {"brand_aggregation": "YabaAgg", "parent_asin": "B00PARENT123", "week_date": "2023-10-08", "keywords": "whey protein", "competitor_brand": "GenericCo", "asin": "B00Gene0", "product_title": "GenericCo Protein 0kg", "country_code": "ES", "average_organic_rank": 5, "weekly_number_of_days_with_deal": 7, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 7, "click_share": 0.057398336262961815, "impression_share": 0.06313816988925799, "price": 25.99, "weekly_search_volume": 5824, "is_yaba_asin": "N", "keywords_link": "http://amazon...", "grams": 1000, "organic_or_not": "Organic", "container": "Bag"}, {"brand_aggregation": "YabaAgg", "parent_asin": "B00PARENT123", "week_date": "2023-10-08", "keywords": "whey protein", "competitor_brand": "GenericCo", "asin": "B00Gene1", "product_title": "GenericCo Protein 1kg", "country_code": "ES", "average_organic_rank": 21, "weekly_number_of_days_with_deal": 7, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.05047805177435261, "impression_share": 0.05552585695178787, "price": 26.99, "weekly_search_volume": 8414, "is_yaba_asin": "N", "keywords_link": "http://amazon...", "grams": 1000, "organic_or_not": "Organic", "container": "Bag"}, {"brand_aggregation": "YabaAgg", "parent_asin": "B00PARENT123", "week_date": "2023-10-15", "keywords": "muscle gainer", "competitor_brand": "YabaBrand", "asin": "B00YABA0", "product_title": "YabaBrand Whey Protein 0kg", "country_code": "ES", "average_organic_rank": 10, "weekly_number_of_days_with_deal": 7, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.06943896568195156, "impression_share": 0.08332675881834187, "price": 29.99, "weekly_search_volume": 5163, "is_yaba_asin": "Y", "keywords_link": "http://amazon...", "grams": 1000, "organic_or_not": "Organic", "container": "Tub"}, {"brand_aggregation": "YabaAgg", "parent_asin": "B00PARENT123", "week_date": "2023-10-15", "keywords": "protein powder", "competitor_brand": "YabaBrand", "asin": "B00YABA1", "product_title": "YabaBrand Whey Protein 1kg", "country_code": "ES", "average_organic_rank": 1, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.12450529514757134, "impression_share": 0.1494063541770856, "price": 30.99, "weekly_search_volume": 12898, "is_yaba_asin": "Y", "keywords_link": "http://amazon...", "grams": 1000, "organic_or_not": "Organic", "container": "Tub"}, {"brand_aggregation": "YabaAgg", "parent_asin": "B00PARENT123", "week_date": "2023-10-15", "keywords": "protein powder", "competitor_brand": "YabaBrand", "asin": "B00YABA2", "product_title": "YabaBrand Whey Protein 2kg", "country_code": "ES", "average_organic_rank": 10, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7, "weekly_number_of_days_with_coupon": 0, "click_share": 0.11719280145217436, "impression_share": 0.14063136174260925, "price": 31.99, "weekly_search_volume": 6920, "is_yaba_asin": "Y", "keywords_link": "http://amazon...", "grams": 1000, "organic_or_not": "Organic", "container": "Tub"}, {"brand_aggregation": "YabaAgg", "parent_asin": "B00PARENT123", "week_date": "2023-10-15", "keywords": "muscle gainer", "competitor_brand": "OptimumNutri", "asin": "B00Opti0", "product_title": "OptimumNutri Protein 0kg", "country_code": "ES", "average_organic_rank": 28, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7, "weekly_number_of_days_with_coupon": 7, "click_share": 0.08381862598376483, "impression_share": 0.09220048858214131, "price": 28.99, "weekly_search_volume": 9741, "is_yaba_asin": "N", "keywords_link": "http://amazon...", "grams": 1000, "organic_or_not": "Organic", "container": "Bag"}, {"brand_aggregation": "YabaAgg", "parent_asin": "B00PARENT123", "week_date": "2023-10-15", "keywords": "whey protein", "competitor_brand": "OptimumNutri", "asin": "B00Opti1", "product_title": "OptimumNutri Protein 1kg", "country_code": "ES", "average_organic_rank": 29, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7, "weekly_number_of_days_with_coupon": 0, "click_share": 0.11674393666710488, "impression_share": 0.12841833033381536, "price": 26.99, "weekly_search_volume": 8121, "is_yaba_asin": "N", "keywords_link": "http://amazon...", "grams": 1000, "organic_or_not": "Organic", "container": "Bag"}, {"brand_aggregation": "YabaAgg", "parent_asin": "B00PARENT123", "week_date": "2023-10-15", "keywords": "whey protein", "competitor_brand": "MyProtein", "asin": "B00MyPr0", "product_title": "MyProtein Protein 0kg", "country_code": "ES", "average_organic_rank": 10, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.09703350431327179, "impression_share": 0.10673685474459897, "price": 26.99, "weekly_search_volume": 12693, "is_yaba_asin": "N", "keywords_link": "http://amazon...", "grams": 1000, "organic_or_not": "Organic", "container": "Bag"}, {"brand_aggregation": "YabaAgg", "parent_asin": "B00PARENT123", "week_date": "2023-10-15", "keywords": "whey protein", "competitor_brand": "MyProtein", "asin": "B00MyPr1", "product_title": "MyProtein Protein 1kg", "country_code": "ES", "average_organic_rank": 39, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.12788574163973546, "impression_share": 0.140674315803709, "price": 26.99, "weekly_search_volume": 8573, "is_yaba_asin": "N", "keywords_link": "http://amazon...", "grams": 1000, "organic_or_not": "Organic", "container": "Bag"}, {"brand_aggregation": "YabaAgg", "parent_asin": "B00PARENT123", "week_date": "2023-10-15", "keywords": "whey protein", "competitor_brand": "MuscleTech", "asin": "B00Musc0", "product_title": "MuscleTech Protein 0kg", "country_code": "ES", "average_organic_rank": 47, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7, "weekly_number_of_days_with_coupon": 0, "click_share": 0.10540846271921387, "impression_share": 0.11594930899113526, "price": 23.99, "weekly_search_volume": 14172, "is_yaba_asin": "N", "keywords_link": "http://amazon...", "grams": 1000, "organic_or_not": "Organic", "container": "Bag"}, {"brand_aggregation": "YabaAgg", "parent_asin": "B00PARENT123", "week_date": "2023-10-15", "keywords": "muscle gainer", "competitor_brand": "MuscleTech", "asin": "B00Musc1", "product_title": "MuscleTech Protein 1kg", "country_code": "ES", "average_organic_rank": 14, "weekly_number_of_days_with_deal": 7, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.1017402636906236, "impression_share": 0.11191429005968595, "price": 29.99, "weekly_search_volume": 6736, "is_yaba_asin": "N", "keywords_link": "http://amazon...", "grams": 1000, "organic_or_not": "Organic", "container": "Bag"}, {"brand_aggregation": "YabaAgg", "parent_asin": "B00PARENT123", "week_date": "2023-10-15", "keywords": "protein powder", "competitor_brand": "GenericCo", "asin": "B00Gene0", "product_title": "GenericCo Protein 0kg", "country_code": "ES", "average_organic_rank": 38, "weekly_number_of_days_with_deal": 7, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7, "weekly_number_of_days_with_coupon": 0, "click_share": 0.05739324545199859, "impression_share": 0.06313256999719844, "price": 23.99, "weekly_search_volume": 10178, "is_yaba_asin": "N", "keywords_link": "http://amazon...", "grams": 1000, "organic_or_not": "Organic", "container": "Bag"}, {"brand_aggregation": "YabaAgg", "parent_asin": "B00PARENT123", "week_date": "2023-10-15", "keywords": "whey protein", "competitor_brand": "GenericCo", "asin": "B00Gene1", "product_title": "GenericCo Protein 1kg", "country_code": "ES", "average_organic_rank": 33, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.024095493019808453, "impression_share": 0.0265050423217893, "price": 27.99, "weekly_search_volume": 14931, "is_yaba_asin": "N", "keywords_link": "http://amazon...", "grams": 1000, "organic_or_not": "Organic", "container": "Bag"}, {"brand_aggregation": "YabaAgg", "parent_asin": "B00PARENT123", "week_date": "2023-10-22", "keywords": "protein powder", "competitor_brand": "YabaBrand", "asin": "B00YABA0", "product_title": "YabaBrand Whey Protein 0kg", "country_code": "ES", "average_organic_rank": 10, "weekly_number_of_days_with_deal": 7, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.06821213600908864, "impression_share": 0.08185456321090637, "price": 29.99, "weekly_search_volume": 6629, "is_yaba_asin": "Y", "keywords_link": "http://amazon...", "grams": 1000, "organic_or_not": "Organic", "container": "Tub"}, {"brand_aggregation": "YabaAgg", "parent_asin": "B00PARENT123", "week_date": "2023-10-22", "keywords": "protein powder", "competitor_brand": "YabaBrand", "asin": "B00YABA1", "product_title": "YabaBrand Whey Protein 1kg", "country_code": "ES", "average_organic_rank": 5, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.06323630666068694, "impression_share": 0.07588356799282432, "price": 30.99, "weekly_search_volume": 6926, "is_yaba_asin": "Y", "keywords_link": "http://amazon...", "grams": 1000, "organic_or_not": "Organic", "container": "Tub"}, {"brand_aggregation": "YabaAgg", "parent_asin": "B00PARENT123", "week_date": "2023-10-22", "keywords": "whey protein", "competitor_brand": "YabaBrand", "asin": "B00YABA2", "product_title": "YabaBrand Whey Protein 2kg", "country_code": "ES", "average_organic_rank": 6, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7, "weekly_number_of_days_with_coupon": 0, "click_share": 0.08985558197771746, "impression_share": 0.10782669837326095, "price": 31.99, "weekly_search_volume": 12693, "is_yaba_asin": "Y", "keywords_link": "http://amazon...", "grams": 1000, "organic_or_not": "Organic", "container": "Tub"}, {"brand_aggregation": "YabaAgg", "parent_asin": "B00PARENT123", "week_date": "2023-10-22", "keywords": "protein powder", "competitor_brand": "OptimumNutri", "asin": "B00Opti0", "product_title": "OptimumNutri Protein 0kg", "country_code": "ES", "average_organic_rank": 33, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7, "weekly_number_of_days_with_coupon": 0, "click_share": 0.08051666632486959, "impression_share": 0.08856833295735655, "price": 28.99, "weekly_search_volume": 6620, "is_yaba_asin": "N", "keywords_link": "http://amazon...", "grams": 1000, "organic_or_not": "Organic", "container": "Bag"}, {"brand_aggregation": "YabaAgg", "parent_asin": "B00PARENT123", "week_date": "2023-10-22", "keywords": "protein powder", "competitor_brand": "OptimumNutri", "asin": "B00Opti1", "product_title": "OptimumNutri Protein 1kg", "country_code": "ES", "average_organic_rank": 26, "weekly_number_of_days_with_deal": 7, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7, "weekly_number_of_days_with_coupon": 0, "click_share": 0.11714482329759325, "impression_share": 0.12885930562735256, "price": 26.99, "weekly_search_volume": 12896, "is_yaba_asin": "N", "keywords_link": "http://amazon...", "grams": 1000, "organic_or_not": "Organic", "container": "Bag"}, {"brand_aggregation": "YabaAgg", "parent_asin": "B00PARENT123", "week_date": "2023-10-22", "keywords": "whey protein", "competitor_brand": "MyProtein", "asin": "B00MyPr0", "product_title": "MyProtein Protein 0kg", "country_code": "ES", "average_organic_rank": 40, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.08151859067345388, "impression_share": 0.08967044974079927, "price": 23.99, "weekly_search_volume": 6016, "is_yaba_asin": "N", "keywords_link": "http://amazon...", "grams": 1000, "organic_or_not": "Organic", "container": "Bag"}, {"brand_aggregation": "YabaAgg", "parent_asin": "B00PARENT123", "week_date": "2023-10-22", "keywords": "whey protein", "competitor_brand": "MyProtein", "asin": "B00MyPr1", "product_title": "MyProtein Protein 1kg", "country_code": "ES", "average_organic_rank": 33, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.08272911183359575, "impression_share": 0.09100202301695532, "price": 25.99, "weekly_search_volume": 9789, "is_yaba_asin": "N", "keywords_link": "http://amazon...", "grams": 1000, "organic_or_not": "Organic", "container": "Bag"}, {"brand_aggregation": "YabaAgg", "parent_asin": "B00PARENT123", "week_date": "2023-10-22", "keywords": "muscle gainer", "competitor_brand": "MuscleTech", "asin": "B00Musc0", "product_title": "MuscleTech Protein 0kg", "country_code": "ES", "average_organic_rank": 33, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.1264380693527218, "impression_share": 0.13908187628799398, "price": 26.99, "weekly_search_volume": 12975, "is_yaba_asin": "N", "keywords_link": "http://amazon...", "grams": 1000, "organic_or_not": "Organic", "container": "Bag"}, {"brand_aggregation": "YabaAgg", "parent_asin": "B00PARENT123", "week_date": "2023-10-22", "keywords": "protein powder", "competitor_brand": "MuscleTech", "asin": "B00Musc1", "product_title": "MuscleTech Protein 1kg", "country_code": "ES", "average_organic_rank": 29, "weekly_number_of_days_with_deal": 7, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 7, "click_share": 0.12035345719910903, "impression_share": 0.13238880291901994, "price": 25.99, "weekly_search_volume": 13988, "is_yaba_asin": "N", "keywords_link": "http://amazon...", "grams": 1000, "organic_or_not": "Organic", "container": "Bag"}, {"brand_aggregation": "YabaAgg", "parent_asin": "B00PARENT123", "week_date": "2023-10-22", "keywords": "protein powder", "competitor_brand": "GenericCo", "asin": "B00Gene0", "product_title": "GenericCo Protein 0kg", "country_code": "ES", "average_organic_rank": 5, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.05191060634638703, "impression_share": 0.05710166698102573, "price": 24.99, "weekly_search_volume": 8415, "is_yaba_asin": "N", "keywords_link": "http://amazon...", "grams": 1000, "organic_or_not": "Organic", "container": "Bag"}, {"brand_aggregation": "YabaAgg", "parent_asin": "B00PARENT123", "week_date": "2023-10-22", "keywords": "whey protein", "competitor_brand": "GenericCo", "asin": "B00Gene1", "product_title": "GenericCo Protein 1kg", "country_code": "ES", "average_organic_rank": 35, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 7, "click_share": 0.03964129598007277, "impression_share": 0.043605425578080045, "price": 28.99, "weekly_search_volume": 9741, "is_yaba_asin": "N", "keywords_link": "http://amazon...", "grams": 1000, "organic_or_not": "Organic", "container": "Bag"}, {"brand_aggregation": "YabaAgg", "parent_asin": "B00PARENT123", "week_date": "2023-10-29", "keywords": "protein powder", "competitor_brand": "YabaBrand", "asin": "B00YABA0", "product_title": "YabaBrand Whey Protein 0kg", "country_code": "ES", "average_organic_rank": 14, "weekly_number_of_days_with_deal": 7, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.09689405626359654, "impression_share": 0.11627286751631585, "price": 29.99, "weekly_search_volume": 12053, "is_yaba_asin": "Y", "keywords_link": "http://amazon...", "grams": 1000, "organic_or_not": "Organic", "container": "Tub"}, {"brand_aggregation": "YabaAgg", "parent_asin": "B00PARENT123", "week_date": "2023-10-29", "keywords": "muscle gainer", "competitor_brand": "YabaBrand", "asin": "B00YABA1", "product_title": "YabaBrand Whey Protein 1kg", "country_code": "ES", "average_organic_rank": 5, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.05353528448882071, "impression_share": 0.06424234138658485, "price": 30.99, "weekly_search_volume": 13689, "is_yaba_asin": "Y", "keywords_link": "http://amazon...", "grams": 1000, "organic_or_not": "Organic", "container": "Tub"}, {"brand_aggregation": "YabaAgg", "parent_asin": "B00PARENT123", "week_date": "2023-10-29", "keywords": "muscle gainer", "competitor_brand": "YabaBrand", "asin": "B00YABA2", "product_title": "YabaBrand Whey Protein 2kg", "country_code": "ES", "average_organic_rank": 2, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7, "weekly_number_of_days_with_coupon": 0, "click_share": 0.09117652750821617, "impression_share": 0.1094118330098594, "price": 31.99, "weekly_search_volume": 12832, "is_yaba_asin": "Y", "keywords_link": "http://amazon...", "grams": 1000, "organic_or_not": "Organic", "container": "Tub"}, {"brand_aggregation": "YabaAgg", "parent_asin": "B00PARENT123", "week_date": "2023-10-29", "keywords": "protein powder", "competitor_brand": "OptimumNutri", "asin": "B00Opti0", "product_title": "OptimumNutri Protein 0kg", "country_code": "ES", "average_organic_rank": 33, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7, "weekly_number_of_days_with_coupon": 0, "click_share": 0.08819584620580954, "impression_share": 0.0970154308263905, "price": 28.99, "weekly_search_volume": 11843, "is_yaba_asin": "N", "keywords_link": "http://amazon...", "grams": 1000, "organic_or_not": "Organic", "container": "Bag"}, {"brand_aggregation": "YabaAgg", "parent_asin": "B00PARENT123", "week_date": "2023-10-29", "keywords": "whey protein", "competitor_brand": "OptimumNutri", "asin": "B00Opti1", "product_title": "OptimumNutri Protein 1kg", "country_code": "ES", "average_organic_rank": 21, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.11195657805908298, "impression_share": 0.12315223586499127, "price": 28.99, "weekly_search_volume": 6997, "is_yaba_asin": "N", "keywords_link": "http://amazon...", "grams": 1000, "organic_or_not": "Organic", "container": "Bag"}, {"brand_aggregation": "YabaAgg", "parent_asin": "B00PARENT123", "week_date": "2023-10-29", "keywords": "protein powder", "competitor_brand": "MyProtein", "asin": "B00MyPr0", "product_title": "MyProtein Protein 0kg", "country_code": "ES", "average_organic_rank": 30, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 7, "click_share": 0.12260682281861962, "impression_share": 0.13486750510048157, "price": 23.99, "weekly_search_volume": 12839, "is_yaba_asin": "N", "keywords_link": "http://amazon...", "grams": 1000, "organic_or_not": "Organic", "container": "Bag"}, {"brand_aggregation": "YabaAgg", "parent_asin": "B00PARENT123", "week_date": "2023-10-29", "keywords": "protein powder", "competitor_brand": "MyProtein", "asin": "B00MyPr1", "product_title": "MyProtein Protein 1kg", "country_code": "ES", "average_organic_rank": 27, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.12480396013271783, "impression_share": 0.1372843561459896, "price": 25.99, "weekly_search_volume": 12224, "is_yaba_asin": "N", "keywords_link": "http://amazon...", "grams": 1000, "organic_or_not": "Organic", "container": "Bag"}, {"brand_aggregation": "YabaAgg", "parent_asin": "B00PARENT123", "week_date": "2023-10-29", "keywords": "protein powder", "competitor_brand": "MuscleTech", "asin": "B00Musc0", "product_title": "MuscleTech Protein 0kg", "country_code": "ES", "average_organic_rank": 33, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.10659616086790937, "impression_share": 0.11725577695470032, "price": 26.99, "weekly_search_volume": 8415, "is_yaba_asin": "N", "keywords_link": "http://amazon...", "grams": 1000, "organic_or_not": "Organic", "container": "Bag"}, {"brand_aggregation": "YabaAgg", "parent_asin": "B00PARENT123", "week_date": "2023-10-29", "keywords": "whey protein", "competitor_brand": "MuscleTech", "asin": "B00Musc1", "product_title": "MuscleTech Protein 1kg", "country_code": "ES", "average_organic_rank": 47, "weekly_number_of_days_with_deal": 7, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.10002164476082218, "impression_share": 0.1100238092369044, "price": 29.99, "weekly_search_volume": 7671, "is_yaba_asin": "N", "keywords_link": "http://amazon...", "grams": 1000, "organic_or_not": "Organic", "container": "Bag"}, {"brand_aggregation": "YabaAgg", "parent_asin": "B00PARENT123", "week_date": "2023-10-29", "keywords": "protein powder", "competitor_brand": "GenericCo", "asin": "B00Gene0", "product_title": "GenericCo Protein 0kg", "country_code": "ES", "average_organic_rank": 44, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7, "weekly_number_of_days_with_coupon": 7, "click_share": 0.057398336262961815, "impression_share": 0.06313816988925799, "price": 23.99, "weekly_search_volume": 5824, "is_yaba_asin": "N", "keywords_link": "http://amazon...", "grams": 1000, "organic_or_not": "Organic", "container": "Bag"}, {"brand_aggregation": "YabaAgg", "parent_asin": "B00PARENT123", "week_date": "2023-10-29", "keywords": "protein powder", "competitor_brand": "GenericCo", "asin": "B00Gene1", "product_title": "GenericCo Protein 1kg", "country_code": "ES", "average_organic_rank": 35, "weekly_number_of_days_with_deal": 7, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.06203117565706591, "impression_share": 0.0682342932227725, "price": 27.99, "weekly_search_volume": 12826, "is_yaba_asin": "N", "keywords_link": "http://amazon...", "grams": 1000, "organic_or_not": "Organic", "container": "Bag"}];
+        
+        // ---------------------------------------------------------
+        // 2. DATA PROCESSING (Pure JS)
+        // ---------------------------------------------------------
+        
+        // Normalize Data
+        const cleanData = rawData.map(d => ({
+            ...d,
+            brand: d.competitor_brand || (d.is_yaba_asin === 'Y' ? 'YabaBrand' : 'Unknown'),
+            clicks: Math.round(d.click_share * d.weekly_search_volume),
+            isDeal: d.weekly_number_of_days_with_deal > 0 ? 1 : 0,
+            isCoupon: d.weekly_number_of_days_with_coupon > 0 ? 1 : 0,
+            isBadge: (d.weekly_number_of_days_with_best_seller_badge > 0 || d.weekly_number_of_days_with_amazon_choice_badge > 0) ? 1 : 0
+        }));
+
+        // Get unique weeks
+        const weeks = [...new Set(cleanData.map(d => d.week_date))].sort();
+        const lastWeek = weeks[weeks.length - 1];
+
+        // Grouping Helper
+        const groupBy = (array, key) => {
+            return array.reduce((result, currentValue) => {
+                (result[currentValue[key]] = result[currentValue[key]] || []).push(currentValue);
+                return result;
+            }, {});
+        };
+
+        // Aggregations
+        function processTrendData() {
+            const weekGroups = groupBy(cleanData, 'week_date');
+            return weeks.map(w => {
+                const weekRows = weekGroups[w] || [];
+                const totalClicks = weekRows.reduce((sum, r) => sum + r.clicks, 0);
+                const yabaClicks = weekRows.filter(r => r.is_yaba_asin === 'Y').reduce((sum, r) => sum + r.clicks, 0);
+                const compClicks = totalClicks - yabaClicks;
+                
+                const yabaShare = totalClicks ? (yabaClicks / totalClicks) : 0;
+                
+                return [w, totalClicks, yabaShare, 1 - yabaShare]; // [Week, Vol, OurShare, CompShare]
+            });
+        }
+
+        function processBrandShare() {
+            // Get top brands by total clicks
+            const brandClicks = {};
+            cleanData.forEach(r => {
+                brandClicks[r.brand] = (brandClicks[r.brand] || 0) + r.clicks;
+            });
+            
+            // "Our Brand" is forced
+            const ourBrand = cleanData.find(d => d.is_yaba_asin === 'Y')?.brand || "YabaBrand";
+            
+            const sortedBrands = Object.entries(brandClicks)
+                .sort((a,b) => b[1] - a[1])
+                .map(e => e[0])
+                .filter(b => b !== ourBrand);
+                
+            const top3Comp = sortedBrands.slice(0, 3);
+            
+            // Build Matrix: Week | OurBrand | Comp1 | Comp2 | Comp3 | Others
+            const weekGroups = groupBy(cleanData, 'week_date');
+            return weeks.map(w => {
+                const rows = weekGroups[w];
+                const total = rows.reduce((s, r) => s + r.clicks, 0);
+                
+                const getShare = (b) => {
+                    const clicks = rows.filter(r => r.brand === b).reduce((s, r) => s + r.clicks, 0);
+                    return total ? clicks / total : 0;
+                };
+
+                const ourShare = getShare(ourBrand);
+                const c1 = top3Comp[0] ? getShare(top3Comp[0]) : 0;
+                const c2 = top3Comp[1] ? getShare(top3Comp[1]) : 0;
+                const c3 = top3Comp[2] ? getShare(top3Comp[2]) : 0;
+                const others = 1 - (ourShare + c1 + c2 + c3);
+
+                return [w, ourShare, c1, c2, c3, others];
+            });
+        }
+
+        function processLevers() {
+            // Compare average share per ASIN when levers are active vs inactive
+            const calcAvgShare = (rows) => {
+                if(!rows.length) return 0;
+                return rows.reduce((s,r) => s + r.click_share, 0) / rows.length;
+            };
+
+            const withDeal = cleanData.filter(d => d.isDeal);
+            const noDeal = cleanData.filter(d => !d.isDeal);
+            
+            const withCoupon = cleanData.filter(d => d.isCoupon);
+            const noCoupon = cleanData.filter(d => !d.isCoupon);
+            
+            const withBadge = cleanData.filter(d => d.isBadge);
+            const noBadge = cleanData.filter(d => !d.isBadge);
+
+            return [
+                ['Attribute', 'Active', 'Inactive'],
+                ['Deals', calcAvgShare(withDeal), calcAvgShare(noDeal)],
+                ['Coupons', calcAvgShare(withCoupon), calcAvgShare(noCoupon)],
+                ['Badges', calcAvgShare(withBadge), calcAvgShare(noBadge)]
+            ];
+        }
+
+        // ---------------------------------------------------------
+        // 3. GOOGLE CHARTS RENDERING
+        // ---------------------------------------------------------
+        google.charts.load('current', {'packages':['corechart', 'bar']});
+        google.charts.setOnLoadCallback(initDashboard);
+
+        function initDashboard() {
+            drawTrend();
+            drawBrandComp();
+            drawLevers();
+            drawEfficiency();
+            populateTextMetrics();
+            initInteractive();
+        }
+
+        function drawTrend() {
+            const raw = processTrendData();
+            const data = new google.visualization.DataTable();
+            data.addColumn('string', 'Week');
+            data.addColumn('number', 'Total Clicks');
+            data.addColumn('number', 'Our Share');
+            data.addColumn('number', 'Competitor Share');
+
+            raw.forEach(r => data.addRow([r[0], r[1], r[2], r[3]]));
+
+            const options = {
+                seriesType: 'bars',
+                series: {1: {type: 'line', targetAxisIndex: 1, color: '#4285F4'}, 2: {type: 'line', targetAxisIndex: 1, color: '#EA4335'}},
+                vAxes: {0: {title: 'Volume'}, 1: {title: 'Share %', format: 'percent'}},
+                legend: {position: 'bottom'},
+                colors: ['#dadce0'],
+                chartArea: {width: '85%', height: '70%'}
+            };
+
+            const chart = new google.visualization.ComboChart(document.getElementById('trend_chart_div'));
+            chart.draw(data, options);
+        }
+
+        function drawBrandComp() {
+            const raw = processBrandShare();
+            // Need brand names for headers
+            const ourBrand = cleanData.find(d => d.is_yaba_asin === 'Y')?.brand || "Us";
+            // Re-find top 3
+             const brandClicks = {};
+            cleanData.forEach(r => brandClicks[r.brand] = (brandClicks[r.brand] || 0) + r.clicks);
+            const sortedBrands = Object.entries(brandClicks).sort((a,b) => b[1] - a[1]).map(e => e[0]).filter(b => b !== ourBrand);
+
+            const data = new google.visualization.DataTable();
+            data.addColumn('string', 'Week');
+            data.addColumn('number', ourBrand);
+            if(sortedBrands[0]) data.addColumn('number', sortedBrands[0]);
+            if(sortedBrands[1]) data.addColumn('number', sortedBrands[1]);
+            if(sortedBrands[2]) data.addColumn('number', sortedBrands[2]);
+            data.addColumn('number', 'Others');
+
+            raw.forEach(r => {
+                // Filter out columns if top brands < 3
+                const row = [r[0], r[1]];
+                if(sortedBrands[0]) row.push(r[2]);
+                if(sortedBrands[1]) row.push(r[3]);
+                if(sortedBrands[2]) row.push(r[4]);
+                row.push(r[5]);
+                data.addRow(row);
+            });
+
+            const options = {
+                curveType: 'function',
+                legend: { position: 'bottom' },
+                vAxis: {format: 'percent'},
+                colors: ['#4285F4', '#EA4335', '#FBBC05', '#34A853', '#9AA0A6'],
+                chartArea: {width: '90%', height: '70%'}
+            };
+
+            const chart = new google.visualization.LineChart(document.getElementById('brand_chart_div'));
+            chart.draw(data, options);
+        }
+
+        function drawLevers() {
+            const raw = processLevers();
+            const data = google.visualization.arrayToDataTable(raw);
+
+            const options = {
+                vAxis: {title: 'Avg Click Share', format: 'percent'},
+                hAxis: {title: 'Lever'},
+                series: {0: {color: '#4285F4'}, 1: {color: '#dadce0'}},
+                legend: {position: 'top'}
+            };
+
+            const chart = new google.visualization.ColumnChart(document.getElementById('levers_chart_div'));
+            chart.draw(data, options);
+        }
+
+        function drawEfficiency() {
+            // Last week only
+            const weekData = cleanData.filter(d => d.week_date === lastWeek);
+            const data = new google.visualization.DataTable();
+            data.addColumn('number', 'Organic Rank');
+            data.addColumn('number', 'Click Share');
+            data.addColumn({type: 'string', role: 'tooltip'});
+            data.addColumn({type: 'string', role: 'style'});
+
+            weekData.forEach(r => {
+                const color = r.is_yaba_asin === 'Y' ? '#4285F4' : '#EA4335';
+                data.addRow([r.average_organic_rank, r.click_share, `${r.product_title} (${r.brand})`, `point {fill-color: ${color}}`]);
+            });
+
+            const options = {
+                hAxis: {title: 'Organic Rank (Lower is Better)', direction: -1},
+                vAxis: {title: 'Click Share', format: 'percent'},
+                legend: 'none',
+                explorer: { actions: ['dragToZoom', 'rightClickToReset'] }
+            };
+
+            const chart = new google.visualization.ScatterChart(document.getElementById('efficiency_chart_div'));
+            chart.draw(data, options);
+        }
+
+        // ---------------------------------------------------------
+        // 4. TEXT & INSIGHTS
+        // ---------------------------------------------------------
+        function populateTextMetrics() {
+            const lastWeekData = cleanData.filter(d => d.week_date === lastWeek);
+            const prevWeekData = cleanData.filter(d => d.week_date === weeks[weeks.length-2]);
+
+            // Header Info
+            document.getElementById('parentAsinDisplay').innerText = lastWeekData[0].parent_asin;
+            document.getElementById('lastUpdateDate').innerText = lastWeek;
+
+            // Trend Metrics
+            const totalClicks = lastWeekData.reduce((s,r) => s + r.clicks, 0);
+            const prevClicks = prevWeekData.reduce((s,r) => s + r.clicks, 0);
+            
+            const ourClicks = lastWeekData.filter(r => r.is_yaba_asin === 'Y').reduce((s,r) => s + r.clicks, 0);
+            const ourShare = totalClicks ? (ourClicks / totalClicks) : 0;
+            
+            const prevOurClicks = prevWeekData.filter(r => r.is_yaba_asin === 'Y').reduce((s,r) => s + r.clicks, 0);
+            const prevShare = prevClicks ? (prevOurClicks / prevClicks) : 0;
+            const diff = ourShare - prevShare;
+
+            document.getElementById('totalClicksLastWeek').innerText = totalClicks.toLocaleString();
+            document.getElementById('yabaShareLastWeek').innerText = (ourShare * 100).toFixed(1) + '%';
+            
+            const diffEl = document.getElementById('shareChange');
+            diffEl.innerText = (diff > 0 ? '+' : '') + (diff * 100).toFixed(1) + ' pts';
+            diffEl.style.color = diff >= 0 ? 'var(--secondary)' : 'var(--danger)';
+
+            // Dynamic Insights
+            const insightsList = document.getElementById('insightsList');
+            const recList = document.getElementById('recommendationsList');
+            
+            insightsList.innerHTML = `
+                <li class="insight-item"><strong>Tendencia:</strong> El volumen de clics del parent ${totalClicks > prevClicks ? 'creció' : 'decreció'} un ${Math.abs(((totalClicks-prevClicks)/prevClicks)*100).toFixed(1)}% respecto a la semana anterior.</li>
+                <li class="insight-item"><strong>Cuota de Mercado:</strong> Nuestra marca tiene un ${ourShare > 0.1 ? 'fuerte' : 'moderado'} posicionamiento con el ${(ourShare*100).toFixed(1)}% del share.</li>
+                <li class="insight-item"><strong>Eficiencia de Deals:</strong> Los productos con Deal activo mostraron un ${(processLevers()[1][1]*100).toFixed(0)}% de share promedio vs ${(processLevers()[1][2]*100).toFixed(0)}% sin deal.</li>
+            `;
+
+            recList.innerHTML = `
+                <li class="recommendation-item">Activar cupones en ASINs con Rank < 10 para maximizar conversión.</li>
+                <li class="recommendation-item">Revisar precios en variantes con share < 5% pero rank < 20.</li>
+                <li class="recommendation-item">Aumentar puja en keywords "protein" para defender la posición de top seller.</li>
+            `;
+        }
+
+        // ---------------------------------------------------------
+        // 5. INTERACTIVE
+        // ---------------------------------------------------------
+        function switchTab(tab) {
+            document.getElementById('tab-static').classList.add('hidden');
+            document.getElementById('tab-interactive').classList.add('hidden');
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            
+            document.getElementById('tab-' + tab).classList.remove('hidden');
+            event.target.classList.add('active');
+            
+            if(tab === 'interactive') updateInteractive();
+        }
+
+        function initInteractive() {
+            // Populate Selectors
+            const weekSel = document.getElementById('weekSelector');
+            weeks.forEach(w => {
+                const opt = document.createElement('option');
+                opt.value = w;
+                opt.innerText = w;
+                weekSel.appendChild(opt);
+            });
+            weekSel.value = lastWeek;
+
+            const compSel = document.getElementById('competitorSelector');
+            const comps = [...new Set(cleanData.filter(d => d.is_yaba_asin === 'N').map(d => d.brand))];
+            comps.forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c;
+                opt.innerText = c;
+                compSel.appendChild(opt);
+            });
+        }
+
+        function updateInteractive() {
+            const week = document.getElementById('weekSelector').value;
+            const comp = document.getElementById('competitorSelector').value;
+            
+            const weekData = cleanData.filter(d => d.week_date === week);
+            const ourData = weekData.filter(d => d.is_yaba_asin === 'Y');
+            const compData = weekData.filter(d => d.brand === comp);
+
+            // Update Names
+            document.getElementById('compBrandName').innerText = comp;
+
+            // Stats Helper
+            const getStats = (rows) => {
+                if(!rows.length) return "No Data";
+                const avgPrice = rows.reduce((s,r) => s + r.price, 0) / rows.length;
+                const totalShare = rows.reduce((s,r) => s + r.click_share, 0);
+                const avgRank = rows.reduce((s,r) => s + r.average_organic_rank, 0) / rows.length;
+                const deals = rows.filter(r => r.isDeal).length;
+                return `
+                    <div class="metric" style="background:white; border:1px solid #eee;">Price: €${avgPrice.toFixed(2)}</div>
+                    <div class="metric" style="background:white; border:1px solid #eee;">Share: ${(totalShare*100).toFixed(1)}%</div>
+                    <div class="metric" style="background:white; border:1px solid #eee;">Avg Rank: #${avgRank.toFixed(1)}</div>
+                    <div class="metric" style="background:white; border:1px solid #eee;">Active Deals: ${deals}</div>
+                `;
+            };
+
+            document.getElementById('ourStats').innerHTML = getStats(ourData);
+            document.getElementById('compStats').innerHTML = getStats(compData);
+
+            // Chart: Compare Share distribution
+            const data = google.visualization.arrayToDataTable([
+                ['Metric', 'Us', comp],
+                ['Click Share', ourData.reduce((s,r)=>s+r.click_share,0), compData.reduce((s,r)=>s+r.click_share,0)],
+                ['Impression Share', ourData.reduce((s,r)=>s+r.impression_share,0), compData.reduce((s,r)=>s+r.impression_share,0)]
+            ]);
+
+            const options = {
+                title: 'Share Comparison',
+                vAxis: {format: 'percent'},
+                colors: ['#4285F4', '#EA4335']
+            };
+
+            const chart = new google.visualization.ColumnChart(document.getElementById('interactive_chart_div'));
+            chart.draw(data, options);
+        }
+
+        // Handle Resize
+        window.onresize = initDashboard;
+
+    </script>
+</body>
+</html>
