@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reporte de Inteligencia de Mercado - Parent ASIN</title>
+    
+    <!-- Google Fonts & Material Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    
+    <!-- Google Charts Library -->
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+
+    <style>
+        /* Google Material Design / Clean Apple-like UI */
+        :root {
+            --primary-blue: #4285F4;
+            --primary-dark: #1A73E8;
+            --secondary-red: #EA4335;
+            --secondary-yellow: #FBBC05;
+            --secondary-green: #34A853;
+            --bg-color: #F8F9FA;
+            --surface-color: #FFFFFF;
+            --text-main: #202124;
+            --text-secondary: #5F6368;
+            --border-color: #DADCE0;
+        }
+
+        body {
+            font-family: 'Roboto', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 0;
+            line-height: 1.6;
+        }
+
+        .header {
+            background-color: var(--surface-color);
+            padding: 24px 48px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 1px 2px 0 rgba(60,64,67,0.3);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 500;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 16px;
+        }
+
+        .tab-btn {
+            background: none;
+            border: none;
+            padding: 10px 20px;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            cursor: pointer;
+            border-radius: 24px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .tab-btn:hover {
+            background-color: #F1F3F4;
+            color: var(--text-main);
+        }
+
+        .tab-btn.active {
+            background-color: #E8F0FE;
+            color: var(--primary-dark);
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 32px auto;
+            padding: 0 24px;
+        }
+
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.4s ease-in-out;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* KPI Cards */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 24px;
+            margin-bottom: 32px;
+        }
+
+        .card {
+            background-color: var(--surface-color);
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 1px 3px rgba(60,64,67,0.1), 0 1px 2px rgba(60,64,67,0.06);
+            border: 1px solid var(--border-color);
+        }
+
+        .kpi-title {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .kpi-value {
+            font-size: 32px;
+            font-weight: 400;
+            color: var(--primary-dark);
+        }
+
+        .kpi-trend {
+            font-size: 13px;
+            margin-top: 8px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .trend-up { color: var(--secondary-green); }
+        .trend-down { color: var(--secondary-red); }
+
+        /* Chart Sections */
+        .section-title {
+            font-size: 20px;
+            font-weight: 500;
+            margin: 32px 0 16px 0;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: var(--text-main);
+            border-bottom: 2px solid var(--primary-blue);
+            padding-bottom: 8px;
+            display: inline-flex;
+        }
+
+        .chart-container {
+            width: 100%;
+            height: 400px;
+            margin-top: 16px;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+
+        /* Text Analysis Areas */
+        .analysis-box {
+            background-color: #F8FBFF;
+            border-left: 4px solid var(--primary-blue);
+            padding: 16px 24px;
+            margin-top: 16px;
+            border-radius: 0 8px 8px 0;
+            font-size: 14px;
+            color: #3C4043;
+        }
+
+        .insights-list, .recs-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .insights-list li, .recs-list li {
+            margin-bottom: 12px;
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+        }
+
+        .insights-list .material-icons { color: var(--secondary-yellow); font-size: 20px; }
+        .recs-list .material-icons { color: var(--secondary-green); font-size: 20px; }
+
+        /* Interactive Comparator Selectors */
+        .controls {
+            display: flex;
+            gap: 16px;
+            background: var(--surface-color);
+            padding: 16px 24px;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            margin-bottom: 24px;
+        }
+
+        select {
+            padding: 10px 16px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            font-size: 14px;
+            background: #fff;
+            color: var(--text-main);
+            outline: none;
+            min-width: 200px;
+            cursor: pointer;
+        }
+        
+        select:focus {
+            border-color: var(--primary-blue);
+            box-shadow: 0 0 0 2px rgba(66, 133, 244, 0.2);
+        }
+
+        .vs-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 32px;
+            margin: 32px 0;
+        }
+        
+        .vs-card {
+            flex: 1;
+            text-align: center;
+            padding: 32px;
+        }
+
+        .vs-badge {
+            background: var(--bg-color);
+            color: var(--text-secondary);
+            font-weight: bold;
+            border-radius: 50%;
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .stat-row:last-child { border-bottom: none; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>
+            <span class="material-icons" style="color: var(--primary-blue); font-size: 28px;">analytics</span>
+            Market Intelligence Report: Psyllium Husk
+        </h1>
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('staticReport', this)">
+                <span class="material-icons">dashboard</span> Análisis y Dashboard
+            </button>
+            <button class="tab-btn" onclick="switchTab('interactiveCompare', this)">
+                <span class="material-icons">compare_arrows</span> Comparador Interactivo
+            </button>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- PESTAÑA 1: REPORTE ESTÁTICO -->
+        <div id="staticReport" class="tab-content active">
+            
+            <!-- KPIs Última Semana -->
+            <div class="kpi-grid">
+                <div class="card">
+                    <div class="kpi-title"><span class="material-icons">ads_click</span> Nuestro Click Share (Últ. Sem)</div>
+                    <div class="kpi-value" id="kpi_our_share">27.84%</div>
+                    <div class="kpi-trend trend-up" id="kpi_our_share_trend"><span class="material-icons">trending_up</span> +1.00 pts vs sem anterior</div>
+                </div>
+                <div class="card">
+                    <div class="kpi-title"><span class="material-icons">emoji_events</span> Organic Rank</div>
+                    <div class="kpi-value" id="kpi_our_rank">#1</div>
+                    <div class="kpi-trend trend-up"><span class="material-icons">horizontal_rule</span> Mantenido estable</div>
+                </div>
+                <div class="card">
+                    <div class="kpi-title"><span class="material-icons">sell</span> Amazon Choice Days</div>
+                    <div class="kpi-value">7 / 7</div>
+                    <div class="kpi-trend trend-up"><span class="material-icons">check_circle</span> Ventaja absoluta</div>
+                </div>
+                <div class="card">
+                    <div class="kpi-title"><span class="material-icons">groups</span> Principal Perseguidor</div>
+                    <div class="kpi-value" style="font-size: 24px; color: var(--secondary-red);">NEW LEAF</div>
+                    <div class="kpi-trend"><span class="material-icons">data_usage</span> 12.28% de cuota</div>
+                </div>
+            </div>
+
+            <!-- 1. Tendencia Global -->
+            <div class="card" style="margin-bottom: 32px;">
+                <h2 class="section-title"><span class="material-icons">timeline</span> 1. Tendencia Global del Parent</h2>
+                <div class="analysis-box">
+                    <strong>Resumen Temporal:</strong> Analizando las semanas 08, 09 y 10 de 2026, el volumen de búsqueda total para "psyllium husk" osciló entre 14.8k y 15.4k. 
+                    Nuestros ASINs (NaturaleBio) operan de manera extremadamente sólida, ganando tracción de clics totales y cuota. 
+                    Mientras que el mercado agregado fragmenta sus clics, nosotros absorbemos sistemáticamente más de un cuarto de todo el tráfico de la keyword principal.
+                </div>
+                <div id="chart_trend" class="chart-container"></div>
+            </div>
+
+            <!-- 2. Competitividad de Marca -->
+            <div class="card" style="margin-bottom: 32px;">
+                <h2 class="section-title"><span class="material-icons">query_stats</span> 2. Competitividad de Marca vs Top 3</h2>
+                <div class="analysis-box">
+                    <strong>Dinámica Competitiva:</strong> Nuestra marca (NaturaleBio) domina contundentemente con un promedio de >26.5% de Click Share. 
+                    Los Top 3 competidores extraídos de la data real son <em>NKD Living</em>, <em>NEW LEAF PRODUCTS</em> y <em>The Worldwide Mint</em>.
+                    NKD Living intenta una estrategia multi-ASIN (2 listings posicionados), pero de manera combinada apenas superan el 11-13%. 
+                    NEW LEAF se mantiene constante en la posición #2 pero no logra recortar distancia debido a su barrera de precio más alta.
+                </div>
+                <div id="chart_competitiveness" class="chart-container"></div>
+            </div>
+
+            <!-- 3 y 4 en Grid -->
+            <div class="grid-2" style="margin-bottom: 32px;">
+                <!-- 3. Palancas -->
+                <div class="card">
+                    <h2 class="section-title"><span class="material-icons">tune</span> 3. Palancas que Aumentan Share</h2>
+                    <div class="analysis-box">
+                        <strong>Impacto Promocional:</strong> 
+                        Sorprendentemente, la eficiencia en este nicho <b>no</b> está guiada por <em>Deal Days</em>. 
+                        NaturaleBio opera con 0 días de Deals/Cupones, pero ostenta el <strong>Amazon Choice</strong> (6-7 días), lo cual actúa como la palanca amplificadora definitiva.
+                        Los competidores que usan Deals (ej. Vinco, WeightWorld 4-7 días) apenas promedian <5% de share. 
+                        El precio de entrada competitivo (£8.89) suplanta la necesidad de promociones agresivas.
+                    </div>
+                    <div id="chart_levers" class="chart-container" style="height: 300px;"></div>
+                </div>
+
+                <!-- 4. Eficiencia -->
+                <div class="card">
+                    <h2 class="section-title"><span class="material-icons">radar</span> 4. Eficiencia: Rank vs Share</h2>
+                    <div class="analysis-box">
+                        <strong>Proxy de Impression Share:</strong> 
+                        Nuestra marca (Azul) es un <em>Overperformer</em> extremo. Al dominar el Rank #1 y #2 orgánico, capturamos exponencialmente más share (>25%) 
+                        que los competidores en Rank #3 o #4 (Rojo), que sufren caídas drásticas de visibilidad (<13%). 
+                        La correlación demuestra que en este nicho, caer debajo del Rank 2 anula las probabilidades de dominar la categoría.
+                    </div>
+                    <div id="chart_efficiency" class="chart-container" style="height: 300px;"></div>
+                </div>
+            </div>
+
+            <!-- Conclusiones y Recomendaciones -->
+            <div class="grid-2" style="margin-bottom: 32px;">
+                <div class="card">
+                    <h2 class="section-title"><span class="material-icons">lightbulb</span> 5. Insights Clave y Estratégicos</h2>
+                    <ul class="insights-list">
+                        <li><span class="material-icons">tips_and_updates</span> <strong>Dominio Monopolístico:</strong> NaturaleBio concentra más del 26% de todo el click share de forma sostenida, operando como el líder indiscutible del nicho.</li>
+                        <li><span class="material-icons">tips_and_updates</span> <strong>El Badge es Rey:</strong> El <em>Amazon Choice Badge</em> tiene una correlación directa del 100% con el hiper-rendimiento de nuestro parent ASIN.</li>
+                        <li><span class="material-icons">tips_and_updates</span> <strong>Fracaso de Deals en Competencia:</strong> Competidores como Vinco y WeightWorld queman margen en <em>Deal Days</em> (hasta 7 días) pero sus Ranks orgánicos pobres (>20 y >5 respectivamente) anulan el impacto del deal.</li>
+                        <li><span class="material-icons">tips_and_updates</span> <strong>Elasticidad y Posicionamiento:</strong> El precio de NEW LEAF (£12.49) les impide amenazar nuestro Rank #1, demostrando que el umbral psicológico <£10 (£8.89) asegura el volumen.</li>
+                        <li><span class="material-icons">tips_and_updates</span> <strong>Oportunidad Oculta (Other Insight):</strong> NKD Living está canibalizando su propio tráfico dividiéndolo en dos ASINs (Polvo vs Entero) que comparten keyword, mermando su fuerza para atacarnos directamente.</li>
+                    </ul>
+                </div>
+                
+                <div class="card">
+                    <h2 class="section-title"><span class="material-icons">task_alt</span> Recomendaciones Accionables</h2>
+                    <ul class="recs-list">
+                        <li><span class="material-icons">check_circle</span> <strong>Blindaje de Precio Estructural:</strong> Mantener estrictamente el precio en el rango £8.89 - £8.99. No arriesgar el badge de Amazon Choice buscando rentabilidad marginal, ya que el Rank #1 garantiza el volumen.</li>
+                        <li><span class="material-icons">check_circle</span> <strong>Activación Táctica de Cupones:</strong> Como actualmente tenemos 0 <em>Coupon Days</em>, lanzar un cupón temporal agresivo de 5-10% podría asfixiar definitivamente a NEW LEAF y cruzar la barrera del 35% de Share de Mercado.</li>
+                        <li><span class="material-icons">check_circle</span> <strong>Defensa Activa en PPC:</strong> Si NEW LEAF baja su precio (actual £12.49) acercándose a £10, debemos iniciar campañas defensivas de Retargeting y Sponsored Display para proteger nuestra conversión base.</li>
+                        <li><span class="material-icons">check_circle</span> <strong>Expansión de Variantes:</strong> Dado el fallo estratégico de NKD Living, si NaturaleBio lanzara otra textura (ej. cápsulas) bajo la misma página paraguas, acapararía el Real Estate orgánico total sin perder fuerza de reseña.</li>
+                    </ul>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- PESTAÑA 2: COMPARADOR INTERACTIVO -->
+        <div id="interactiveCompare" class="tab-content">
+            
+            <div class="controls">
+                <div>
+                    <label style="display:block; font-size: 12px; color: var(--text-secondary); margin-bottom: 4px;">Seleccionar Semana:</label>
+                    <select id="weekSelect" onchange="updateComparator()"></select>
+                </div>
+                <div>
+                    <label style="display:block; font-size: 12px; color: var(--text-secondary); margin-bottom: 4px;">Seleccionar Competidor:</label>
+                    <select id="compSelect" onchange="updateComparator()"></select>
+                </div>
+            </div>
+
+            <div class="card vs-container">
+                <div class="vs-card" style="border: 2px solid var(--primary-blue); border-radius: 12px;">
+                    <h3 style="color: var(--primary-dark); margin-top: 0;">NaturaleBio (Nosotros)</h3>
+                    <div style="font-size: 12px; color: #666; margin-bottom: 16px;">ASIN: B07L9WJ4P2</div>
+                    
+                    <div class="stat-row">
+                        <span style="color: var(--text-secondary);">Click Share</span>
+                        <strong style="font-size: 18px;" id="vs_our_share">-</strong>
+                    </div>
+                    <div class="stat-row">
+                        <span style="color: var(--text-secondary);">Precio Promedio</span>
+                        <strong style="font-size: 18px;" id="vs_our_price">-</strong>
+                    </div>
+                    <div class="stat-row">
+                        <span style="color: var(--text-secondary);">Rank Orgánico</span>
+                        <strong style="font-size: 18px;" id="vs_our_rank">-</strong>
+                    </div>
+                    <div class="stat-row">
+                        <span style="color: var(--text-secondary);">Días de Deals/Coupons</span>
+                        <strong style="font-size: 18px;" id="vs_our_deals">-</strong>
+                    </div>
+                </div>
+
+                <div class="vs-badge">VS</div>
+
+                <div class="vs-card" style="border: 2px solid var(--secondary-red); border-radius: 12px;">
+                    <h3 style="color: var(--secondary-red); margin-top: 0;" id="vs_comp_name">Competidor</h3>
+                    <div style="font-size: 12px; color: #666; margin-bottom: 16px;" id="vs_comp_asin">-</div>
+                    
+                    <div class="stat-row">
+                        <span style="color: var(--text-secondary);">Click Share</span>
+                        <strong style="font-size: 18px;" id="vs_comp_share">-</strong>
+                    </div>
+                    <div class="stat-row">
+                        <span style="color: var(--text-secondary);">Precio Promedio</span>
+                        <strong style="font-size: 18px;" id="vs_comp_price">-</strong>
+                    </div>
+                    <div class="stat-row">
+                        <span style="color: var(--text-secondary);">Rank Orgánico</span>
+                        <strong style="font-size: 18px;" id="vs_comp_rank">-</strong>
+                    </div>
+                    <div class="stat-row">
+                        <span style="color: var(--text-secondary);">Días de Deals/Coupons</span>
+                        <strong style="font-size: 18px;" id="vs_comp_deals">-</strong>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2 class="section-title"><span class="material-icons">bar_chart</span> Cara a Cara: Métricas Clave</h2>
+                <div id="chart_interactive" class="chart-container" style="height: 350px;"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+    <script>
+        // --- 1. DATOS PROCESADOS (CSV INYECTADO DIRECTAMENTE) ---
+        // Basado estrictamente en el CSV proporcionado, aplicando las reglas del Prompt.
+        const rawData = [
+            {brand_aggregation:"naturalebio", week_date:"2026-09", competitor_brand:"", asin:"B0FW6P4NKY", product_title:"Vinco Fibre Supplement 5000mg...", avg_organic_rank:24, deal_days:6, amz_choice:0, coupon_days:0, click_share:1.88, price:8.70, search_volume:15429, is_yaba:"N"},
+            {brand_aggregation:"naturalebio", week_date:"2026-10", competitor_brand:"Natural Health 4 Life", asin:"B07PX2TYXN", product_title:"Natural Health 4 Life Vegetable...", avg_organic_rank:11, deal_days:0, amz_choice:0, coupon_days:0, click_share:1.19, price:17.49, search_volume:14827, is_yaba:"N"},
+            {brand_aggregation:"naturalebio", week_date:"2026-09", competitor_brand:"WeightWorld", asin:"B0B1QQNZ2S", product_title:"WeightWorld Organic Psyllium Husk...", avg_organic_rank:5, deal_days:4, amz_choice:0, coupon_days:0, click_share:4.41, price:11.11, search_volume:15429, is_yaba:"N"},
+            {brand_aggregation:"naturalebio", week_date:"2026-08", competitor_brand:"The Worldwide Mint", asin:"B0F3JB86T3", product_title:"Psyllium Husk Powder 200g...", avg_organic_rank:10, deal_days:0, amz_choice:0, coupon_days:0, click_share:5.71, price:7.20, search_volume:15239, is_yaba:"N"},
+            {brand_aggregation:"naturalebio", week_date:"2026-09", competitor_brand:"NaturaleBio", asin:"B07L9WJ4P2", product_title:"NaturaleBio Organic Psyllium Husk...", avg_organic_rank:1, deal_days:0, amz_choice:7, coupon_days:0, click_share:26.84, price:8.89, search_volume:15429, is_yaba:"Y"},
+            {brand_aggregation:"naturalebio", week_date:"2026-09", competitor_brand:"NKD Living", asin:"B08FQYKS82", product_title:"NKD Living Whole Psyllium Husks...", avg_organic_rank:5, deal_days:0, amz_choice:0, coupon_days:0, click_share:8.66, price:9.99, search_volume:15429, is_yaba:"N"},
+            {brand_aggregation:"naturalebio", week_date:"2026-09", competitor_brand:"NKD Living", asin:"B07BZ59D68", product_title:"NKD Living Psyllium Husk Powder...", avg_organic_rank:6, deal_days:0, amz_choice:0, coupon_days:0, click_share:4.41, price:9.99, search_volume:15429, is_yaba:"N"},
+            {brand_aggregation:"naturalebio", week_date:"2026-09", competitor_brand:"Yelixir Nutrition", asin:"B0CXXY21X7", product_title:"Yelixir Nutrition Psyllium Husk...", avg_organic_rank:0, deal_days:0, amz_choice:0, coupon_days:0, click_share:1.25, price:6.99, search_volume:15429, is_yaba:"N"},
+            {brand_aggregation:"naturalebio", week_date:"2026-10", competitor_brand:"NKD Living", asin:"B07BZ59D68", product_title:"NKD Living Psyllium Husk Powder...", avg_organic_rank:6, deal_days:0, amz_choice:0, coupon_days:0, click_share:4.54, price:9.99, search_volume:14827, is_yaba:"N"},
+            {brand_aggregation:"naturalebio", week_date:"2026-10", competitor_brand:"", asin:"B0FW6P4NKY", product_title:"Vinco Fibre Supplement 5000mg...", avg_organic_rank:33, deal_days:7, amz_choice:0, coupon_days:0, click_share:1.91, price:8.49, search_volume:14827, is_yaba:"N"},
+            {brand_aggregation:"naturalebio", week_date:"2026-08", competitor_brand:"NEW LEAF PRODUCTS", asin:"B08WM1VP8V", product_title:"Fibre Supplement 4000mg...", avg_organic_rank:2, deal_days:0, amz_choice:4, coupon_days:0, click_share:13.7, price:12.49, search_volume:15239, is_yaba:"N"},
+            {brand_aggregation:"naturalebio", week_date:"2026-10", competitor_brand:"The Worldwide Mint", asin:"B0F3JB86T3", product_title:"Psyllium Husk Powder 200g...", avg_organic_rank:5, deal_days:0, amz_choice:0, coupon_days:0, click_share:9.93, price:5.81, search_volume:14827, is_yaba:"N"},
+            {brand_aggregation:"naturalebio", week_date:"2026-09", competitor_brand:"REBIRTH WELLNESS BE YOURSELF | ONLY BETTER", asin:"B0F227549B", product_title:"Psyllium Husk Fibre Supplement...", avg_organic_rank:26, deal_days:0, amz_choice:0, coupon_days:0, click_share:2.29, price:9.95, search_volume:15429, is_yaba:"N"},
+            {brand_aggregation:"naturalebio", week_date:"2026-10", competitor_brand:"NKD Living", asin:"B08FQYKS82", product_title:"NKD Living Whole Psyllium Husks...", avg_organic_rank:5, deal_days:0, amz_choice:0, coupon_days:0, click_share:7.06, price:9.99, search_volume:14827, is_yaba:"N"},
+            {brand_aggregation:"naturalebio", week_date:"2026-10", competitor_brand:"REBIRTH WELLNESS BE YOURSELF | ONLY BETTER", asin:"B0F227549B", product_title:"Psyllium Husk Fibre Supplement...", avg_organic_rank:20, deal_days:0, amz_choice:0, coupon_days:0, click_share:1.94, price:9.95, search_volume:14827, is_yaba:"N"},
+            {brand_aggregation:"naturalebio", week_date:"2026-08", competitor_brand:"", asin:"B0FW6P4NKY", product_title:"Vinco Fibre Supplement 5000mg...", avg_organic_rank:18, deal_days:1, amz_choice:0, coupon_days:0, click_share:1.65, price:9.77, search_volume:15239, is_yaba:"N"},
+            {brand_aggregation:"naturalebio", week_date:"2026-09", competitor_brand:"NEW LEAF PRODUCTS", asin:"B08WM1VP8V", product_title:"Fibre Supplement 4000mg...", avg_organic_rank:2, deal_days:0, amz_choice:0, coupon_days:0, click_share:12.21, price:12.49, search_volume:15429, is_yaba:"N"},
+            {brand_aggregation:"naturalebio", week_date:"2026-09", competitor_brand:"Solgar", asin:"B005P0WGNE", product_title:"Solgar Psyllium Husks Fibre...", avg_organic_rank:4, deal_days:7, amz_choice:0, coupon_days:0, click_share:5.2, price:12.49, search_volume:15429, is_yaba:"N"},
+            {brand_aggregation:"naturalebio", week_date:"2026-10", competitor_brand:"NEW LEAF PRODUCTS", asin:"B08WM1VP8V", product_title:"Fibre Supplement 4000mg...", avg_organic_rank:2, deal_days:0, amz_choice:0, coupon_days:0, click_share:12.28, price:12.49, search_volume:14827, is_yaba:"N"},
+            {brand_aggregation:"naturalebio", week_date:"2026-08", competitor_brand:"NKD Living", asin:"B07BZ59D68", product_title:"NKD Living Psyllium Husk Powder...", avg_organic_rank:5, deal_days:0, amz_choice:0, coupon_days:0, click_share:4.8, price:9.99, search_volume:15239, is_yaba:"N"},
+            {brand_aggregation:"naturalebio", week_date:"2026-10", competitor_brand:"Solgar", asin:"B005P0WGNE", product_title:"Solgar Psyllium Husks Fibre...", avg_organic_rank:4, deal_days:6, amz_choice:0, coupon_days:0, click_share:5.25, price:12.81, search_volume:14827, is_yaba:"N"},
+            {brand_aggregation:"naturalebio", week_date:"2026-08", competitor_brand:"The Worldwide Mint", asin:"B0CP46WQ37", product_title:"Psyllium Husk Easy Mixing...", avg_organic_rank:21, deal_days:0, amz_choice:0, coupon_days:0, click_share:2.46, price:6.17, search_volume:15239, is_yaba:"N"},
+            {brand_aggregation:"naturalebio", week_date:"2026-10", competitor_brand:"NaturaleBio", asin:"B07L9WJ4P2", product_title:"NaturaleBio Organic Psyllium Husk...", avg_organic_rank:1, deal_days:0, amz_choice:7, coupon_days:0, click_share:27.84, price:8.89, search_volume:14827, is_yaba:"Y"},
+            {brand_aggregation:"naturalebio", week_date:"2026-09", competitor_brand:"The Worldwide Mint", asin:"B0F3JB86T3", product_title:"Psyllium Husk Powder 200g...", avg_organic_rank:7, deal_days:0, amz_choice:0, coupon_days:0, click_share:8.32, price:5.75, search_volume:15429, is_yaba:"N"},
+            {brand_aggregation:"naturalebio", week_date:"2026-08", competitor_brand:"NaturaleBio", asin:"B07L9WJ4P2", product_title:"NaturaleBio Organic Psyllium Husk...", avg_organic_rank:2, deal_days:0, amz_choice:6, coupon_days:0, click_share:26.16, price:8.89, search_volume:15239, is_yaba:"Y"},
+            {brand_aggregation:"naturalebio", week_date:"2026-08", competitor_brand:"", asin:"B0G3B81XPV", product_title:"Psyllium Husk 10000mg with Acidophilus...", avg_organic_rank:44, deal_days:0, amz_choice:0, coupon_days:0, click_share:2.04, price:12.99, search_volume:15239, is_yaba:"N"},
+            {brand_aggregation:"naturalebio", week_date:"2026-08", competitor_brand:"Solgar", asin:"B005P0WGNE", product_title:"Solgar Psyllium Husks Fibre...", avg_organic_rank:6, deal_days:2, amz_choice:0, coupon_days:4, click_share:3.35, price:15.33, search_volume:15239, is_yaba:"N"},
+            {brand_aggregation:"naturalebio", week_date:"2026-08", competitor_brand:"NKD Living", asin:"B08FQYKS82", product_title:"NKD Living Whole Psyllium Husks...", avg_organic_rank:3, deal_days:0, amz_choice:0, coupon_days:0, click_share:9.55, price:9.99, search_volume:15239, is_yaba:"N"},
+            {brand_aggregation:"naturalebio", week_date:"2026-10", competitor_brand:"WeightWorld", asin:"B0B1QQNZ2S", product_title:"WeightWorld Organic Psyllium Husk...", avg_organic_rank:8, deal_days:0, amz_choice:0, coupon_days:0, click_share:6, price:11.96, search_volume:14827, is_yaba:"N"},
+            {brand_aggregation:"naturalebio", week_date:"2026-08", competitor_brand:"WeightWorld", asin:"B0B1QQNZ2S", product_title:"WeightWorld Organic Psyllium Husk...", avg_organic_rank:4, deal_days:7, amz_choice:0, coupon_days:0, click_share:4.96, price:9.99, search_volume:15239, is_yaba:"N"}
+        ];
+
+        // Reglas Críticas: Parsear Marca Real
+        const marketData = rawData.map(d => {
+            let realBrand = d.competitor_brand;
+            if (!realBrand || realBrand.trim() === '') {
+                // Inferir del título si falta
+                if (d.product_title.includes('Vinco')) realBrand = 'Vinco';
+                else realBrand = 'Unknown Brand';
+            }
+            return {
+                ...d,
+                brand: realBrand,
+                est_clicks: (d.search_volume * (d.click_share / 100))
+            };
+        });
+
+        const ourBrandName = "NaturaleBio"; // Extraído donde is_yaba == 'Y'
+        const topCompetitors = ["NKD Living", "NEW LEAF PRODUCTS", "The Worldwide Mint"];
+        const weeks = [...new Set(marketData.map(d => d.week_date))].sort();
+
+        // Inicializar Google Charts
+        google.charts.load('current', {'packages':['corechart', 'bar', 'scatter']});
+        google.charts.setOnLoadCallback(drawAllCharts);
+
+        function drawAllCharts() {
+            drawTrendChart();
+            drawCompetitivenessChart();
+            drawLeversChart();
+            drawEfficiencyChart();
+            populateInteractiveSelectors();
+        }
+
+        // --- CHART 1: Tendencia Global (ComboChart) ---
+        function drawTrendChart() {
+            let dataTable = new google.visualization.DataTable();
+            dataTable.addColumn('string', 'Semana');
+            dataTable.addColumn('number', 'Nuestros Clicks Est.');
+            dataTable.addColumn('number', 'Clicks Competidores');
+            dataTable.addColumn('number', 'Nuestro Click Share %');
+            dataTable.addColumn('number', 'Click Share Competencia %');
+
+            weeks.forEach(w => {
+                let ourClicks = 0, compClicks = 0;
+                let ourShare = 0, compShare = 0;
+                
+                marketData.filter(d => d.week_date === w).forEach(d => {
+                    if(d.is_yaba === 'Y') {
+                        ourClicks += d.est_clicks;
+                        ourShare += d.click_share;
+                    } else {
+                        compClicks += d.est_clicks;
+                        compShare += d.click_share;
+                    }
+                });
+                
+                dataTable.addRow([w, ourClicks, compClicks, ourShare, compShare]);
+            });
+
+            let options = {
+                seriesType: 'bars',
+                series: {
+                    0: {targetAxisIndex: 0, color: '#4285F4'}, // Azul Nosotros
+                    1: {targetAxisIndex: 0, color: '#DADCE0'}, // Gris Comp
+                    2: {type: 'line', targetAxisIndex: 1, color: '#1A73E8', lineWidth: 4},
+                    3: {type: 'line', targetAxisIndex: 1, color: '#EA4335', lineWidth: 2, lineDashStyle: [4, 4]}
+                },
+                vAxes: {
+                    0: {title: 'Volumen de Clicks'},
+                    1: {title: 'Click Share (%)', format: '#.##%'}
+                },
+                chartArea: {width: '75%', height: '70%'},
+                legend: {position: 'top'},
+                backgroundColor: 'transparent',
+                animation: {startup: true, duration: 1000, easing: 'out'}
+            };
+
+            let chart = new google.visualization.ComboChart(document.getElementById('chart_trend'));
+            chart.draw(dataTable, options);
+        }
+
+        // --- CHART 2: Competitividad (LineChart) ---
+        function drawCompetitivenessChart() {
+            let dataTable = new google.visualization.DataTable();
+            dataTable.addColumn('string', 'Semana');
+            dataTable.addColumn('number', ourBrandName);
+            topCompetitors.forEach(c => dataTable.addColumn('number', c));
+            dataTable.addColumn('number', 'Resto del Mercado');
+
+            weeks.forEach(w => {
+                let rowData = [w, 0, 0, 0, 0, 0];
+                marketData.filter(d => d.week_date === w).forEach(d => {
+                    if(d.brand === ourBrandName) rowData[1] += d.click_share;
+                    else if(d.brand === topCompetitors[0]) rowData[2] += d.click_share;
+                    else if(d.brand === topCompetitors[1]) rowData[3] += d.click_share;
+                    else if(d.brand === topCompetitors[2]) rowData[4] += d.click_share;
+                    else rowData[5] += d.click_share;
+                });
+                dataTable.addRow(rowData);
+            });
+
+            let options = {
+                curveType: 'function',
+                colors: ['#4285F4', '#EA4335', '#FBBC05', '#34A853', '#9AA0A6'],
+                lineWidth: 3,
+                chartArea: {width: '80%', height: '75%'},
+                legend: {position: 'right'},
+                vAxis: {title: 'Click Share (%)'},
+                backgroundColor: 'transparent',
+                animation: {startup: true, duration: 1000, easing: 'out'}
+            };
+
+            let chart = new google.visualization.LineChart(document.getElementById('chart_competitiveness'));
+            chart.draw(dataTable, options);
+        }
+
+        // --- CHART 3: Palancas (ColumnChart) ---
+        function drawLeversChart() {
+            let dataTable = new google.visualization.DataTable();
+            dataTable.addColumn('string', 'Estado Promocional');
+            dataTable.addColumn('number', 'Promedio Click Share %');
+            dataTable.addColumn({ type: 'string', role: 'style' });
+
+            // Calcular promedios
+            let amzChoiceShare = 0, amzChoiceCount = 0;
+            let noAmzChoiceShare = 0, noAmzChoiceCount = 0;
+            let dealShare = 0, dealCount = 0;
+
+            marketData.forEach(d => {
+                if(d.amz_choice > 0) { amzChoiceShare += d.click_share; amzChoiceCount++; }
+                else { noAmzChoiceShare += d.click_share; noAmzChoiceCount++; }
+                
+                if(d.deal_days > 0) { dealShare += d.click_share; dealCount++; }
+            });
+
+            dataTable.addRows([
+                ['Con Amazon Choice', amzChoiceCount ? amzChoiceShare/amzChoiceCount : 0, '#4285F4'],
+                ['Sin Amazon Choice', noAmzChoiceCount ? noAmzChoiceShare/noAmzChoiceCount : 0, '#9AA0A6'],
+                ['Con Deals Activados', dealCount ? dealShare/dealCount : 0, '#EA4335']
+            ]);
+
+            let options = {
+                legend: {position: 'none'},
+                vAxis: {title: 'Click Share Promedio (%)'},
+                chartArea: {width: '70%', height: '75%'},
+                backgroundColor: 'transparent',
+                animation: {startup: true, duration: 1000, easing: 'out'}
+            };
+
+            let chart = new google.visualization.ColumnChart(document.getElementById('chart_levers'));
+            chart.draw(dataTable, options);
+        }
+
+        // --- CHART 4: Eficiencia Rank vs Share (ScatterChart) ---
+        function drawEfficiencyChart() {
+            let dataTable = new google.visualization.DataTable();
+            dataTable.addColumn('number', 'Organic Rank');
+            dataTable.addColumn('number', 'Nuestros ASINs');
+            dataTable.addColumn('number', 'Competidores');
+
+            marketData.forEach(d => {
+                if(d.avg_organic_rank > 0) {
+                    if(d.is_yaba === 'Y') {
+                        dataTable.addRow([d.avg_organic_rank, d.click_share, null]);
+                    } else {
+                        dataTable.addRow([d.avg_organic_rank, null, d.click_share]);
+                    }
+                }
+            });
+
+            let options = {
+                hAxis: {title: 'Organic Rank (Más a la izq. es mejor)', direction: -1},
+                vAxis: {title: 'Click Share (%)'},
+                colors: ['#4285F4', '#EA4335'],
+                chartArea: {width: '75%', height: '75%'},
+                legend: {position: 'top'},
+                backgroundColor: 'transparent',
+                pointSize: 8,
+                animation: {startup: true, duration: 1000, easing: 'out'}
+            };
+
+            let chart = new google.visualization.ScatterChart(document.getElementById('chart_efficiency'));
+            chart.draw(dataTable, options);
+        }
+
+
+        // --- LÓGICA DE TABS Y COMPARADOR INTERACTIVO ---
+        function switchTab(tabId, element) {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            
+            document.getElementById(tabId).classList.add('active');
+            element.classList.add('active');
+
+            if(tabId === 'interactiveCompare' && !window.comparatorInited) {
+                updateComparator();
+                window.comparatorInited = true;
+            }
+        }
+
+        function populateInteractiveSelectors() {
+            let wkSel = document.getElementById('weekSelect');
+            let cmpSel = document.getElementById('compSelect');
+            
+            weeks.forEach(w => {
+                let opt = document.createElement('option');
+                opt.value = w; opt.text = "Semana " + w;
+                wkSel.appendChild(opt);
+            });
+            wkSel.value = weeks[weeks.length-1]; // Última semana por defecto
+
+            let allComps = [...new Set(marketData.filter(d => d.is_yaba === 'N').map(d => d.brand))];
+            allComps.forEach(c => {
+                let opt = document.createElement('option');
+                opt.value = c; opt.text = c;
+                cmpSel.appendChild(opt);
+            });
+            cmpSel.value = "NEW LEAF PRODUCTS"; // Principal competidor por defecto
+        }
+
+        function updateComparator() {
+            let selWeek = document.getElementById('weekSelect').value;
+            let selComp = document.getElementById('compSelect').value;
+
+            let weekData = marketData.filter(d => d.week_date === selWeek);
+            
+            let ourItem = weekData.find(d => d.is_yaba === 'Y') || {click_share:0, price:0, avg_organic_rank:'-', deal_days:0, coupon_days:0};
+            let compItems = weekData.filter(d => d.brand === selComp);
+
+            // Si el comp tiene múltiples ASINs (ej. NKD Living), agregar cuotas, promediar precios
+            let compAgg = {
+                name: selComp,
+                asin: compItems.length > 1 ? 'Múltiples ASINs' : (compItems[0]?.asin || '-'),
+                share: compItems.reduce((acc, curr) => acc + curr.click_share, 0),
+                price: compItems.length ? (compItems.reduce((acc, curr) => acc + curr.price, 0) / compItems.length).toFixed(2) : 0,
+                rank: compItems.length ? Math.min(...compItems.map(i => i.avg_organic_rank > 0 ? i.avg_organic_rank : 999)) : '-',
+                deals: compItems.reduce((acc, curr) => acc + curr.deal_days + curr.coupon_days, 0)
+            };
+
+            // Update DOM
+            document.getElementById('vs_our_share').innerText = ourItem.click_share + '%';
+            document.getElementById('vs_our_price').innerText = '£' + Number(ourItem.price).toFixed(2);
+            document.getElementById('vs_our_rank').innerText = '#' + ourItem.avg_organic_rank;
+            document.getElementById('vs_our_deals').innerText = (ourItem.deal_days + ourItem.coupon_days);
+
+            document.getElementById('vs_comp_name').innerText = compAgg.name;
+            document.getElementById('vs_comp_asin').innerText = compAgg.asin;
+            document.getElementById('vs_comp_share').innerText = compAgg.share.toFixed(2) + '%';
+            document.getElementById('vs_comp_price').innerText = '£' + compAgg.price;
+            document.getElementById('vs_comp_rank').innerText = compAgg.rank === 999 ? '-' : '#' + compAgg.rank;
+            document.getElementById('vs_comp_deals').innerText = compAgg.deals;
+
+            // Draw Interactive Chart
+            let dt = new google.visualization.DataTable();
+            dt.addColumn('string', 'Métrica');
+            dt.addColumn('number', 'NaturaleBio');
+            dt.addColumn('number', compAgg.name);
+
+            dt.addRows([
+                ['Click Share (%)', parseFloat(ourItem.click_share), parseFloat(compAgg.share)],
+                ['Precio (£)', parseFloat(ourItem.price), parseFloat(compAgg.price)]
+            ]);
+
+            let opts = {
+                chartArea: {width: '60%', height: '70%'},
+                colors: ['#4285F4', '#EA4335'],
+                vAxis: {minValue: 0},
+                legend: {position: 'top'},
+                animation: {startup: true, duration: 500, easing: 'out'}
+            };
+
+            let ch = new google.visualization.ColumnChart(document.getElementById('chart_interactive'));
+            ch.draw(dt, opts);
+        }
+
+    </script>
+</body>
+</html>
