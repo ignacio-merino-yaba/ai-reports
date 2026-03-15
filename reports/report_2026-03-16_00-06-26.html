@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reporte de Inteligencia de Mercado - Parent ASIN</title>
+    <!-- Google Charts -->
+    <script src="https://www.gstatic.com/charts/loader.js"></script>
+    <!-- Google Material Icons -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-blue: #1a73e8;
+            --primary-red: #ea4335;
+            --primary-yellow: #fbbc04;
+            --primary-green: #34a853;
+            --bg-light: #f8f9fa;
+            --card-bg: #ffffff;
+            --text-main: #202124;
+            --text-muted: #5f6368;
+            --border-color: #dadce0;
+            --shadow-sm: 0 1px 2px 0 rgba(60,64,67,0.3), 0 1px 3px 1px rgba(60,64,67,0.15);
+            --shadow-md: 0 4px 6px 0 rgba(60,64,67,0.3);
+        }
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: var(--bg-light);
+            color: var(--text-main);
+            margin: 0;
+            padding: 0;
+        }
+        header {
+            background-color: var(--card-bg);
+            padding: 16px 32px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            box-shadow: var(--shadow-sm);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        header h1 {
+            font-size: 20px;
+            font-weight: 500;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        header .material-icons { color: var(--primary-blue); font-size: 28px;}
+        
+        .container {
+            max-width: 1400px;
+            margin: 24px auto;
+            padding: 0 24px;
+        }
+        
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 24px;
+        }
+        .tab {
+            padding: 14px 24px;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 500;
+            color: var(--text-muted);
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s ease-in-out;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .tab:hover { background-color: rgba(26, 115, 232, 0.04); color: var(--primary-blue); }
+        .tab.active {
+            color: var(--primary-blue);
+            border-bottom: 3px solid var(--primary-blue);
+        }
+        
+        .tab-content { display: none; animation: fadeIn 0.3s ease-in; }
+        .tab-content.active { display: block; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .grid-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border-color);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 12px;
+        }
+
+        .card-title {
+            font-size: 18px;
+            font-weight: 500;
+            margin: 0;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .kpi-box {
+            text-align: center;
+            padding: 16px;
+            background: var(--bg-light);
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+        .kpi-val {
+            font-size: 36px;
+            font-weight: 400;
+            color: var(--primary-blue);
+            margin-bottom: 4px;
+        }
+        .kpi-val.negative { color: var(--primary-red); }
+        .kpi-lbl {
+            font-size: 13px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .chart-container {
+            width: 100%;
+            height: 450px;
+            margin-top: 16px;
+        }
+
+        .text-section { margin-bottom: 16px; line-height: 1.6; }
+        .text-section h4 { color: var(--primary-blue); margin-top: 0; margin-bottom: 12px; font-size: 16px;}
+        
+        ul.insight-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        ul.insight-list li {
+            position: relative;
+            padding-left: 36px;
+            margin-bottom: 16px;
+            color: var(--text-main);
+        }
+        ul.insight-list li .material-icons {
+            position: absolute;
+            left: 0;
+            top: 0;
+            color: var(--primary-blue);
+        }
+        ul.insight-list li strong {
+            color: var(--text-main);
+        }
+
+        /* Comparador Interactivo Styles */
+        .controls {
+            display: flex;
+            gap: 24px;
+            margin-bottom: 32px;
+            padding: 16px;
+            background: var(--bg-light);
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .control-group label {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+        select {
+            padding: 10px 16px;
+            font-size: 15px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background-color: white;
+            color: var(--text-main);
+            outline: none;
+            cursor: pointer;
+            min-width: 200px;
+        }
+        select:focus { border-color: var(--primary-blue); }
+
+        .h2h-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 32px;
+        }
+        .h2h-col {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 32px;
+            box-shadow: var(--shadow-sm);
+            border: 2px solid transparent;
+        }
+        .h2h-col.us { border-color: var(--primary-blue); }
+        .h2h-col.comp { border-color: var(--primary-red); }
+        
+        .h2h-header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+        .h2h-header h3 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 500;
+        }
+        .h2h-col.us .h2h-header h3 { color: var(--primary-blue); }
+        .h2h-col.comp .h2h-header h3 { color: var(--primary-red); }
+
+        .metric-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .metric-row:last-child { border-bottom: none; }
+        .metric-lbl {
+            font-size: 16px;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .metric-val {
+            font-size: 22px;
+            font-weight: 500;
+            color: var(--text-main);
+        }
+        .metric-val.win { color: var(--primary-green); }
+        .metric-val.loss { color: var(--primary-red); }
+
+        /* Dos columnas layout */
+        .layout-2col {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <span class="material-icons">analytics</span>
+        <h1>Reporte de Inteligencia de Mercado | Parent ASIN: Matcha Powder Jar</h1>
+    </header>
+
+    <div class="container">
+        
+        <div class="tabs">
+            <div class="tab active" id="btn-tab-report" onclick="switchTab('tab-report')">
+                <span class="material-icons">dashboard</span> Dashboard Principal
+            </div>
+            <div class="tab" id="btn-tab-compare" onclick="switchTab('tab-compare')">
+                <span class="material-icons">compare_arrows</span> Comparador Interactivo
+            </div>
+        </div>
+
+        <!-- PESTAÑA 1: REPORTE ESTÁTICO -->
+        <div id="tab-report" class="tab-content active">
+            
+            <div class="grid-cards" style="grid-template-columns: repeat(4, 1fr);">
+                <div class="kpi-box">
+                    <div class="kpi-val negative" id="kpi_share">3.03%</div>
+                    <div class="kpi-lbl">Click Share (Última Sem)</div>
+                </div>
+                <div class="kpi-val kpi-box">
+                    <div class="kpi-val" id="kpi_comp" style="color: var(--primary-red);">51.49%</div>
+                    <div class="kpi-lbl">Competencia Share (Última Sem)</div>
+                </div>
+                <div class="kpi-box">
+                    <div class="kpi-val">10</div>
+                    <div class="kpi-lbl">Promedio Organic Rank (Yaba)</div>
+                </div>
+                <div class="kpi-box">
+                    <div class="kpi-val">$25.99</div>
+                    <div class="kpi-lbl">Precio Yaba vs $15 Competencia</div>
+                </div>
+            </div>
+
+            <!-- Sección 1 y 2: Gráficos -->
+            <div class="layout-2col">
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title"><span class="material-icons">trending_up</span> 1. Tendencia Global del Parent</h2>
+                    </div>
+                    <div id="chart_trend" class="chart-container"></div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title"><span class="material-icons">military_tech</span> 2. Competitividad de Marca (Share %)</h2>
+                    </div>
+                    <div id="chart_competitiveness" class="chart-container"></div>
+                </div>
+            </div>
+
+            <div class="layout-2col">
+                <!-- Sección 4: Eficiencia -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title"><span class="material-icons">scatter_plot</span> 4. Organic Rank vs Click Share (Eficiencia)</h2>
+                    </div>
+                    <div id="chart_efficiency" class="chart-container"></div>
+                </div>
+
+                <!-- Sección 3: Palancas -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title"><span class="material-icons">tune</span> 3. Palancas que Aumentan el Click Share</h2>
+                    </div>
+                    <div class="text-section">
+                        <ul class="insight-list">
+                            <li>
+                                <span class="material-icons">payments</span>
+                                <strong>Precio:</strong> El ASIN principal nuestro (MATCHA DNA) subió su precio de $22.56 a $25.99. Simultáneamente, la cuota de mercado se desplomó de 5.16% a 2.92%. La inelasticidad en este nicho es clara: líderes como <em>Jade Leaf</em> y <em>Chaism</em> captan >15% de share gracias a tickets entre $10 y $17.
+                            </li>
+                            <li>
+                                <span class="material-icons">sell</span>
+                                <strong>Deal Days / Amazon Choice:</strong> La competencia maximiza eficiencia. <em>Chaism</em> pasó del 2.49% al 10.52% de share al combinar 7 días de Deals con 5 días de Amazon Choice. El algoritmo de clics premia desproporcionadamente el stacking de badges.
+                            </li>
+                            <li>
+                                <span class="material-icons">local_offer</span>
+                                <strong>Coupons Days:</strong> Nuestros ASINs mantienen estrategias de cupones sostenidos (promedio 4.8 a 7 días/semana). Sin embargo, esto no compensa el elevado precio base. El usuario percibe menor valor relativo frente a la competencia orgánica.
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sección 5 y 6: Conclusiones e Insights -->
+            <div class="layout-2col">
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title"><span class="material-icons">lightbulb</span> 5. Conclusiones y Recomendaciones</h2>
+                    </div>
+                    <div class="text-section">
+                        <h4>Insights Principales</h4>
+                        <ul class="insight-list">
+                            <li><span class="material-icons">arrow_drop_down_circle</span><strong>Pérdida Crítica de Cuota:</strong> El Parent ASIN ha perdido visibilidad mes a mes (cayendo al 3.03%), mientras la competencia agregada subió del 39.84% al 51.49%.</li>
+                            <li><span class="material-icons">price_change</span><strong>Impacto Directo de Precio:</strong> El salto en MATCHA DNA a $25.99 afectó gravemente el ranking orgánico (del 5 al 10), drenando la captación de tráfico en el embudo.</li>
+                            <li><span class="material-icons">leaderboard</span><strong>Liderazgo de Mercado:</strong> <em>Jade Leaf Matcha</em> y <em>Chaism</em> dictan el mercado con una eficiencia masiva, convirtiendo Rank orgánicos bajos en altas tasas de clics por barreras de precio bajo.</li>
+                            <li><span class="material-icons">warning</span><strong>Ineficiencia de Cupones:</strong> Nuestra tasa intensiva de cupones fracasa en elevar la competitividad de marca; el precio final sigue sin ser disruptivo.</li>
+                            <li><span class="material-icons">visibility_off</span><strong>Limitación de Posicionamiento:</strong> El Rank orgánico promedio de los competidores top es 7.4 vs. el 18.8 nuestro. Hay un problema base en SEO/PPC que precede a la conversión.</li>
+                        </ul>
+                        
+                        <h4 style="margin-top: 24px;">Recomendaciones Accionables (Para la próxima semana)</h4>
+                        <ul class="insight-list">
+                            <li><span class="material-icons">play_circle</span><strong>Ajuste de Pricing Táctico:</strong> Disminuir el PVP base de MATCHA DNA a una franja defensiva de $18.99-$19.99 para frenar la caída inmediata de clics y recuperar posiciones en el TOP 6 orgánico.</li>
+                            <li><span class="material-icons">play_circle</span><strong>Rotación de Palancas:</strong> Desactivar los cupones perpetuos y aplicar <em>Lightning Deals</em> fuertes de corta duración para forzar picos de conversión y reestimular el BSR.</li>
+                            <li><span class="material-icons">play_circle</span><strong>Defensa de Keywords (PPC):</strong> Aumentar de inmediato los bids de pauta en "matcha powder" para forzar impresiones (Top of Search) y contrarrestar la pérdida de Rank orgánico temporalmente.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title"><span class="material-icons">travel_explore</span> 6. Other Insights (Libre)</h2>
+                    </div>
+                    <div class="text-section">
+                        <ul class="insight-list">
+                            <li>
+                                <span class="material-icons">trending_flat</span>
+                                <strong>Inactividad de Variantes Secundarias:</strong> Nuestro ASIN <em>PureChimp Ceremonial Grade</em> se encuentra en la posición orgánica 47 con una cuota de clics residual de 0.06% a 0.11%. Su impacto en el Parent es casi nulo. Se sugiere una campaña de reactivación enfocada o, en su defecto, racionalizar el portfolio.
+                            </li>
+                            <li>
+                                <span class="material-icons">radar</span>
+                                <strong>La Estrategia Combinada Gana:</strong> Los competidores como <em>Naoki Matcha</em> mantienen un precio premium ($24.99-$39.99) pero logran retener un share del 9-10% (ASIN: B01L2GW7SI). Analizando la data, lo consiguen utilizando el badge de Amazon Choice repetidamente (hasta 6 días). Esto indica que la confianza generada por el badge permite sostener precios más altos. Debemos apostar por conseguir ese badge.
+                            </li>
+                            <li>
+                                <span class="material-icons">speed</span>
+                                <strong>Velocidad del Cambio:</strong> La migración de tráfico es rápida. En una sola semana, los competidores movieron más de 4,000 clics equivalentes del ecosistema general a sus listings apalancando el factor precio/promoción.
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PESTAÑA 2: COMPARADOR INTERACTIVO -->
+        <div id="tab-compare" class="tab-content">
+            
+            <div class="controls">
+                <div class="control-group">
+                    <label>Seleccionar Semana</label>
+                    <select id="sel_week"></select>
+                </div>
+                <div class="control-group">
+                    <label>Seleccionar Competidor (Marca Real)</label>
+                    <select id="sel_comp"></select>
+                </div>
+            </div>
+
+            <div class="h2h-grid">
+                <!-- Nosotros -->
+                <div class="h2h-col us">
+                    <div class="h2h-header">
+                        <h3>Nuestra Marca (Yaba)</h3>
+                    </div>
+                    
+                    <div class="metric-row">
+                        <div class="metric-lbl"><span class="material-icons">attach_money</span> Precio Promedio</div>
+                        <div class="metric-val" id="us_price">$0.00</div>
+                    </div>
+                    <div class="metric-row">
+                        <div class="metric-lbl"><span class="material-icons">pie_chart</span> Cuota de Clics (Share)</div>
+                        <div class="metric-val" id="us_share">0.00%</div>
+                    </div>
+                    <div class="metric-row">
+                        <div class="metric-lbl"><span class="material-icons">sort</span> Rank Orgánico Promedio</div>
+                        <div class="metric-val" id="us_rank">0.0</div>
+                    </div>
+                    <div class="metric-row">
+                        <div class="metric-lbl"><span class="material-icons">stars</span> Días con Promociones (Deal+Coupon)</div>
+                        <div class="metric-val" id="us_deals">0</div>
+                    </div>
+                </div>
+
+                <!-- Competencia -->
+                <div class="h2h-col comp">
+                    <div class="h2h-header">
+                        <h3 id="comp_title">Competidor</h3>
+                    </div>
+                    
+                    <div class="metric-row">
+                        <div class="metric-lbl"><span class="material-icons">attach_money</span> Precio Promedio</div>
+                        <div class="metric-val" id="comp_price">$0.00</div>
+                    </div>
+                    <div class="metric-row">
+                        <div class="metric-lbl"><span class="material-icons">pie_chart</span> Cuota de Clics (Share)</div>
+                        <div class="metric-val" id="comp_share">0.00%</div>
+                    </div>
+                    <div class="metric-row">
+                        <div class="metric-lbl"><span class="material-icons">sort</span> Rank Orgánico Promedio</div>
+                        <div class="metric-val" id="comp_rank">0.0</div>
+                    </div>
+                    <div class="metric-row">
+                        <div class="metric-lbl"><span class="material-icons">stars</span> Días con Promociones (Deal+Coupon)</div>
+                        <div class="metric-val" id="comp_deals">0</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- SCRIPT DE DATOS Y LÓGICA GOOGLE CHARTS (VANILLA JS) -->
+    <script>
+        // Inyección de Datos Procesados
+        const marketData = [{"brand_aggregation": "purechimp", "parent_asin": "Matcha Powder Jar", "reporting_date": "2026-03-07", "week_date": "2026-10", "keywords": "matcha powder", "competitor_brand": "PureChimp", "asin": "B00HNDSOCI", "product_title": "PureChimp Ceremonial Grade Matcha Powder 1.75oz. P...", "country_code": "us", "average_organic_rank": 38.0, "weekly_number_of_days_with_deal": 0.0, "weekly_number_of_days_with_best_seller_badge": 0.0, "weekly_number_of_days_with_amazon_choice_badge": 0.0, "weekly_number_of_days_with_coupon": 5.0, "click_share": 0.11, "impression_share": 0.23, "price": null, "click_share_rank": 0, "weekly_search_volume": 189307.85, "is_yaba_asin": "Y", "keywords_link": "https://www.amazon.com/s?k=matcha+powder", "brand_real": "PureChimp"}, {"brand_aggregation": "purechimp", "parent_asin": "Matcha Powder Jar", "reporting_date": "2026-02-14", "week_date": "2026-07", "keywords": "matcha powder", "competitor_brand": "Chaism", "asin": "B0BPXQ2PR5", "product_title": "Chaism Ceremonial Grade Matcha Green Tea Powder - ...", "country_code": "us", "average_organic_rank": 13.0, "weekly_number_of_days_with_deal": 0.0, "weekly_number_of_days_with_best_seller_badge": 0.0, "weekly_number_of_days_with_amazon_choice_badge": 0.0, "weekly_number_of_days_with_coupon": 0.0, "click_share": 2.49, "impression_share": 3.19, "price": 19.99, "click_share_rank": 7, "weekly_search_volume": 158383.87, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.com/s?k=matcha+powder", "brand_real": "Chaism"}, {"brand_aggregation": "purechimp", "parent_asin": "Matcha Powder Jar", "reporting_date": "2026-02-14", "week_date": "2026-07", "keywords": "matcha powder", "competitor_brand": "Naoki Matcha", "asin": "B07T3FP977", "product_title": "Naoki Matcha Superior Ceremonial Blend \u2013 Authentic...", "country_code": "us", "average_organic_rank": 7.0, "weekly_number_of_days_with_deal": 0.0, "weekly_number_of_days_with_best_seller_badge": 0.0, "weekly_number_of_days_with_amazon_choice_badge": 0.0, "weekly_number_of_days_with_coupon": 0.0, "click_share": 2.34, "impression_share": 2.38, "price": 39.99, "click_share_rank": 9, "weekly_search_volume": 158383.87, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.com/s?k=matcha+powder", "brand_real": "Naoki Matcha"}, {"brand_aggregation": "purechimp", "parent_asin": "Matcha Powder Jar", "reporting_date": "2026-02-21", "week_date": "2026-08", "keywords": "matcha powder", "competitor_brand": "Jade Leaf Matcha", "asin": "B017QYXVSK", "product_title": "Jade Leaf Matcha Organic Barista Blend Ceremonial ...", "country_code": "us", "average_organic_rank": 9.0, "weekly_number_of_days_with_deal": 0.0, "weekly_number_of_days_with_best_seller_badge": 0.0, "weekly_number_of_days_with_amazon_choice_badge": 0.0, "weekly_number_of_days_with_coupon": 1.0, "click_share": 3.63, "impression_share": 2.99, "price": 18.79, "click_share_rank": 4, "weekly_search_volume": 164146.07, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.com/s?k=matcha+powder", "brand_real": "Jade Leaf Matcha"}, {"brand_aggregation": "purechimp", "parent_asin": "Matcha Powder Jar", "reporting_date": "2026-02-21", "week_date": "2026-08", "keywords": "matcha powder", "competitor_brand": "Chaism", "asin": "B0BPXQ2PR5", "product_title": "Chaism Ceremonial Grade Matcha Green Tea Powder - ...", "country_code": "us", "average_organic_rank": 11.0, "weekly_number_of_days_with_deal": 4.0, "weekly_number_of_days_with_best_seller_badge": 0.0, "weekly_number_of_days_with_amazon_choice_badge": 0.0, "weekly_number_of_days_with_coupon": 0.0, "click_share": 5.28, "impression_share": 3.51, "price": 17.847142857, "click_share_rank": 3, "weekly_search_volume": 164146.07, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.com/s?k=matcha+powder", "brand_real": "Chaism"}, {"brand_aggregation": "purechimp", "parent_asin": "Matcha Powder Jar", "reporting_date": "2026-03-07", "week_date": "2026-10", "keywords": "matcha powder", "competitor_brand": "Naoki Matcha", "asin": "B07GNRLX46", "product_title": "Naoki Matcha Organic Ceremonial First Spring Blend...", "country_code": "us", "average_organic_rank": 8.0, "weekly_number_of_days_with_deal": 0.0, "weekly_number_of_days_with_best_seller_badge": 0.0, "weekly_number_of_days_with_amazon_choice_badge": 0.0, "weekly_number_of_days_with_coupon": 0.0, "click_share": 2.97, "impression_share": 2.24, "price": 7.425714286, "click_share_rank": 7, "weekly_search_volume": 189307.85, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.com/s?k=matcha+powder", "brand_real": "Naoki Matcha"}, {"brand_aggregation": "purechimp", "parent_asin": "Matcha Powder Jar", "reporting_date": "2026-02-14", "week_date": "2026-07", "keywords": "matcha powder", "competitor_brand": "MATCHA DNA", "asin": "B077572GG8", "product_title": "Matcha DNA Organic Matcha Powder - XXL 16oz TIN \u2013 ...", "country_code": "us", "average_organic_rank": 5.0, "weekly_number_of_days_with_deal": 6.0, "weekly_number_of_days_with_best_seller_badge": 0.0, "weekly_number_of_days_with_amazon_choice_badge": 0.0, "weekly_number_of_days_with_coupon": 2.0, "click_share": 5.16, "impression_share": 3.78, "price": 22.561428571, "click_share_rank": 3, "weekly_search_volume": 158383.87, "is_yaba_asin": "Y", "keywords_link": "https://www.amazon.com/s?k=matcha+powder", "brand_real": "MATCHA DNA"}, {"brand_aggregation": "purechimp", "parent_asin": "Matcha Powder Jar", "reporting_date": "2026-03-07", "week_date": "2026-10", "keywords": "matcha powder", "competitor_brand": "Jade Leaf Matcha", "asin": "B00PFDH0IC", "product_title": "Jade Leaf Matcha Organic Culinary Grade Matcha Pow...", "country_code": "us", "average_organic_rank": 2.0, "weekly_number_of_days_with_deal": 0.0, "weekly_number_of_days_with_best_seller_badge": 0.0, "weekly_number_of_days_with_amazon_choice_badge": 0.0, "weekly_number_of_days_with_coupon": 1.0, "click_share": 12.47, "impression_share": 4.66, "price": 10.99, "click_share_rank": 1, "weekly_search_volume": 189307.85, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.com/s?k=matcha+powder", "brand_real": "Jade Leaf Matcha"}, {"brand_aggregation": "purechimp", "parent_asin": "Matcha Powder Jar", "reporting_date": "2026-03-07", "week_date": "2026-10", "keywords": "matcha powder", "competitor_brand": "Micro Ingredients", "asin": "B08PY3Q8XS", "product_title": "Micro Ingredients Organic Matcha Green Tea Powder,...", "country_code": "us", "average_organic_rank": 6.0, "weekly_number_of_days_with_deal": 0.0, "weekly_number_of_days_with_best_seller_badge": 0.0, "weekly_number_of_days_with_amazon_choice_badge": 0.0, "weekly_number_of_days_with_coupon": 6.0, "click_share": 2.34, "impression_share": 2.94, "price": 28.99, "click_share_rank": 10, "weekly_search_volume": 189307.85, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.com/s?k=matcha+powder", "brand_real": "Micro Ingredients"}, {"brand_aggregation": "purechimp", "parent_asin": "Matcha Powder Jar", "reporting_date": "2026-02-21", "week_date": "2026-08", "keywords": "matcha powder", "competitor_brand": "Naoki Matcha", "asin": "B07GNRLX46", "product_title": "Naoki Matcha Organic Ceremonial First Spring Blend...", "country_code": "us", "average_organic_rank": null, "weekly_number_of_days_with_deal": null, "weekly_number_of_days_with_best_seller_badge": null, "weekly_number_of_days_with_amazon_choice_badge": null, "weekly_number_of_days_with_coupon": null, "click_share": 3.51, "impression_share": 1.21, "price": 0.0, "click_share_rank": 5, "weekly_search_volume": 164146.07, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.com/s?k=matcha+powder", "brand_real": "Naoki Matcha"}, {"brand_aggregation": "purechimp", "parent_asin": "Matcha Powder Jar", "reporting_date": "2026-03-07", "week_date": "2026-10", "keywords": "matcha powder", "competitor_brand": "Naoki Matcha", "asin": "B07T3FP977", "product_title": "Naoki Matcha Superior Ceremonial Blend \u2013 Authentic...", "country_code": "us", "average_organic_rank": 6.0, "weekly_number_of_days_with_deal": 0.0, "weekly_number_of_days_with_best_seller_badge": 0.0, "weekly_number_of_days_with_amazon_choice_badge": 0.0, "weekly_number_of_days_with_coupon": 0.0, "click_share": 2.58, "impression_share": 3.14, "price": 39.99, "click_share_rank": 9, "weekly_search_volume": 189307.85, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.com/s?k=matcha+powder", "brand_real": "Naoki Matcha"}, {"brand_aggregation": "purechimp", "parent_asin": "Matcha Powder Jar", "reporting_date": "2026-02-14", "week_date": "2026-07", "keywords": "matcha powder", "competitor_brand": "Naoki Matcha", "asin": "B07GNRLX46", "product_title": "Naoki Matcha Organic Ceremonial First Spring Blend...", "country_code": "us", "average_organic_rank": 8.0, "weekly_number_of_days_with_deal": 0.0, "weekly_number_of_days_with_best_seller_badge": 0.0, "weekly_number_of_days_with_amazon_choice_badge": 0.0, "weekly_number_of_days_with_coupon": 0.0, "click_share": 3.69, "impression_share": 2.0, "price": 8.663333333, "click_share_rank": 4, "weekly_search_volume": 158383.87, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.com/s?k=matcha+powder", "brand_real": "Naoki Matcha"}, {"brand_aggregation": "purechimp", "parent_asin": "Matcha Powder Jar", "reporting_date": "2026-02-14", "week_date": "2026-07", "keywords": "matcha powder", "competitor_brand": "Tenzo Tea", "asin": "B0C49Y5YS7", "product_title": "Tenzo Matcha Green Tea Powder - USDA Organic Premi...", "country_code": "us", "average_organic_rank": 14.0, "weekly_number_of_days_with_deal": 0.0, "weekly_number_of_days_with_best_seller_badge": 0.0, "weekly_number_of_days_with_amazon_choice_badge": 0.0, "weekly_number_of_days_with_coupon": 1.0, "click_share": 2.4, "impression_share": 1.77, "price": 9.49, "click_share_rank": 8, "weekly_search_volume": 158383.87, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.com/s?k=matcha+powder", "brand_real": "Tenzo Tea"}, {"brand_aggregation": "purechimp", "parent_asin": "Matcha Powder Jar", "reporting_date": "2026-02-14", "week_date": "2026-07", "keywords": "matcha powder", "competitor_brand": "Micro Ingredients", "asin": "B08PY3Q8XS", "product_title": "Micro Ingredients Organic Matcha Green Tea Powder,...", "country_code": "us", "average_organic_rank": 7.0, "weekly_number_of_days_with_deal": 0.0, "weekly_number_of_days_with_best_seller_badge": 0.0, "weekly_number_of_days_with_amazon_choice_badge": 0.0, "weekly_number_of_days_with_coupon": 7.0, "click_share": 2.22, "impression_share": 2.69, "price": 28.99, "click_share_rank": 10, "weekly_search_volume": 158383.87, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.com/s?k=matcha+powder", "brand_real": "Micro Ingredients"}, {"brand_aggregation": "purechimp", "parent_asin": "Matcha Powder Jar", "reporting_date": "2026-02-28", "week_date": "2026-09", "keywords": "matcha powder", "competitor_brand": "Chaism", "asin": "B0BPXQ2PR5", "product_title": "Chaism Ceremonial Grade Matcha Green Tea Powder - ...", "country_code": "us", "average_organic_rank": 3.0, "weekly_number_of_days_with_deal": 7.0, "weekly_number_of_days_with_best_seller_badge": 0.0, "weekly_number_of_days_with_amazon_choice_badge": 5.0, "weekly_number_of_days_with_coupon": 0.0, "click_share": 10.52, "impression_share": 3.83, "price": 14.99, "click_share_rank": 1, "weekly_search_volume": 190498.52, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.com/s?k=matcha+powder", "brand_real": "Chaism"}, {"brand_aggregation": "purechimp", "parent_asin": "Matcha Powder Jar", "reporting_date": "2026-02-28", "week_date": "2026-09", "keywords": "matcha powder", "competitor_brand": "Naoki Matcha", "asin": "B07GNRLX46", "product_title": "Naoki Matcha Organic Ceremonial First Spring Blend...", "country_code": "us", "average_organic_rank": null, "weekly_number_of_days_with_deal": null, "weekly_number_of_days_with_best_seller_badge": null, "weekly_number_of_days_with_amazon_choice_badge": null, "weekly_number_of_days_with_coupon": null, "click_share": 3.53, "impression_share": 2.28, "price": 3.712857143, "click_share_rank": 5, "weekly_search_volume": 190498.52, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.com/s?k=matcha+powder", "brand_real": "Naoki Matcha"}, {"brand_aggregation": "purechimp", "parent_asin": "Matcha Powder Jar", "reporting_date": "2026-02-28", "week_date": "2026-09", "keywords": "matcha powder", "competitor_brand": "Jade Leaf Matcha", "asin": "B0842DQ561", "product_title": "Jade Leaf Matcha Organic Ceremonial Grade Matcha G...", "country_code": "us", "average_organic_rank": null, "weekly_number_of_days_with_deal": null, "weekly_number_of_days_with_best_seller_badge": null, "weekly_number_of_days_with_amazon_choice_badge": null, "weekly_number_of_days_with_coupon": null, "click_share": 3.67, "impression_share": 1.66, "price": 8.396, "click_share_rank": 4, "weekly_search_volume": 190498.52, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.com/s?k=matcha+powder", "brand_real": "Jade Leaf Matcha"}, {"brand_aggregation": "purechimp", "parent_asin": "Matcha Powder Jar", "reporting_date": "2026-02-14", "week_date": "2026-07", "keywords": "matcha powder", "competitor_brand": null, "asin": "B0DV6Z5MYZ", "product_title": "Soeos Organic Matcha Powder, Matcha Green Tea Powd...", "country_code": "us", "average_organic_rank": 8.0, "weekly_number_of_days_with_deal": 3.0, "weekly_number_of_days_with_best_seller_badge": 0.0, "weekly_number_of_days_with_amazon_choice_badge": 1.0, "weekly_number_of_days_with_coupon": 0.0, "click_share": 2.95, "impression_share": 1.48, "price": 6.69, "click_share_rank": 5, "weekly_search_volume": 158383.87, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.com/s?k=matcha+powder", "brand_real": "Soeos"}, {"brand_aggregation": "purechimp", "parent_asin": "Matcha Powder Jar", "reporting_date": "2026-02-21", "week_date": "2026-08", "keywords": "matcha powder", "competitor_brand": "Naoki Matcha", "asin": "B07T3FP977", "product_title": "Naoki Matcha Superior Ceremonial Blend \u2013 Authentic...", "country_code": "us", "average_organic_rank": 5.0, "weekly_number_of_days_with_deal": 0.0, "weekly_number_of_days_with_best_seller_badge": 0.0, "weekly_number_of_days_with_amazon_choice_badge": 0.0, "weekly_number_of_days_with_coupon": 0.0, "click_share": 2.45, "impression_share": 2.88, "price": 39.99, "click_share_rank": 9, "weekly_search_volume": 164146.07, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.com/s?k=matcha+powder", "brand_real": "Naoki Matcha"}, {"brand_aggregation": "purechimp", "parent_asin": "Matcha Powder Jar", "reporting_date": "2026-02-21", "week_date": "2026-08", "keywords": "matcha powder", "competitor_brand": "Jade Leaf Matcha", "asin": "B00PFDH0IC", "product_title": "Jade Leaf Matcha Organic Culinary Grade Matcha Pow...", "country_code": "us", "average_organic_rank": 2.0, "weekly_number_of_days_with_deal": 0.0, "weekly_number_of_days_with_best_seller_badge": 0.0, "weekly_number_of_days_with_amazon_choice_badge": 0.0, "weekly_number_of_days_with_coupon": 1.0, "click_share": 11.21, "impression_share": 3.67, "price": 10.33, "click_share_rank": 1, "weekly_search_volume": 164146.07, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.com/s?k=matcha+powder", "brand_real": "Jade Leaf Matcha"}, {"brand_aggregation": "purechimp", "parent_asin": "Matcha Powder Jar", "reporting_date": "2026-02-14", "week_date": "2026-07", "keywords": "matcha powder", "competitor_brand": "Naoki Matcha", "asin": "B01L2GW7SI", "product_title": "Naoki Matcha Superior Ceremonial Blend \u2013 Authentic...", "country_code": "us", "average_organic_rank": 4.0, "weekly_number_of_days_with_deal": 0.0, "weekly_number_of_days_with_best_seller_badge": 0.0, "weekly_number_of_days_with_amazon_choice_badge": 6.0, "weekly_number_of_days_with_coupon": 0.0, "click_share": 10.36, "impression_share": 4.61, "price": 24.99, "click_share_rank": 2, "weekly_search_volume": 158383.87, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.com/s?k=matcha+powder", "brand_real": "Naoki Matcha"}, {"brand_aggregation": "purechimp", "parent_asin": "Matcha Powder Jar", "reporting_date": "2026-02-28", "week_date": "2026-09", "keywords": "matcha powder", "competitor_brand": "Jade Leaf Matcha", "asin": "B01DTQD7VA", "product_title": "Jade Leaf Matcha Organic Matcha Latte Mix - Lightl...", "country_code": "us", "average_organic_rank": 13.0, "weekly_number_of_days_with_deal": 0.0, "weekly_number_of_days_with_best_seller_badge": 0.0, "weekly_number_of_days_with_amazon_choice_badge": 0.0, "weekly_number_of_days_with_coupon": 1.0, "click_share": 3.12, "impression_share": 2.34, "price": 6.28, "click_share_rank": 6, "weekly_search_volume": 190498.52, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.com/s?k=matcha+powder", "brand_real": "Jade Leaf Matcha"}, {"brand_aggregation": "purechimp", "parent_asin": "Matcha Powder Jar", "reporting_date": "2026-03-07", "week_date": "2026-10", "keywords": "matcha powder", "competitor_brand": null, "asin": "B0DV6Z5MYZ", "product_title": "Soeos Organic Matcha Powder, Matcha Green Tea Powd...", "country_code": "us", "average_organic_rank": 8.0, "weekly_number_of_days_with_deal": 4.0, "weekly_number_of_days_with_best_seller_badge": 0.0, "weekly_number_of_days_with_amazon_choice_badge": 0.0, "weekly_number_of_days_with_coupon": 0.0, "click_share": 3.19, "impression_share": 2.16, "price": 6.54, "click_share_rank": 6, "weekly_search_volume": 189307.85, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.com/s?k=matcha+powder", "brand_real": "Soeos"}, {"brand_aggregation": "purechimp", "parent_asin": "Matcha Powder Jar", "reporting_date": "2026-02-28", "week_date": "2026-09", "keywords": "matcha powder", "competitor_brand": "Jade Leaf Matcha", "asin": "B00PFDH0IC", "product_title": "Jade Leaf Matcha Organic Culinary Grade Matcha Pow...", "country_code": "us", "average_organic_rank": 3.0, "weekly_number_of_days_with_deal": 0.0, "weekly_number_of_days_with_best_seller_badge": 0.0, "weekly_number_of_days_with_amazon_choice_badge": 0.0, "weekly_number_of_days_with_coupon": 1.0, "click_share": 10.26, "impression_share": 3.92, "price": 10.99, "click_share_rank": 2, "weekly_search_volume": 190498.52, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.com/s?k=matcha+powder", "brand_real": "Jade Leaf Matcha"}, {"brand_aggregation": "purechimp", "parent_asin": "Matcha Powder Jar", "reporting_date": "2026-02-14", "week_date": "2026-07", "keywords": "matcha powder", "competitor_brand": "Jade Leaf Matcha", "asin": "B017QYXVSK", "product_title": "Jade Leaf Matcha Organic Barista Blend Ceremonial ...", "country_code": "us", "average_organic_rank": 4.0, "weekly_number_of_days_with_deal": 0.0, "weekly_number_of_days_with_best_seller_badge": 0.0, "weekly_number_of_days_with_amazon_choice_badge": 0.0, "weekly_number_of_days_with_coupon": 1.0, "click_share": 2.89, "impression_share": 2.09, "price": 17.99, "click_share_rank": 6, "weekly_search_volume": 158383.87, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.com/s?k=matcha+powder", "brand_real": "Jade Leaf Matcha"}, {"brand_aggregation": "purechimp", "parent_asin": "Matcha Powder Jar", "reporting_date": "2026-02-28", "week_date": "2026-09", "keywords": "matcha powder", "competitor_brand": "Tenzo Tea", "asin": "B0C49Y5YS7", "product_title": "Tenzo Matcha Green Tea Powder - USDA Organic Premi...", "country_code": "us", "average_organic_rank": 16.0, "weekly_number_of_days_with_deal": 0.0, "weekly_number_of_days_with_best_seller_badge": 0.0, "weekly_number_of_days_with_amazon_choice_badge": 0.0, "weekly_number_of_days_with_coupon": 3.0, "click_share": 2.37, "impression_share": 2.09, "price": 9.49, "click_share_rank": 9, "weekly_search_volume": 190498.52, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.com/s?k=matcha+powder", "brand_real": "Tenzo Tea"}, {"brand_aggregation": "purechimp", "parent_asin": "Matcha Powder Jar", "reporting_date": "2026-02-21", "week_date": "2026-08", "keywords": "matcha powder", "competitor_brand": null, "asin": "B0FQM6R1ZF", "product_title": "Organic Matcha Green Tea Powder, 1 Pound | Unsweet...", "country_code": "us", "average_organic_rank": 10.0, "weekly_number_of_days_with_deal": 7.0, "weekly_number_of_days_with_best_seller_badge": 0.0, "weekly_number_of_days_with_amazon_choice_badge": 3.0, "weekly_number_of_days_with_coupon": 0.0, "click_share": 2.48, "impression_share": 1.88, "price": 17.47, "click_share_rank": 8, "weekly_search_volume": 164146.07, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.com/s?k=matcha+powder", "brand_real": "Organic"}, {"brand_aggregation": "purechimp", "parent_asin": "Matcha Powder Jar", "reporting_date": "2026-02-28", "week_date": "2026-09", "keywords": "matcha powder", "competitor_brand": "Naoki Matcha", "asin": "B07T3FP977", "product_title": "Naoki Matcha Superior Ceremonial Blend \u2013 Authentic...", "country_code": "us", "average_organic_rank": 7.0, "weekly_number_of_days_with_deal": 0.0, "weekly_number_of_days_with_best_seller_badge": 0.0, "weekly_number_of_days_with_amazon_choice_badge": 0.0, "weekly_number_of_days_with_coupon": 0.0, "click_share": 2.61, "impression_share": 3.23, "price": 39.99, "click_share_rank": 8, "weekly_search_volume": 190498.52, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.com/s?k=matcha+powder", "brand_real": "Naoki Matcha"}, {"brand_aggregation": "purechimp", "parent_asin": "Matcha Powder Jar", "reporting_date": "2026-02-21", "week_date": "2026-08", "keywords": "matcha powder", "competitor_brand": "MATCHA DNA", "asin": "B077572GG8", "product_title": "Matcha DNA Organic Matcha Powder - XXL 16oz TIN \u2013 ...", "country_code": "us", "average_organic_rank": 6.0, "weekly_number_of_days_with_deal": 0.0, "weekly_number_of_days_with_best_seller_badge": 0.0, "weekly_number_of_days_with_amazon_choice_badge": 0.0, "weekly_number_of_days_with_coupon": 6.0, "click_share": 3.31, "impression_share": 4.22, "price": 25.99, "click_share_rank": 6, "weekly_search_volume": 164146.07, "is_yaba_asin": "Y", "keywords_link": "https://www.amazon.com/s?k=matcha+powder", "brand_real": "MATCHA DNA"}, {"brand_aggregation": "purechimp", "parent_asin": "Matcha Powder Jar", "reporting_date": "2026-02-28", "week_date": "2026-09", "keywords": "matcha powder", "competitor_brand": "Naoki Matcha", "asin": "B01L2GW7SI", "product_title": "Naoki Matcha Superior Ceremonial Blend \u2013 Authentic...", "country_code": "us", "average_organic_rank": 4.0, "weekly_number_of_days_with_deal": 0.0, "weekly_number_of_days_with_best_seller_badge": 0.0, "weekly_number_of_days_with_amazon_choice_badge": 1.0, "weekly_number_of_days_with_coupon": 0.0, "click_share": 9.0, "impression_share": 5.15, "price": 24.99, "click_share_rank": 3, "weekly_search_volume": 190498.52, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.com/s?k=matcha+powder", "brand_real": "Naoki Matcha"}, {"brand_aggregation": "purechimp", "parent_asin": "Matcha Powder Jar", "reporting_date": "2026-02-28", "week_date": "2026-09", "keywords": "matcha powder", "competitor_brand": null, "asin": "B0FQM6R1ZF", "product_title": "Organic Matcha Green Tea Powder, 1 Pound | Unsweet...", "country_code": "us", "average_organic_rank": 5.0, "weekly_number_of_days_with_deal": 7.0, "weekly_number_of_days_with_best_seller_badge": 0.0, "weekly_number_of_days_with_amazon_choice_badge": 3.0, "weekly_number_of_days_with_coupon": 0.0, "click_share": 2.09, "impression_share": 2.25, "price": 17.47, "click_share_rank": 10, "weekly_search_volume": 190498.52, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.com/s?k=matcha+powder", "brand_real": "Organic"}, {"brand_aggregation": "purechimp", "parent_asin": "Matcha Powder Jar", "reporting_date": "2026-02-21", "week_date": "2026-08", "keywords": "matcha powder", "competitor_brand": "Tenzo Tea", "asin": "B0C49Y5YS7", "product_title": "Tenzo Matcha Green Tea Powder - USDA Organic Premi...", "country_code": "us", "average_organic_rank": 16.0, "weekly_number_of_days_with_deal": 0.0, "weekly_number_of_days_with_best_seller_badge": 0.0, "weekly_number_of_days_with_amazon_choice_badge": 0.0, "weekly_number_of_days_with_coupon": 5.0, "click_share": 2.66, "impression_share": 2.46, "price": 9.49, "click_share_rank": 7, "weekly_search_volume": 164146.07, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.com/s?k=matcha+powder", "brand_real": "Tenzo Tea"}, {"brand_aggregation": "purechimp", "parent_asin": "Matcha Powder Jar", "reporting_date": "2026-02-21", "week_date": "2026-08", "keywords": "matcha powder", "competitor_brand": "Naoki Matcha", "asin": "B01L2GW7SI", "product_title": "Naoki Matcha Superior Ceremonial Blend \u2013 Authentic...", "country_code": "us", "average_organic_rank": 4.0, "weekly_number_of_days_with_deal": 0.0, "weekly_number_of_days_with_best_seller_badge": 0.0, "weekly_number_of_days_with_amazon_choice_badge": 4.0, "weekly_number_of_days_with_coupon": 0.0, "click_share": 10.0, "impression_share": 4.81, "price": 24.99, "click_share_rank": 2, "weekly_search_volume": 164146.07, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.com/s?k=matcha+powder", "brand_real": "Naoki Matcha"}, {"brand_aggregation": "purechimp", "parent_asin": "Matcha Powder Jar", "reporting_date": "2026-03-07", "week_date": "2026-10", "keywords": "matcha powder", "competitor_brand": "Jade Leaf Matcha", "asin": "B01DTQD7VA", "product_title": "Jade Leaf Matcha Organic Matcha Latte Mix - Lightl...", "country_code": "us", "average_organic_rank": 8.0, "weekly_number_of_days_with_deal": 0.0, "weekly_number_of_days_with_best_seller_badge": 0.0, "weekly_number_of_days_with_amazon_choice_badge": 0.0, "weekly_number_of_days_with_coupon": 7.0, "click_share": 6.45, "impression_share": 4.59, "price": 10.99, "click_share_rank": 4, "weekly_search_volume": 189307.85, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.com/s?k=matcha+powder", "brand_real": "Jade Leaf Matcha"}, {"brand_aggregation": "purechimp", "parent_asin": "Matcha Powder Jar", "reporting_date": "2026-02-14", "week_date": "2026-07", "keywords": "matcha powder", "competitor_brand": "Jade Leaf Matcha", "asin": "B00PFDH0IC", "product_title": "Jade Leaf Matcha Organic Culinary Grade Matcha Pow...", "country_code": "us", "average_organic_rank": 2.0, "weekly_number_of_days_with_deal": 0.0, "weekly_number_of_days_with_best_seller_badge": 0.0, "weekly_number_of_days_with_amazon_choice_badge": 0.0, "weekly_number_of_days_with_coupon": 7.0, "click_share": 10.5, "impression_share": 3.26, "price": 10.847142857, "click_share_rank": 1, "weekly_search_volume": 158383.87, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.com/s?k=matcha+powder", "brand_real": "Jade Leaf Matcha"}, {"brand_aggregation": "purechimp", "parent_asin": "Matcha Powder Jar", "reporting_date": "2026-02-28", "week_date": "2026-09", "keywords": "matcha powder", "competitor_brand": "PureChimp", "asin": "B00HNDSOCI", "product_title": "PureChimp Ceremonial Grade Matcha Powder 1.75oz. P...", "country_code": "us", "average_organic_rank": 47.0, "weekly_number_of_days_with_deal": 0.0, "weekly_number_of_days_with_best_seller_badge": 0.0, "weekly_number_of_days_with_amazon_choice_badge": 0.0, "weekly_number_of_days_with_coupon": 2.0, "click_share": 0.06, "impression_share": 0.13, "price": null, "click_share_rank": 0, "weekly_search_volume": 190498.52, "is_yaba_asin": "Y", "keywords_link": "https://www.amazon.com/s?k=matcha+powder", "brand_real": "PureChimp"}, {"brand_aggregation": "purechimp", "parent_asin": "Matcha Powder Jar", "reporting_date": "2026-03-07", "week_date": "2026-10", "keywords": "matcha powder", "competitor_brand": "MATCHA DNA", "asin": "B077572GG8", "product_title": "Matcha DNA Organic Matcha Powder - XXL 16oz TIN \u2013 ...", "country_code": "us", "average_organic_rank": 7.0, "weekly_number_of_days_with_deal": 0.0, "weekly_number_of_days_with_best_seller_badge": 0.0, "weekly_number_of_days_with_amazon_choice_badge": 0.0, "weekly_number_of_days_with_coupon": 7.0, "click_share": 2.92, "impression_share": 4.16, "price": 25.99, "click_share_rank": 8, "weekly_search_volume": 189307.85, "is_yaba_asin": "Y", "keywords_link": "https://www.amazon.com/s?k=matcha+powder", "brand_real": "MATCHA DNA"}, {"brand_aggregation": "purechimp", "parent_asin": "Matcha Powder Jar", "reporting_date": "2026-02-28", "week_date": "2026-09", "keywords": "matcha powder", "competitor_brand": "MATCHA DNA", "asin": "B077572GG8", "product_title": "Matcha DNA Organic Matcha Powder - XXL 16oz TIN \u2013 ...", "country_code": "us", "average_organic_rank": 10.0, "weekly_number_of_days_with_deal": 0.0, "weekly_number_of_days_with_best_seller_badge": 0.0, "weekly_number_of_days_with_amazon_choice_badge": 0.0, "weekly_number_of_days_with_coupon": 7.0, "click_share": 3.1, "impression_share": 4.17, "price": 25.99, "click_share_rank": 7, "weekly_search_volume": 190498.52, "is_yaba_asin": "Y", "keywords_link": "https://www.amazon.com/s?k=matcha+powder", "brand_real": "MATCHA DNA"}, {"brand_aggregation": "purechimp", "parent_asin": "Matcha Powder Jar", "reporting_date": "2026-03-07", "week_date": "2026-10", "keywords": "matcha powder", "competitor_brand": "Naoki Matcha", "asin": "B01L2GW7SI", "product_title": "Naoki Matcha Superior Ceremonial Blend \u2013 Authentic...", "country_code": "us", "average_organic_rank": 4.0, "weekly_number_of_days_with_deal": 0.0, "weekly_number_of_days_with_best_seller_badge": 0.0, "weekly_number_of_days_with_amazon_choice_badge": 2.0, "weekly_number_of_days_with_coupon": 0.0, "click_share": 9.87, "impression_share": 5.34, "price": 24.99, "click_share_rank": 2, "weekly_search_volume": 189307.85, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.com/s?k=matcha+powder", "brand_real": "Naoki Matcha"}, {"brand_aggregation": "purechimp", "parent_asin": "Matcha Powder Jar", "reporting_date": "2026-03-07", "week_date": "2026-10", "keywords": "matcha powder", "competitor_brand": "Chaism", "asin": "B0BPXQ2PR5", "product_title": "Chaism Ceremonial Grade Matcha Green Tea Powder - ...", "country_code": "us", "average_organic_rank": 3.0, "weekly_number_of_days_with_deal": 4.0, "weekly_number_of_days_with_best_seller_badge": 0.0, "weekly_number_of_days_with_amazon_choice_badge": 5.0, "weekly_number_of_days_with_coupon": 0.0, "click_share": 7.81, "impression_share": 3.69, "price": 17.847142857, "click_share_rank": 3, "weekly_search_volume": 189307.85, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.com/s?k=matcha+powder", "brand_real": "Chaism"}, {"brand_aggregation": "purechimp", "parent_asin": "Matcha Powder Jar", "reporting_date": "2026-02-21", "week_date": "2026-08", "keywords": "matcha powder", "competitor_brand": null, "asin": "B0DV6Z5MYZ", "product_title": "Soeos Organic Matcha Powder, Matcha Green Tea Powd...", "country_code": "us", "average_organic_rank": 12.0, "weekly_number_of_days_with_deal": 0.0, "weekly_number_of_days_with_best_seller_badge": 0.0, "weekly_number_of_days_with_amazon_choice_badge": 0.0, "weekly_number_of_days_with_coupon": 0.0, "click_share": 2.32, "impression_share": 1.88, "price": 6.99, "click_share_rank": 10, "weekly_search_volume": 164146.07, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.com/s?k=matcha+powder", "brand_real": "Soeos"}, {"brand_aggregation": "purechimp", "parent_asin": "Matcha Powder Jar", "reporting_date": "2026-03-07", "week_date": "2026-10", "keywords": "matcha powder", "competitor_brand": "Jade Leaf Matcha", "asin": "B017QYXVSK", "product_title": "Jade Leaf Matcha Organic Barista Blend Ceremonial ...", "country_code": "us", "average_organic_rank": 15.0, "weekly_number_of_days_with_deal": 0.0, "weekly_number_of_days_with_best_seller_badge": 0.0, "weekly_number_of_days_with_amazon_choice_badge": 0.0, "weekly_number_of_days_with_coupon": 1.0, "click_share": 3.81, "impression_share": 3.33, "price": 19.99, "click_share_rank": 5, "weekly_search_volume": 189307.85, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.com/s?k=matcha+powder", "brand_real": "Jade Leaf Matcha"}];
+
+        // Lógica de Tabs
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            document.getElementById('btn-' + tabId).classList.add('active');
+            
+            if (tabId === 'tab-report') {
+                drawCharts();
+            } else if (tabId === 'tab-compare') {
+                renderComparisonTab();
+            }
+        }
+
+        // Inicialización de Google Charts
+        google.charts.load('current', {'packages':['corechart', 'scatter']});
+        google.charts.setOnLoadCallback(drawCharts);
+
+        function drawCharts() {
+            drawTrendChart();
+            drawCompetitivenessChart();
+            drawEfficiencyChart();
+        }
+
+        // 1. Tendencia Global del Parent
+        function drawTrendChart() {
+            const weeks = [...new Set(marketData.map(d => d.week_date))].sort();
+            
+            const aggregated = weeks.map(week => {
+                let clicksUs = 0, clicksComp = 0;
+                let shareUs = 0, shareComp = 0;
+                marketData.filter(d => d.week_date === week).forEach(d => {
+                    const estClicks = ((d.click_share || 0) / 100) * (d.weekly_search_volume || 0);
+                    if (d.is_yaba_asin === 'Y') {
+                        clicksUs += estClicks;
+                        shareUs += (d.click_share || 0);
+                    } else {
+                        clicksComp += estClicks;
+                        shareComp += (d.click_share || 0);
+                    }
+                });
+                return [week, clicksUs, clicksComp, shareUs, shareComp];
+            });
+
+            const data = new google.visualization.DataTable();
+            data.addColumn('string', 'Semana');
+            data.addColumn('number', 'Clics Nosotros (Barras)');
+            data.addColumn('number', 'Clics Competencia (Barras)');
+            data.addColumn('number', 'Cuota Nosotros % (Línea)');
+            data.addColumn('number', 'Cuota Competencia % (Línea)');
+            data.addRows(aggregated);
+
+            const options = {
+                seriesType: 'bars',
+                series: {
+                    2: {type: 'line', targetAxisIndex: 1, color: '#1a73e8', lineWidth: 4},
+                    3: {type: 'line', targetAxisIndex: 1, color: '#ea4335', lineWidth: 4},
+                    0: {color: 'rgba(26, 115, 232, 0.4)'},
+                    1: {color: 'rgba(234, 67, 53, 0.4)'}
+                },
+                vAxes: {
+                    0: {title: 'Volumen de Clics (Estimado)', gridlines: {color: '#dadce0'}},
+                    1: {title: 'Cuota de Clics (%)'}
+                },
+                hAxis: { textStyle: { color: '#5f6368' } },
+                isStacked: true,
+                legend: {position: 'top', textStyle: {fontSize: 13}},
+                chartArea: {width: '85%', height: '70%'},
+                fontName: 'Roboto',
+                animation: { startup: true, duration: 1000, easing: 'out' }
+            };
+
+            const chart = new google.visualization.ComboChart(document.getElementById('chart_trend'));
+            chart.draw(data, options);
+        }
+
+        // 2. Competitividad de Marca (Share %)
+        function drawCompetitivenessChart() {
+            const weeks = [...new Set(marketData.map(d => d.week_date))].sort();
+            
+            // Top 3 Competidores
+            const compShares = {};
+            marketData.filter(d => d.is_yaba_asin === 'N').forEach(d => {
+                compShares[d.brand_real] = (compShares[d.brand_real] || 0) + (d.click_share || 0);
+            });
+            const top3 = Object.keys(compShares).sort((a,b) => compShares[b] - compShares[a]).slice(0,3);
+
+            const data = new google.visualization.DataTable();
+            data.addColumn('string', 'Semana');
+            data.addColumn('number', 'Nuestra Marca (Yaba)');
+            data.addColumn('number', top3[0]);
+            data.addColumn('number', top3[1]);
+            data.addColumn('number', top3[2]);
+            data.addColumn('number', 'Resto del Mercado');
+
+            const rows = weeks.map(week => {
+                let us = 0, t1 = 0, t2 = 0, t3 = 0, rest = 0;
+                marketData.filter(d => d.week_date === week).forEach(d => {
+                    const share = d.click_share || 0;
+                    if (d.is_yaba_asin === 'Y') us += share;
+                    else if (d.brand_real === top3[0]) t1 += share;
+                    else if (d.brand_real === top3[1]) t2 += share;
+                    else if (d.brand_real === top3[2]) t3 += share;
+                    else rest += share;
+                });
+                return [week, us, t1, t2, t3, rest];
+            });
+
+            data.addRows(rows);
+
+            const options = {
+                curveType: 'function',
+                legend: { position: 'right', textStyle: {fontSize: 13} },
+                colors: ['#1a73e8', '#ea4335', '#fbbc04', '#34a853', '#9aa0a6'],
+                vAxis: {title: 'Cuota de Clics (%)', gridlines: {color: '#dadce0'}},
+                chartArea: {width: '75%', height: '75%'},
+                fontName: 'Roboto',
+                lineWidth: 4,
+                animation: { startup: true, duration: 1000, easing: 'out' }
+            };
+
+            const chart = new google.visualization.LineChart(document.getElementById('chart_competitiveness'));
+            chart.draw(data, options);
+        }
+
+        // 4. Eficiencia (Rank Orgánico vs Share)
+        function drawEfficiencyChart() {
+            const data = new google.visualization.DataTable();
+            data.addColumn('number', 'Rank Orgánico (Mejor es Menor)');
+            data.addColumn('number', 'Nuestros ASINs');
+            data.addColumn({type: 'string', role: 'tooltip', p: {'html': true}});
+            data.addColumn('number', 'Competidores');
+            data.addColumn({type: 'string', role: 'tooltip', p: {'html': true}});
+
+            const rows = marketData.map(d => {
+                const rank = d.average_organic_rank;
+                const share = d.click_share;
+                if (rank == null || share == null) return null;
+                
+                const tooltip = `Marca: ${d.brand_real}\nRank: ${rank}\nShare: ${share}%\nPrecio: $${d.price || 'N/A'}`;
+                
+                if (d.is_yaba_asin === 'Y') {
+                    return [rank, share, tooltip, null, null];
+                } else {
+                    return [rank, null, null, share, tooltip];
+                }
+            }).filter(r => r != null);
+
+            data.addRows(rows);
+
+            const options = {
+                hAxis: {title: 'Rank Orgánico Promedio (Más bajo es mejor)', direction: -1},
+                vAxis: {title: 'Cuota de Clics (%)'},
+                legend: { position: 'top', alignment: 'end' },
+                colors: ['#1a73e8', '#ea4335'],
+                chartArea: {width: '85%', height: '70%'},
+                fontName: 'Roboto',
+                dataOpacity: 0.8,
+                pointSize: 10,
+                animation: { startup: true, duration: 1000, easing: 'out' }
+            };
+
+            const chart = new google.visualization.ScatterChart(document.getElementById('chart_efficiency'));
+            chart.draw(data, options);
+        }
+
+        // Lógica Pestaña Comparador Interactivo
+        let isComparadorRendered = false;
+        function renderComparisonTab() {
+            if (isComparadorRendered) return;
+
+            const weekSelect = document.getElementById('sel_week');
+            const compSelect = document.getElementById('sel_comp');
+            
+            const weeks = [...new Set(marketData.map(d => d.week_date))].sort().reverse();
+            weeks.forEach(w => {
+                const opt = document.createElement('option');
+                opt.value = w;
+                opt.text = `Semana: ${w}`;
+                weekSelect.appendChild(opt);
+            });
+
+            // Llenar selector con marcas de competidores
+            const compBrands = [...new Set(marketData.filter(d => d.is_yaba_asin === 'N').map(d => d.brand_real))].sort();
+            compBrands.forEach(b => {
+                const opt = document.createElement('option');
+                opt.value = b;
+                opt.text = b;
+                compSelect.appendChild(opt);
+            });
+
+            const updateComparison = () => {
+                const w = weekSelect.value;
+                const cBrand = compSelect.value;
+
+                document.getElementById('comp_title').innerText = cBrand;
+
+                const getStats = (isYaba, brand) => {
+                    const rows = marketData.filter(d => d.week_date === w && (isYaba ? d.is_yaba_asin === 'Y' : d.brand_real === brand));
+                    if (rows.length === 0) return {price: 0, share: 0, rank: 0, deals: 0};
+                    
+                    let pSum = 0, pCnt = 0, sSum = 0, rSum = 0, dSum = 0;
+                    rows.forEach(r => {
+                        if (r.price != null) { pSum += r.price; pCnt++; }
+                        sSum += (r.click_share || 0);
+                        rSum += (r.average_organic_rank || 0);
+                        dSum += (r.weekly_number_of_days_with_deal || 0) + (r.weekly_number_of_days_with_coupon || 0);
+                    });
+
+                    return {
+                        price: pCnt > 0 ? (pSum/pCnt) : 0,
+                        share: sSum,
+                        rank: rows.length > 0 ? (rSum/rows.length) : 0,
+                        deals: rows.length > 0 ? (dSum/rows.length) : 0
+                    };
+                };
+
+                const usStats = getStats(true, null);
+                const compStats = getStats(false, cBrand);
+
+                // Update UI Nosotros
+                document.getElementById('us_price').innerText = `$${usStats.price.toFixed(2)}`;
+                document.getElementById('us_share').innerText = `${usStats.share.toFixed(2)}%`;
+                document.getElementById('us_rank').innerText = usStats.rank.toFixed(1);
+                document.getElementById('us_deals').innerText = usStats.deals.toFixed(1);
+
+                // Update UI Competencia
+                document.getElementById('comp_price').innerText = `$${compStats.price.toFixed(2)}`;
+                document.getElementById('comp_share').innerText = `${compStats.share.toFixed(2)}%`;
+                document.getElementById('comp_rank').innerText = compStats.rank.toFixed(1);
+                document.getElementById('comp_deals').innerText = compStats.deals.toFixed(1);
+
+                // Colorear win/loss
+                const setClass = (id, condition) => {
+                    const el = document.getElementById(id);
+                    el.className = 'metric-val';
+                    if (condition === 'win') el.classList.add('win');
+                    else if (condition === 'loss') el.classList.add('loss');
+                };
+
+                setClass('us_share', usStats.share > compStats.share ? 'win' : 'loss');
+                setClass('comp_share', compStats.share > usStats.share ? 'win' : 'loss');
+
+                setClass('us_rank', (usStats.rank < compStats.rank && usStats.rank > 0) ? 'win' : 'loss');
+                setClass('comp_rank', (compStats.rank < usStats.rank && compStats.rank > 0) ? 'win' : 'loss');
+            };
+
+            weekSelect.addEventListener('change', updateComparison);
+            compSelect.addEventListener('change', updateComparison);
+            
+            updateComparison();
+            isComparadorRendered = true;
+        }
+
+        // Resizing window redraws charts
+        window.addEventListener('resize', () => {
+            if (document.getElementById('tab-report').classList.contains('active')) {
+                drawCharts();
+            }
+        });
+
+    </script>
+</body>
+</html>
