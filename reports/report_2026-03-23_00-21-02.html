@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reporte de Inteligencia de Mercado - Parent ASIN</title>
+    
+    <!-- Google Charts & Material Icons -->
+    <script src="https://www.gstatic.com/charts/loader.js"></script>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    
+    <!-- Google Native Styling (Vanilla CSS) -->
+    <style>
+        :root {
+            --primary-color: #1a73e8;
+            --secondary-color: #34a853;
+            --bg-color: #f8f9fa;
+            --text-color: #202124;
+            --border-color: #dadce0;
+            --card-bg: #ffffff;
+            --danger-color: #ea4335;
+            --warning-color: #fbbc04;
+            --yaba-color: #1a73e8;
+            --comp-color: #ea4335;
+        }
+
+        body { 
+            font-family: 'Roboto', 'Arial', sans-serif; 
+            background: var(--bg-color); 
+            color: var(--text-color); 
+            margin: 0; 
+            padding: 0; 
+            line-height: 1.5;
+        }
+        
+        .header { 
+            background: var(--primary-color); 
+            padding: 16px 24px; 
+            display: flex; 
+            align-items: center; 
+            position: sticky; 
+            top: 0; 
+            z-index: 100; 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2); 
+        }
+        
+        .header h1 { 
+            margin: 0; 
+            font-size: 20px; 
+            font-weight: 500; 
+            color: white; 
+            flex-grow: 1; 
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .tabs { 
+            display: flex; 
+            border-bottom: 1px solid var(--border-color); 
+            background: #fff; 
+            padding: 0 24px; 
+        }
+        
+        .tab { 
+            padding: 16px 24px; 
+            cursor: pointer; 
+            color: #5f6368; 
+            font-weight: 500; 
+            font-size: 14px; 
+            border-bottom: 3px solid transparent; 
+            transition: 0.2s ease-in-out;
+        }
+        
+        .tab:hover { background: #f1f3f4; color: var(--primary-color); }
+        .tab.active { color: var(--primary-color); border-bottom: 3px solid var(--primary-color); }
+        
+        .container { max-width: 1300px; margin: 24px auto; padding: 0 24px; }
+        
+        .card { 
+            background: var(--card-bg); 
+            border-radius: 8px; 
+            border: 1px solid var(--border-color); 
+            box-shadow: 0 1px 2px 0 rgba(60,64,67,0.1); 
+            margin-bottom: 24px; 
+            padding: 24px; 
+        }
+        
+        .card h2 { 
+            margin-top: 0; 
+            font-size: 18px; 
+            font-weight: 500; 
+            color: #202124; 
+            margin-bottom: 20px; 
+            display: flex; 
+            align-items: center; 
+            gap: 8px; 
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 12px;
+        }
+        
+        .chart-container { width: 100%; height: 400px; }
+        .chart-container-small { width: 100%; height: 300px; }
+        
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+        .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+        
+        .kpi-card { 
+            border: 1px solid var(--border-color); 
+            border-radius: 8px; 
+            padding: 20px; 
+            text-align: center; 
+            background: #fff;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+        
+        .kpi-value { font-size: 32px; font-weight: 500; color: var(--primary-color); margin: 8px 0; }
+        .kpi-label { font-size: 14px; color: #5f6368; font-weight: 500; text-transform: uppercase;}
+        
+        .kpi-delta.positive { color: var(--secondary-color); }
+        .kpi-delta.negative { color: var(--danger-color); }
+        .kpi-delta { font-size: 14px; display: flex; align-items: center; justify-content: center; gap: 4px; font-weight: 500; }
+        
+        .list-item { display: flex; align-items: start; gap: 12px; margin-bottom: 16px; font-size: 14px; }
+        .list-item .material-icons { color: var(--primary-color); font-size: 20px; flex-shrink: 0; }
+        
+        select { 
+            padding: 10px 16px; 
+            border: 1px solid var(--border-color); 
+            border-radius: 4px; 
+            font-size: 14px; 
+            outline: none; 
+            background: #fff; 
+            margin-right: 16px;
+            color: var(--text-color);
+            cursor: pointer;
+        }
+        select:focus { border-color: var(--primary-color); box-shadow: 0 0 0 2px rgba(26,115,232,0.2); }
+        .form-row { display: flex; margin-bottom: 16px; align-items: center; }
+        
+        table.compare-table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+        table.compare-table th, table.compare-table td { padding: 16px; border-bottom: 1px solid var(--border-color); text-align: left; font-size: 15px; }
+        table.compare-table th { background: #f8f9fa; font-weight: 500; color: #5f6368; }
+        
+        .hidden { display: none !important; }
+        .mb-24 { margin-bottom: 24px; }
+        
+        .badge { display: inline-flex; align-items: center; padding: 4px 10px; border-radius: 16px; font-size: 13px; font-weight: 500; }
+        .badge.yaba { background: #e8f0fe; color: #1967d2; border: 1px solid #d2e3fc; }
+        .badge.comp { background: #fce8e6; color: #c5221f; border: 1px solid #fad2cf; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1><span class="material-icons">analytics</span> Inteligencia de Mercado - Rendimiento del Parent ASIN</h1>
+    </div>
+
+    <div class="tabs">
+        <div class="tab active" onclick="switchTab('tab-1')">Reporte Principal Estratégico</div>
+        <div class="tab" onclick="switchTab('tab-2')">Comparador Cara a Cara</div>
+    </div>
+
+    <div class="container">
+        
+        <!-- PESTAÑA 1: REPORTE PRINCIPAL -->
+        <div id="tab-1" class="tab-content">
+            
+            <!-- Dashboard KPIs -->
+            <div class="grid-3 mb-24">
+                <div class="kpi-card">
+                    <div class="kpi-label" id="kpi-share-title">Nuestro Share</div>
+                    <div class="kpi-value" id="kpi-share">-</div>
+                    <div class="kpi-delta" id="kpi-share-delta">-</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Mejor Competidor (Top Share)</div>
+                    <div class="kpi-value" style="color:var(--comp-color);" id="kpi-top-comp">-</div>
+                    <div class="kpi-delta" style="color:#5f6368;" id="kpi-top-comp-val">-</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Nuestro Rank Medio Orgánico</div>
+                    <div class="kpi-value" id="kpi-rank">-</div>
+                    <div class="kpi-delta" style="color:#5f6368;" id="kpi-rank-ac">-</div>
+                </div>
+            </div>
+            
+            <!-- 1. Tendencia Global -->
+            <div class="card">
+                <h2><span class="material-icons">trending_up</span> 1. Tendencia Global del Parent ASIN</h2>
+                <div id="chart-trend" class="chart-container"></div>
+            </div>
+
+            <!-- 2. Competitividad -->
+            <div class="card">
+                <h2><span class="material-icons">leaderboard</span> 2. Competitividad de Marca (Nosotros vs Top 3)</h2>
+                <div id="chart-comp" class="chart-container"></div>
+            </div>
+            
+            <!-- 3 y 4. Palancas y Eficiencia -->
+            <div class="grid-2 mb-24">
+                <div class="card" style="margin-bottom:0;">
+                    <h2><span class="material-icons">monetization_on</span> 3. Palancas que Aumentan el Share</h2>
+                    <div id="chart-palancas" class="chart-container-small"></div>
+                </div>
+                <div class="card" style="margin-bottom:0;">
+                    <h2><span class="material-icons">my_location</span> 4. Eficiencia (Rank vs Click Share)</h2>
+                    <div id="chart-eff" class="chart-container-small"></div>
+                </div>
+            </div>
+            
+            <!-- 5 y 6. Insights y Recomendaciones -->
+            <div class="card">
+                <h2><span class="material-icons">lightbulb</span> 5. Conclusiones y 6. Otros Insights</h2>
+                <div class="grid-2">
+                    <div>
+                        <h3 style="color:var(--primary-color); font-size:16px; margin-bottom:16px;">💡 Conclusiones Clave</h3>
+                        <div class="list-item"><span class="material-icons">check_circle</span> <div><strong>Liderazgo Consolidado:</strong> Nuestra marca domina de forma sostenida la categoría capturando entre un 25-28% del tráfico total semana tras semana frente a una demanda que se mantiene estable.</div></div>
+                        <div class="list-item"><span class="material-icons">check_circle</span> <div><strong>El Poder del Badge:</strong> La captación de cuota depende críticamente de la insignia "Amazon Choice" (Rank 1). Los ASINs propios o ajenos sin esta insignia sufren para captar tracción inicial (>20 puntos de diferencia).</div></div>
+                        <div class="list-item"><span class="material-icons">check_circle</span> <div><strong>Inelasticidad Promocional:</strong> Las bajadas de precio extremo o activación agresiva de "Deal Days" por parte de rivales directos (ej. Solgar o WeightWorld) demuestran ser ineficaces para desbancar orgánicamente al líder establecido.</div></div>
+                        <div class="list-item"><span class="material-icons">check_circle</span> <div><strong>Eficiencia Orgánica:</strong> Aunque la competencia posiciona listings entre los rangos #4 y #8, la eficiencia de conversión Rank -> Clic es deficiente, absorbiendo mínimos shares en comparación con nuestro top ASIN.</div></div>
+                        <div class="list-item"><span class="material-icons">check_circle</span> <div><strong>Sensibilidad Inelástica al Precio (Premiumization):</strong> Competidores como NEW LEAF demuestran que es posible monetizar rentablemente capturando más de un 11% de Share con precios premium superiores a las £12.00, sin competir en el segmento low-cost.</div></div>
+                    </div>
+                    <div>
+                        <h3 style="color:var(--secondary-color); font-size:16px; margin-bottom:16px;">🚀 Recomendaciones Accionables</h3>
+                        <div class="list-item"><span class="material-icons">play_arrow</span> <div><strong>Reactivación de Variante Rezaga:</strong> El ASIN propio secundario lanzado recientemente languidece en un Rank 10 con apenas 1.4% de Share. Es imperativo inyectar cupones de descuento u ofertas relámpago a corto plazo para acelerar su rodaje en la SERP.</div></div>
+                        <div class="list-item"><span class="material-icons">play_arrow</span> <div><strong>Defensa Estricta del Badge Principal:</strong> Monitorizar y asegurar roturas de stock nulas y mantenimiento de la inversión en campañas defensivas de Sponsored Products para asegurar la insignia que garantiza el ~25% de la cuota global.</div></div>
+                        <div class="list-item"><span class="material-icons">play_arrow</span> <div><strong>Test A/B Cauteloso de Pricing:</strong> Considerar ligeros incrementos del PV (ej. de £8.89 a £9.49) para maximizar márgenes comprobando la resistencia elástica probada por competidores directos en la misma página de resultados.</div></div>
+                        
+                        <h3 style="color:#fbbc04; font-size:16px; margin-top:24px; margin-bottom:16px;">👁️ Other Insights Estratégicos</h3>
+                        <div class="list-item"><span class="material-icons">visibility</span> <div><strong>Canibalización Inminente:</strong> NEW LEAF PRODUCTS está experimentando proactivamente lanzando múltiples variantes gemelas en promociones simultáneas durante la última semana analizada, apuntando a ocupar más espacio orgánico en la primera página para expulsar a marcas más pequeñas.</div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- PESTAÑA 2: COMPARADOR INTERACTIVO -->
+        <div id="tab-2" class="tab-content hidden">
+            <div class="card">
+                <h2><span class="material-icons">compare_arrows</span> Comparador Interactivo Dinámico</h2>
+                <div class="form-row">
+                    <select id="comp-week"></select>
+                    <select id="comp-brand"></select>
+                </div>
+                
+                <table class="compare-table">
+                    <thead>
+                        <tr>
+                            <th>Métrica Analizada</th>
+                            <th><span class="badge yaba" id="c-our-brand-title">Nosotros</span></th>
+                            <th><span class="badge comp" id="c-comp-brand-title">Competidor</span></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Cuota de Clics (Share %)</strong></td>
+                            <td id="c-our-share" style="color:var(--yaba-color); font-weight:500;"></td>
+                            <td id="c-comp-share" style="color:var(--comp-color); font-weight:500;"></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Precio Promedio (£)</strong></td>
+                            <td id="c-our-price"></td>
+                            <td id="c-comp-price"></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Mejor Posicionamiento (Rank)</strong></td>
+                            <td id="c-our-rank"></td>
+                            <td id="c-comp-rank"></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Nivel de Actividad Promocional (Deal Days Promedio)</strong></td>
+                            <td id="c-our-deals"></td>
+                            <td id="c-comp-deals"></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Posesión de Amazon Choice (Días)</strong></td>
+                            <td id="c-our-ac"></td>
+                            <td id="c-comp-ac"></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- LOGICA Y PROCESAMIENTO DE DATOS EN JS NATIVO -->
+    <script>
+        // Inyección Directa de Datos (Dataset Limpio)
+        const marketData = [{"brand_aggregation":"naturalebio","parent_asin":"Psyllium","reporting_date":"2026-03-07","week_date":"2026-10","keywords":"psyllium husk","competitor_brand":"The Worldwide Mint","asin":"B0F3JB86T3","product_title":"Psyllium Husk Powder 200g | 100% Pure & Natural | ...","country_code":"uk","average_organic_rank":5,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"click_share":9.93,"impression_share":6.02,"price":5.818571429,"click_share_rank":3,"weekly_search_volume":14827.59,"is_yaba_asin":"N","keywords_link":"https://www.amazon.co.uk/s?k=psyllium+husk"},{"brand_aggregation":"naturalebio","parent_asin":"Psyllium","reporting_date":"2026-03-14","week_date":"2026-11","keywords":"psyllium husk","competitor_brand":"NaturaleBio","asin":"B07L9WJ4P2","product_title":"NaturaleBio Organic Psyllium Husk - 99% Purity - 2...","country_code":"uk","average_organic_rank":1,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":7,"weekly_number_of_days_with_coupon":0,"click_share":25.17,"impression_share":5.29,"price":8.89,"click_share_rank":1,"weekly_search_volume":15441.21,"is_yaba_asin":"Y","keywords_link":"https://www.amazon.co.uk/s?k=psyllium+husk"},{"brand_aggregation":"naturalebio","parent_asin":"Psyllium","reporting_date":"2026-02-28","week_date":"2026-09","keywords":"psyllium husk","competitor_brand":"WeightWorld","asin":"B0B1QQNZ2S","product_title":"WeightWorld Organic Psyllium Husk Capsules | 1400m...","country_code":"uk","average_organic_rank":5,"weekly_number_of_days_with_deal":4,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"click_share":4.41,"impression_share":4.27,"price":11.115714286,"click_share_rank":6,"weekly_search_volume":15429.55,"is_yaba_asin":"N","keywords_link":"https://www.amazon.co.uk/s?k=psyllium+husk"},{"brand_aggregation":"naturalebio","parent_asin":"Psyllium","reporting_date":"2026-02-21","week_date":"2026-08","keywords":"psyllium husk","competitor_brand":"The Worldwide Mint","asin":"B0F3JB86T3","product_title":"Psyllium Husk Powder 200g | 100% Pure & Natural | ...","country_code":"uk","average_organic_rank":10,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"click_share":5.71,"impression_share":4.04,"price":7.207142857,"click_share_rank":4,"weekly_search_volume":15239.72,"is_yaba_asin":"N","keywords_link":"https://www.amazon.co.uk/s?k=psyllium+husk"},{"brand_aggregation":"naturalebio","parent_asin":"Psyllium","reporting_date":"2026-02-28","week_date":"2026-09","keywords":"psyllium husk","competitor_brand":"REBIRTH WELLNESS BE YOURSELF | ONLY BETTER","asin":"B0F227549B","product_title":"Psyllium Husk Fibre Supplement 4000mg with Probiot...","country_code":"uk","average_organic_rank":26,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"click_share":2.29,"impression_share":3.8,"price":9.95,"click_share_rank":8,"weekly_search_volume":15429.55,"is_yaba_asin":"N","keywords_link":"https://www.amazon.co.uk/s?k=psyllium+husk"},{"brand_aggregation":"naturalebio","parent_asin":"Psyllium","reporting_date":"2026-03-07","week_date":"2026-10","keywords":"psyllium husk","competitor_brand":"WeightWorld","asin":"B0B1QQNZ2S","product_title":"WeightWorld Organic Psyllium Husk Capsules | 1400m...","country_code":"uk","average_organic_rank":8,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"click_share":6.0,"impression_share":5.73,"price":11.96,"click_share_rank":5,"weekly_search_volume":14827.59,"is_yaba_asin":"N","keywords_link":"https://www.amazon.co.uk/s?k=psyllium+husk"},{"brand_aggregation":"naturalebio","parent_asin":"Psyllium","reporting_date":"2026-02-21","week_date":"2026-08","keywords":"psyllium husk","competitor_brand":"WeightWorld","asin":"B0B1QQNZ2S","product_title":"WeightWorld Organic Psyllium Husk Capsules | 1400m...","country_code":"uk","average_organic_rank":4,"weekly_number_of_days_with_deal":7,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"click_share":4.96,"impression_share":3.36,"price":9.99,"click_share_rank":5,"weekly_search_volume":15239.72,"is_yaba_asin":"N","keywords_link":"https://www.amazon.co.uk/s?k=psyllium+husk"},{"brand_aggregation":"naturalebio","parent_asin":"Psyllium","reporting_date":"2026-02-28","week_date":"2026-09","keywords":"psyllium husk","competitor_brand":"NaturaleBio","asin":"B07L9WJ4P2","product_title":"NaturaleBio Organic Psyllium Husk - 99% Purity - 2...","country_code":"uk","average_organic_rank":1,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":7,"weekly_number_of_days_with_coupon":0,"click_share":26.84,"impression_share":5.23,"price":8.89,"click_share_rank":1,"weekly_search_volume":15429.55,"is_yaba_asin":"Y","keywords_link":"https://www.amazon.co.uk/s?k=psyllium+husk"},{"brand_aggregation":"naturalebio","parent_asin":"Psyllium","reporting_date":"2026-03-14","week_date":"2026-11","keywords":"psyllium husk","competitor_brand":"NEW LEAF PRODUCTS","asin":"B08WM1VP8V","product_title":"Fibre Supplement 4000mg Psyllium Husk with Acidoph...","country_code":"uk","average_organic_rank":2,"weekly_number_of_days_with_deal":5,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"click_share":11.79,"impression_share":4.87,"price":11.204285714,"click_share_rank":2,"weekly_search_volume":15441.21,"is_yaba_asin":"N","keywords_link":"https://www.amazon.co.uk/s?k=psyllium+husk"},{"brand_aggregation":"naturalebio","parent_asin":"Psyllium","reporting_date":"2026-03-07","week_date":"2026-10","keywords":"psyllium husk","competitor_brand":"NKD Living","asin":"B08FQYKS82","product_title":"NKD Living Whole Psyllium Husks 500g \u2013 100% Natura...","country_code":"uk","average_organic_rank":5,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"click_share":7.06,"impression_share":4.08,"price":9.99,"click_share_rank":4,"weekly_search_volume":14827.59,"is_yaba_asin":"N","keywords_link":"https://www.amazon.co.uk/s?k=psyllium+husk"},{"brand_aggregation":"naturalebio","parent_asin":"Psyllium","reporting_date":"2026-02-21","week_date":"2026-08","keywords":"psyllium husk","competitor_brand":"Solgar","asin":"B005P0WGNE","product_title":"Solgar Psyllium Husks Fibre 500 Mg Vegetable Capsu...","country_code":"uk","average_organic_rank":6,"weekly_number_of_days_with_deal":2,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":4,"click_share":3.35,"impression_share":4.01,"price":15.331428571,"click_share_rank":7,"weekly_search_volume":15239.72,"is_yaba_asin":"N","keywords_link":"https://www.amazon.co.uk/s?k=psyllium+husk"},{"brand_aggregation":"naturalebio","parent_asin":"Psyllium","reporting_date":"2026-02-28","week_date":"2026-09","keywords":"psyllium husk","competitor_brand":"The Worldwide Mint","asin":"B0F3JB86T3","product_title":"Psyllium Husk Powder 200g | 100% Pure & Natural | ...","country_code":"uk","average_organic_rank":7,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"click_share":8.32,"impression_share":4.93,"price":5.75,"click_share_rank":4,"weekly_search_volume":15429.55,"is_yaba_asin":"N","keywords_link":"https://www.amazon.co.uk/s?k=psyllium+husk"},{"brand_aggregation":"naturalebio","parent_asin":"Psyllium","reporting_date":"2026-03-14","week_date":"2026-11","keywords":"psyllium husk","competitor_brand":"NaturaleBio","asin":"B07L9XDJ8V","product_title":"NaturaleBio Organic Psyllium Husk - 99% Purity - 4...","country_code":"uk","average_organic_rank":10,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"click_share":1.46,"impression_share":3.06,"price":14.99,"click_share_rank":10,"weekly_search_volume":15441.21,"is_yaba_asin":"Y","keywords_link":"https://www.amazon.co.uk/s?k=psyllium+husk"},{"brand_aggregation":"naturalebio","parent_asin":"Psyllium","reporting_date":"2026-02-28","week_date":"2026-09","keywords":"psyllium husk","competitor_brand":"Yelixir Nutrition","asin":"B0CXXY21X7","product_title":"Yelixir Nutrition Psyllium Husk Whole 250 g","country_code":"uk","average_organic_rank":50,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"click_share":1.25,"impression_share":1.53,"price":6.99,"click_share_rank":10,"weekly_search_volume":15429.55,"is_yaba_asin":"N","keywords_link":"https://www.amazon.co.uk/s?k=psyllium+husk"},{"brand_aggregation":"naturalebio","parent_asin":"Psyllium","reporting_date":"2026-02-21","week_date":"2026-08","keywords":"psyllium husk","competitor_brand":"Vinco","asin":"B0FW6P4NKY","product_title":"Vinco Fibre Supplement 5000mg Psyllium Husk with A...","country_code":"uk","average_organic_rank":18,"weekly_number_of_days_with_deal":1,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"click_share":1.65,"impression_share":3.16,"price":9.775714286,"click_share_rank":10,"weekly_search_volume":15239.72,"is_yaba_asin":"N","keywords_link":"https://www.amazon.co.uk/s?k=psyllium+husk"},{"brand_aggregation":"naturalebio","parent_asin":"Psyllium","reporting_date":"2026-03-07","week_date":"2026-10","keywords":"psyllium husk","competitor_brand":"Solgar","asin":"B005P0WGNE","product_title":"Solgar Psyllium Husks Fibre 500 Mg Vegetable Capsu...","country_code":"uk","average_organic_rank":4,"weekly_number_of_days_with_deal":6,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"click_share":5.25,"impression_share":4.12,"price":12.811428571,"click_share_rank":6,"weekly_search_volume":14827.59,"is_yaba_asin":"N","keywords_link":"https://www.amazon.co.uk/s?k=psyllium+husk"},{"brand_aggregation":"naturalebio","parent_asin":"Psyllium","reporting_date":"2026-02-21","week_date":"2026-08","keywords":"psyllium husk","competitor_brand":"The Worldwide Mint","asin":"B0CP46WQ37","product_title":"Psyllium Husk (100g/3.52oz) Easy Mixing Fiber Supp...","country_code":"uk","average_organic_rank":21,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"click_share":2.46,"impression_share":1.48,"price":6.17,"click_share_rank":8,"weekly_search_volume":15239.72,"is_yaba_asin":"N","keywords_link":"https://www.amazon.co.uk/s?k=psyllium+husk"},{"brand_aggregation":"naturalebio","parent_asin":"Psyllium","reporting_date":"2026-02-21","week_date":"2026-08","keywords":"psyllium husk","competitor_brand":"NKD Living","asin":"B08FQYKS82","product_title":"NKD Living Whole Psyllium Husks 500g \u2013 100% Natura...","country_code":"uk","average_organic_rank":3,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"click_share":9.55,"impression_share":4.35,"price":9.99,"click_share_rank":3,"weekly_search_volume":15239.72,"is_yaba_asin":"N","keywords_link":"https://www.amazon.co.uk/s?k=psyllium+husk"},{"brand_aggregation":"naturalebio","parent_asin":"Psyllium","reporting_date":"2026-02-21","week_date":"2026-08","keywords":"psyllium husk","competitor_brand":"NaturaleBio","asin":"B07L9WJ4P2","product_title":"NaturaleBio Organic Psyllium Husk - 99% Purity - 2...","country_code":"uk","average_organic_rank":2,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":6,"weekly_number_of_days_with_coupon":0,"click_share":26.16,"impression_share":5.32,"price":8.89,"click_share_rank":1,"weekly_search_volume":15239.72,"is_yaba_asin":"Y","keywords_link":"https://www.amazon.co.uk/s?k=psyllium+husk"},{"brand_aggregation":"naturalebio","parent_asin":"Psyllium","reporting_date":"2026-02-21","week_date":"2026-08","keywords":"psyllium husk","competitor_brand":"Psyllium","asin":"B0G3B81XPV","product_title":"Psyllium Husk 10000mg with Acidophilus 1 Billion C...","country_code":"uk","average_organic_rank":44,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"click_share":2.04,"impression_share":2.78,"price":12.99,"click_share_rank":9,"weekly_search_volume":15239.72,"is_yaba_asin":"N","keywords_link":"https://www.amazon.co.uk/s?k=psyllium+husk"},{"brand_aggregation":"naturalebio","parent_asin":"Psyllium","reporting_date":"2026-02-28","week_date":"2026-09","keywords":"psyllium husk","competitor_brand":"NEW LEAF PRODUCTS","asin":"B08WM1VP8V","product_title":"Fibre Supplement 4000mg Psyllium Husk with Acidoph...","country_code":"uk","average_organic_rank":2,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"click_share":12.21,"impression_share":5.75,"price":12.49,"click_share_rank":2,"weekly_search_volume":15429.55,"is_yaba_asin":"N","keywords_link":"https://www.amazon.co.uk/s?k=psyllium+husk"},{"brand_aggregation":"naturalebio","parent_asin":"Psyllium","reporting_date":"2026-02-28","week_date":"2026-09","keywords":"psyllium husk","competitor_brand":"Solgar","asin":"B005P0WGNE","product_title":"Solgar Psyllium Husks Fibre 500 Mg Vegetable Capsu...","country_code":"uk","average_organic_rank":4,"weekly_number_of_days_with_deal":7,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"click_share":5.2,"impression_share":4.16,"price":12.49,"click_share_rank":5,"weekly_search_volume":15429.55,"is_yaba_asin":"N","keywords_link":"https://www.amazon.co.uk/s?k=psyllium+husk"},{"brand_aggregation":"naturalebio","parent_asin":"Psyllium","reporting_date":"2026-02-28","week_date":"2026-09","keywords":"psyllium husk","competitor_brand":"NKD Living","asin":"B08FQYKS82","product_title":"NKD Living Whole Psyllium Husks 500g \u2013 100% Natura...","country_code":"uk","average_organic_rank":5,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"click_share":8.66,"impression_share":4.06,"price":9.99,"click_share_rank":3,"weekly_search_volume":15429.55,"is_yaba_asin":"N","keywords_link":"https://www.amazon.co.uk/s?k=psyllium+husk"},{"brand_aggregation":"naturalebio","parent_asin":"Psyllium","reporting_date":"2026-02-28","week_date":"2026-09","keywords":"psyllium husk","competitor_brand":"NKD Living","asin":"B07BZ59D68","product_title":"NKD Living Psyllium Husk Powder (500g) | Tested fo...","country_code":"uk","average_organic_rank":6,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"click_share":4.41,"impression_share":3.71,"price":9.99,"click_share_rank":6,"weekly_search_volume":15429.55,"is_yaba_asin":"N","keywords_link":"https://www.amazon.co.uk/s?k=psyllium+husk"},{"brand_aggregation":"naturalebio","parent_asin":"Psyllium","reporting_date":"2026-03-14","week_date":"2026-11","keywords":"psyllium husk","competitor_brand":"NKD Living","asin":"B07BZ59D68","product_title":"NKD Living Psyllium Husk Powder (500g) | Tested fo...","country_code":"uk","average_organic_rank":6,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"click_share":4.98,"impression_share":3.67,"price":9.99,"click_share_rank":5,"weekly_search_volume":15441.21,"is_yaba_asin":"N","keywords_link":"https://www.amazon.co.uk/s?k=psyllium+husk"},{"brand_aggregation":"naturalebio","parent_asin":"Psyllium","reporting_date":"2026-02-28","week_date":"2026-09","keywords":"psyllium husk","competitor_brand":"Vinco","asin":"B0FW6P4NKY","product_title":"Vinco Fibre Supplement 5000mg Psyllium Husk with A...","country_code":"uk","average_organic_rank":24,"weekly_number_of_days_with_deal":6,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"click_share":1.88,"impression_share":2.54,"price":8.704285714,"click_share_rank":9,"weekly_search_volume":15429.55,"is_yaba_asin":"N","keywords_link":"https://www.amazon.co.uk/s?k=psyllium+husk"},{"brand_aggregation":"naturalebio","parent_asin":"Psyllium","reporting_date":"2026-03-07","week_date":"2026-10","keywords":"psyllium husk","competitor_brand":"Natural Health 4 Life","asin":"B07PX2TYXN","product_title":"Natural Health 4 Life Vegetable Fibre Psyllium Hus...","country_code":"uk","average_organic_rank":11,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"click_share":1.19,"impression_share":3.26,"price":17.49,"click_share_rank":10,"weekly_search_volume":14827.59,"is_yaba_asin":"N","keywords_link":"https://www.amazon.co.uk/s?k=psyllium+husk"},{"brand_aggregation":"naturalebio","parent_asin":"Psyllium","reporting_date":"2026-03-14","week_date":"2026-11","keywords":"psyllium husk","competitor_brand":"Natural Health 4 Life","asin":"B07PX2TYXN","product_title":"Natural Health 4 Life Vegetable Fibre Psyllium Hus...","country_code":"uk","average_organic_rank":11,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"click_share":4.44,"impression_share":3.26,"price":17.49,"click_share_rank":6,"weekly_search_volume":15441.21,"is_yaba_asin":"N","keywords_link":"https://www.amazon.co.uk/s?k=psyllium+husk"},{"brand_aggregation":"naturalebio","parent_asin":"Psyllium","reporting_date":"2026-03-07","week_date":"2026-10","keywords":"psyllium husk","competitor_brand":"REBIRTH WELLNESS BE YOURSELF | ONLY BETTER","asin":"B0F227549B","product_title":"Psyllium Husk Fibre Supplement 4000mg with Probiot...","country_code":"uk","average_organic_rank":20,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"click_share":1.94,"impression_share":4.34,"price":9.95,"click_share_rank":8,"weekly_search_volume":14827.59,"is_yaba_asin":"N","keywords_link":"https://www.amazon.co.uk/s?k=psyllium+husk"},{"brand_aggregation":"naturalebio","parent_asin":"Psyllium","reporting_date":"2026-03-14","week_date":"2026-11","keywords":"psyllium husk","competitor_brand":"The Worldwide Mint","asin":"B0F3JB86T3","product_title":"Psyllium Husk Powder 200g | 100% Pure & Natural | ...","country_code":"uk","average_organic_rank":3,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"click_share":9.78,"impression_share":6.06,"price":5.97,"click_share_rank":3,"weekly_search_volume":15441.21,"is_yaba_asin":"N","keywords_link":"https://www.amazon.co.uk/s?k=psyllium+husk"},{"brand_aggregation":"naturalebio","parent_asin":"Psyllium","reporting_date":"2026-03-14","week_date":"2026-11","keywords":"psyllium husk","competitor_brand":"NKD Living","asin":"B08FQYKS82","product_title":"NKD Living Whole Psyllium Husks 500g \u2013 100% Natura...","country_code":"uk","average_organic_rank":5,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"click_share":5.8,"impression_share":3.9,"price":9.99,"click_share_rank":4,"weekly_search_volume":15441.21,"is_yaba_asin":"N","keywords_link":"https://www.amazon.co.uk/s?k=psyllium+husk"},{"brand_aggregation":"naturalebio","parent_asin":"Psyllium","reporting_date":"2026-03-07","week_date":"2026-10","keywords":"psyllium husk","competitor_brand":"NEW LEAF PRODUCTS","asin":"B08WM1VP8V","product_title":"Fibre Supplement 4000mg Psyllium Husk with Acidoph...","country_code":"uk","average_organic_rank":2,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"click_share":12.28,"impression_share":5.69,"price":12.49,"click_share_rank":2,"weekly_search_volume":14827.59,"is_yaba_asin":"N","keywords_link":"https://www.amazon.co.uk/s?k=psyllium+husk"},{"brand_aggregation":"naturalebio","parent_asin":"Psyllium","reporting_date":"2026-02-21","week_date":"2026-08","keywords":"psyllium husk","competitor_brand":"NKD Living","asin":"B07BZ59D68","product_title":"NKD Living Psyllium Husk Powder (500g) | Tested fo...","country_code":"uk","average_organic_rank":5,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"click_share":4.8,"impression_share":3.85,"price":9.99,"click_share_rank":6,"weekly_search_volume":15239.72,"is_yaba_asin":"N","keywords_link":"https://www.amazon.co.uk/s?k=psyllium+husk"},{"brand_aggregation":"naturalebio","parent_asin":"Psyllium","reporting_date":"2026-03-07","week_date":"2026-10","keywords":"psyllium husk","competitor_brand":"NKD Living","asin":"B07BZ59D68","product_title":"NKD Living Psyllium Husk Powder (500g) | Tested fo...","country_code":"uk","average_organic_rank":6,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"click_share":4.54,"impression_share":3.63,"price":9.99,"click_share_rank":7,"weekly_search_volume":14827.59,"is_yaba_asin":"N","keywords_link":"https://www.amazon.co.uk/s?k=psyllium+husk"},{"brand_aggregation":"naturalebio","parent_asin":"Psyllium","reporting_date":"2026-03-07","week_date":"2026-10","keywords":"psyllium husk","competitor_brand":"Vinco","asin":"B0FW6P4NKY","product_title":"Vinco Fibre Supplement 5000mg Psyllium Husk with A...","country_code":"uk","average_organic_rank":33,"weekly_number_of_days_with_deal":7,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"click_share":1.91,"impression_share":2.21,"price":8.49,"click_share_rank":9,"weekly_search_volume":14827.59,"is_yaba_asin":"N","keywords_link":"https://www.amazon.co.uk/s?k=psyllium+husk"},{"brand_aggregation":"naturalebio","parent_asin":"Psyllium","reporting_date":"2026-02-21","week_date":"2026-08","keywords":"psyllium husk","competitor_brand":"NEW LEAF PRODUCTS","asin":"B08WM1VP8V","product_title":"Fibre Supplement 4000mg Psyllium Husk with Acidoph...","country_code":"uk","average_organic_rank":2,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":4,"weekly_number_of_days_with_coupon":0,"click_share":13.7,"impression_share":5.7,"price":12.49,"click_share_rank":2,"weekly_search_volume":15239.72,"is_yaba_asin":"N","keywords_link":"https://www.amazon.co.uk/s?k=psyllium+husk"},{"brand_aggregation":"naturalebio","parent_asin":"Psyllium","reporting_date":"2026-03-14","week_date":"2026-11","keywords":"psyllium husk","competitor_brand":"NEW LEAF PRODUCTS","asin":"B0CKTPYXRW","product_title":"Fibre Supplement 4000mg Psyllium Husk with Acidoph...","country_code":"uk","average_organic_rank":8,"weekly_number_of_days_with_deal":5,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"click_share":1.9,"impression_share":3.23,"price":16.807142857,"click_share_rank":9,"weekly_search_volume":15441.21,"is_yaba_asin":"N","keywords_link":"https://www.amazon.co.uk/s?k=psyllium+husk"},{"brand_aggregation":"naturalebio","parent_asin":"Psyllium","reporting_date":"2026-03-14","week_date":"2026-11","keywords":"psyllium husk","competitor_brand":"WeightWorld","asin":"B0B1QQNZ2S","product_title":"WeightWorld Organic Psyllium Husk Capsules | 1400m...","country_code":"uk","average_organic_rank":8,"weekly_number_of_days_with_deal":5,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"click_share":3.62,"impression_share":4.16,"price":10.552857143,"click_share_rank":7,"weekly_search_volume":15441.21,"is_yaba_asin":"N","keywords_link":"https://www.amazon.co.uk/s?k=psyllium+husk"},{"brand_aggregation":"naturalebio","parent_asin":"Psyllium","reporting_date":"2026-03-07","week_date":"2026-10","keywords":"psyllium husk","competitor_brand":"NaturaleBio","asin":"B07L9WJ4P2","product_title":"NaturaleBio Organic Psyllium Husk - 99% Purity - 2...","country_code":"uk","average_organic_rank":1,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":7,"weekly_number_of_days_with_coupon":0,"click_share":27.84,"impression_share":5.45,"price":8.89,"click_share_rank":1,"weekly_search_volume":14827.59,"is_yaba_asin":"Y","keywords_link":"https://www.amazon.co.uk/s?k=psyllium+husk"},{"brand_aggregation":"naturalebio","parent_asin":"Psyllium","reporting_date":"2026-03-14","week_date":"2026-11","keywords":"psyllium husk","competitor_brand":"Solgar","asin":"B005P0WGNE","product_title":"Solgar Psyllium Husks Fibre 500 Mg Vegetable Capsu...","country_code":"uk","average_organic_rank":6,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"click_share":3.1,"impression_share":3.79,"price":14.241428571,"click_share_rank":8,"weekly_search_volume":15441.21,"is_yaba_asin":"N","keywords_link":"https://www.amazon.co.uk/s?k=psyllium+husk"}];
+
+        // 1. Data Processing
+        const data = marketData.map(row => {
+            let compBrand = row.competitor_brand;
+            if (!compBrand || compBrand === '') {
+                compBrand = row.product_title ? row.product_title.split(' ')[0] : 'Unknown Brand';
+            }
+            return { ...row, competitor_brand: compBrand };
+        });
+
+        const ourBrandAsin = data.find(d => d.is_yaba_asin === 'Y');
+        const ourBrand = ourBrandAsin ? ourBrandAsin.competitor_brand : 'Nuestra Marca';
+        
+        // Update DOM Titles
+        document.getElementById('kpi-share-title').innerText = ourBrand + " Share (Últ. Sem)";
+        document.getElementById('c-our-brand-title').innerText = ourBrand;
+
+        const weeks = [...new Set(data.map(d => d.week_date))].sort();
+        const lastWeek = weeks[weeks.length - 1];
+        const prevWeek = weeks[weeks.length - 2] || weeks[0];
+
+        // 2. Load Google Charts
+        google.charts.load('current', {'packages':['corechart']});
+        google.charts.setOnLoadCallback(drawAllCharts);
+
+        function drawAllCharts() {
+            updateKPIs();
+            drawGlobalTrend();
+            drawCompetitiveness();
+            drawPalancas();
+            drawEfficiency();
+            initComparator();
+            
+            // Resize handling
+            window.addEventListener('resize', () => {
+                drawGlobalTrend();
+                drawCompetitiveness();
+                drawPalancas();
+                drawEfficiency();
+            });
+        }
+
+        // Tab Switching Logic
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(tc => tc.classList.add('hidden'));
+            
+            document.querySelector(`[onclick="switchTab('${tabId}')"]`).classList.add('active');
+            document.getElementById(tabId).classList.remove('hidden');
+        }
+
+        // KPIs
+        function updateKPIs() {
+            let lastWeekData = data.filter(d => d.week_date === lastWeek);
+            let prevWeekData = data.filter(d => d.week_date === prevWeek);
+            
+            let ourLwShare = lastWeekData.filter(d => d.is_yaba_asin === 'Y').reduce((s, d) => s + d.click_share, 0);
+            let ourPwShare = prevWeekData.filter(d => d.is_yaba_asin === 'Y').reduce((s, d) => s + d.click_share, 0);
+            
+            document.getElementById('kpi-share').innerText = ourLwShare.toFixed(2) + '%';
+            let delta = ourLwShare - ourPwShare;
+            let deltaEl = document.getElementById('kpi-share-delta');
+            deltaEl.innerText = (delta > 0 ? '▲ +' : '▼ ') + delta.toFixed(2) + ' pts vs Sem ' + prevWeek.split('-')[1];
+            deltaEl.className = 'kpi-delta ' + (delta >= 0 ? 'positive' : 'negative');
+            
+            let compShares = {};
+            lastWeekData.filter(d => d.is_yaba_asin === 'N').forEach(d => {
+                compShares[d.competitor_brand] = (compShares[d.competitor_brand] || 0) + d.click_share;
+            });
+            let topC = Object.entries(compShares).sort((a,b) => b[1] - a[1])[0];
+            
+            document.getElementById('kpi-top-comp').innerText = topC ? topC[0] : '-';
+            document.getElementById('kpi-top-comp-val').innerText = topC ? (topC[1].toFixed(2) + '% share global') : '-';
+            
+            let ourAsinsLw = lastWeekData.filter(d => d.is_yaba_asin === 'Y');
+            let ourLwRank = ourAsinsLw.length ? ourAsinsLw.reduce((s, d) => s + d.average_organic_rank, 0) / ourAsinsLw.length : 0;
+            document.getElementById('kpi-rank').innerText = '#' + ourLwRank.toFixed(1);
+            
+            let hasAc = ourAsinsLw.some(d => d.weekly_number_of_days_with_amazon_choice_badge > 0);
+            document.getElementById('kpi-rank-ac').innerText = hasAc ? 'Insignia Amazon Choice Activa' : 'Sin insignia esta semana';
+            document.getElementById('kpi-rank-ac').style.color = hasAc ? '#34a853' : '#ea4335';
+        }
+
+        // 1. Tendencia Global
+        function drawGlobalTrend() {
+            let dt = new google.visualization.DataTable();
+            dt.addColumn('string', 'Semana');
+            dt.addColumn('number', 'Volumen Estimado (Clicks)');
+            dt.addColumn('number', 'Nuestro Share %');
+            dt.addColumn('number', 'Competidores Share %');
+
+            weeks.forEach(w => {
+                let wData = data.filter(d => d.week_date === w);
+                let volProxy = wData.reduce((s, d) => s + (d.weekly_search_volume * d.click_share / 100), 0);
+                let ourShare = wData.filter(d => d.is_yaba_asin === 'Y').reduce((s, d) => s + d.click_share, 0);
+                let compShare = wData.filter(d => d.is_yaba_asin === 'N').reduce((s, d) => s + d.click_share, 0);
+                dt.addRow([w, Math.round(volProxy), ourShare, compShare]);
+            });
+
+            let options = {
+                seriesType: 'bars',
+                series: {
+                    0: { color: '#e0e0e0', targetAxisIndex: 0 },
+                    1: { type: 'line', targetAxisIndex: 1, color: '#1a73e8', lineWidth: 3 },
+                    2: { type: 'line', targetAxisIndex: 1, color: '#ea4335', lineWidth: 2, lineDashStyle: [4, 4] }
+                },
+                vAxes: {
+                    0: { title: 'Volumen Estimado', gridlines: { color: 'transparent' } },
+                    1: { title: 'Click Share (%)', format: '0' }
+                },
+                hAxis: { title: 'Semana del Año' },
+                height: 400,
+                legend: { position: 'top', alignment: 'end' },
+                chartArea: { width: '85%', height: '70%' }
+            };
+
+            new google.visualization.ComboChart(document.getElementById('chart-trend')).draw(dt, options);
+        }
+
+        // 2. Competitividad
+        function drawCompetitiveness() {
+            let dt = new google.visualization.DataTable();
+            dt.addColumn('string', 'Semana');
+            dt.addColumn('number', ourBrand);
+
+            let compShares = {};
+            data.filter(d => d.is_yaba_asin === 'N').forEach(d => {
+                compShares[d.competitor_brand] = (compShares[d.competitor_brand] || 0) + d.click_share;
+            });
+            let top3 = Object.entries(compShares).sort((a,b) => b[1] - a[1]).slice(0,3).map(x => x[0]);
+
+            top3.forEach(c => dt.addColumn('number', c));
+            dt.addColumn('number', 'Resto Mercado');
+
+            weeks.forEach(w => {
+                let wData = data.filter(d => d.week_date === w);
+                let row = [w];
+                row.push(wData.filter(d => d.is_yaba_asin === 'Y').reduce((s, d) => s + d.click_share, 0));
+                
+                let wCompData = wData.filter(d => d.is_yaba_asin === 'N');
+                top3.forEach(c => {
+                    row.push(wCompData.filter(d => d.competitor_brand === c).reduce((s, d) => s + d.click_share, 0));
+                });
+                
+                let restSum = wCompData.filter(d => !top3.includes(d.competitor_brand)).reduce((s, d) => s + d.click_share, 0);
+                row.push(restSum);
+                
+                dt.addRow(row);
+            });
+
+            let options = {
+                curveType: 'function',
+                height: 400,
+                colors: ['#1a73e8', '#ea4335', '#fbbc04', '#34a853', '#9aa0a6'],
+                legend: { position: 'top', alignment: 'end' },
+                vAxis: { title: 'Click Share (%)' },
+                hAxis: { title: 'Semana' },
+                lineWidth: 3,
+                chartArea: { width: '85%', height: '70%' }
+            };
+
+            new google.visualization.LineChart(document.getElementById('chart-comp')).draw(dt, options);
+        }
+
+        // 3. Palancas
+        function drawPalancas() {
+            let hasAC = data.filter(d => d.weekly_number_of_days_with_amazon_choice_badge > 0);
+            let noAC = data.filter(d => d.weekly_number_of_days_with_amazon_choice_badge === 0);
+            let hasDeals = data.filter(d => d.weekly_number_of_days_with_deal > 0 || d.weekly_number_of_days_with_coupon > 0);
+            let noDeals = data.filter(d => d.weekly_number_of_days_with_deal === 0 && d.weekly_number_of_days_with_coupon === 0);
+
+            let avgAc = hasAC.length ? hasAC.reduce((a,b)=>a+b.click_share,0) / hasAC.length : 0;
+            let avgNoAc = noAC.length ? noAC.reduce((a,b)=>a+b.click_share,0) / noAC.length : 0;
+            let avgDeals = hasDeals.length ? hasDeals.reduce((a,b)=>a+b.click_share,0) / hasDeals.length : 0;
+            let avgNoDeals = noDeals.length ? noDeals.reduce((a,b)=>a+b.click_share,0) / noDeals.length : 0;
+
+            let dt = google.visualization.arrayToDataTable([
+                ['Condición', 'Promedio Click Share %', { role: 'style' }],
+                ['Con Amazon Choice', avgAc, '#fbbc04'],
+                ['Sin Amazon Choice', avgNoAc, '#e0e0e0'],
+                ['Con Deals/Cupones', avgDeals, '#34a853'],
+                ['Sin Deals/Cupones', avgNoDeals, '#e0e0e0']
+            ]);
+
+            let options = {
+                bars: 'horizontal',
+                height: 300,
+                legend: { position: 'none' },
+                hAxis: { title: 'Click Share Promedio (%)', minValue: 0 },
+                chartArea: { width: '60%', height: '70%' }
+            };
+
+            new google.visualization.BarChart(document.getElementById('chart-palancas')).draw(dt, options);
+        }
+
+        // 4. Eficiencia
+        function drawEfficiency() {
+            let dt = new google.visualization.DataTable();
+            dt.addColumn('number', 'Organic Rank');
+            dt.addColumn('number', 'Nosotros');
+            dt.addColumn({type: 'string', role: 'tooltip'});
+            dt.addColumn('number', 'Competidores');
+            dt.addColumn({type: 'string', role: 'tooltip'});
+
+            data.forEach(d => {
+                let rank = d.average_organic_rank || 50;
+                let share = d.click_share || 0;
+                let tip = `Marca: ${d.competitor_brand}\nASIN: ${d.asin}\nRank: #${rank}\nShare: ${share}%\nPrecio: £${d.price}`;
+                
+                if (d.is_yaba_asin === 'Y') {
+                    dt.addRow([rank, share, tip, null, null]);
+                } else {
+                    dt.addRow([rank, null, null, share, tip]);
+                }
+            });
+
+            let options = {
+                hAxis: { title: 'Rank Orgánico (Más bajo es mejor)', direction: 1 },
+                vAxis: { title: 'Click Share (%)' },
+                height: 300,
+                colors: ['#1a73e8', '#ea4335'],
+                legend: { position: 'top', alignment: 'end' },
+                chartArea: { width: '80%', height: '70%' },
+                pointSize: 8,
+                dataOpacity: 0.7
+            };
+
+            new google.visualization.ScatterChart(document.getElementById('chart-eff')).draw(dt, options);
+        }
+
+        // 5. Comparador
+        function initComparator() {
+            let weekSel = document.getElementById('comp-week');
+            let compSel = document.getElementById('comp-brand');
+            
+            weeks.forEach(w => {
+                let opt = document.createElement('option');
+                opt.value = w;
+                opt.textContent = "Semana " + w;
+                if(w === lastWeek) opt.selected = true;
+                weekSel.appendChild(opt);
+            });
+            
+            let comps = [...new Set(data.filter(d => d.is_yaba_asin === 'N').map(d => d.competitor_brand))];
+            comps.sort().forEach(c => {
+                let opt = document.createElement('option');
+                opt.value = c;
+                opt.textContent = c;
+                compSel.appendChild(opt);
+            });
+            
+            weekSel.addEventListener('change', updateComparator);
+            compSel.addEventListener('change', updateComparator);
+            
+            updateComparator();
+        }
+
+        function updateComparator() {
+            let w = document.getElementById('comp-week').value;
+            let c = document.getElementById('comp-brand').value;
+            
+            let ourData = data.filter(d => d.week_date === w && d.is_yaba_asin === 'Y');
+            let compData = data.filter(d => d.week_date === w && d.competitor_brand === c);
+            
+            let ourShare = ourData.reduce((s,d)=>s+d.click_share, 0);
+            let compShare = compData.reduce((s,d)=>s+d.click_share, 0);
+            
+            let ourPrice = ourData.length ? (ourData.reduce((s,d)=>s+d.price, 0) / ourData.length).toFixed(2) : 'N/A';
+            let compPrice = compData.length ? (compData.reduce((s,d)=>s+d.price, 0) / compData.length).toFixed(2) : 'N/A';
+            
+            let ourRank = ourData.length ? Math.min(...ourData.map(d=>d.average_organic_rank)) : 'N/A';
+            let compRank = compData.length ? Math.min(...compData.map(d=>d.average_organic_rank)) : 'N/A';
+            
+            let ourDeals = ourData.reduce((s,d)=>s+d.weekly_number_of_days_with_deal, 0);
+            let compDeals = compData.reduce((s,d)=>s+d.weekly_number_of_days_with_deal, 0);
+            
+            let ourAC = ourData.reduce((s,d)=>s+d.weekly_number_of_days_with_amazon_choice_badge, 0);
+            let compAC = compData.reduce((s,d)=>s+d.weekly_number_of_days_with_amazon_choice_badge, 0);
+            
+            document.getElementById('c-comp-brand-title').innerText = c;
+            
+            document.getElementById('c-our-share').innerText = ourShare.toFixed(2) + '%';
+            document.getElementById('c-comp-share').innerText = compShare.toFixed(2) + '%';
+            
+            document.getElementById('c-our-price').innerText = ourPrice !== 'N/A' ? '£' + ourPrice : 'N/A';
+            document.getElementById('c-comp-price').innerText = compPrice !== 'N/A' ? '£' + compPrice : 'N/A';
+            
+            document.getElementById('c-our-rank').innerText = ourRank !== 'N/A' ? '#' + ourRank : 'N/A';
+            document.getElementById('c-comp-rank').innerText = compRank !== 'N/A' ? '#' + compRank : 'N/A';
+            
+            document.getElementById('c-our-deals').innerText = ourDeals + " días";
+            document.getElementById('c-comp-deals').innerText = compDeals + " días";
+
+            document.getElementById('c-our-ac').innerText = ourAC + " días";
+            document.getElementById('c-comp-ac').innerText = compAC + " días";
+        }
+    </script>
+</body>
+</html>
