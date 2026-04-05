@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Análisis de Parent ASIN - Matcha Premium</title>
+    <!-- Google Charts -->
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <!-- Google Material Icons -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --primary: #4285F4;
+            --success: #34A853;
+            --warning: #FBBC05;
+            --danger: #EA4335;
+            --bg-color: #f8f9fa;
+            --card-bg: #ffffff;
+            --text-main: #202124;
+            --text-muted: #5f6368;
+            --border: #dadce0;
+            --shadow: 0 1px 2px 0 rgba(60,64,67,0.3), 0 1px 3px 1px rgba(60,64,67,0.15);
+        }
+
+        * { box-sizing: border-box; }
+        
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 0;
+            line-height: 1.5;
+        }
+
+        .header {
+            background-color: var(--card-bg);
+            padding: 16px 24px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 20px;
+            font-weight: 500;
+            color: var(--text-main);
+        }
+
+        .tabs {
+            display: flex;
+            background: var(--card-bg);
+            border-bottom: 1px solid var(--border);
+            padding: 0 24px;
+        }
+
+        .tab-btn {
+            background: none;
+            border: none;
+            padding: 14px 24px;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-muted);
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .tab-btn:hover {
+            color: var(--primary);
+            background: rgba(66, 133, 244, 0.04);
+        }
+
+        .tab-btn.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 24px auto;
+            padding: 0 16px;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.3s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            gap: 24px;
+        }
+
+        .col-12 { grid-column: span 12; }
+        .col-6 { grid-column: span 6; }
+        .col-4 { grid-column: span 4; }
+
+        @media (max-width: 768px) {
+            .col-6, .col-4 { grid-column: span 12; }
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+            padding: 24px;
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .card-header .material-icons {
+            color: var(--primary);
+            margin-right: 8px;
+        }
+
+        .card-title {
+            margin: 0;
+            font-size: 16px;
+            font-weight: 500;
+        }
+
+        .chart-container {
+            width: 100%;
+            height: 350px;
+        }
+
+        .kpi-row {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+
+        .kpi-card {
+            flex: 1;
+            min-width: 250px;
+            background: var(--card-bg);
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            padding: 16px;
+            text-align: center;
+        }
+
+        .kpi-value {
+            font-size: 28px;
+            font-weight: 400;
+            color: var(--primary);
+            margin: 8px 0;
+        }
+
+        .kpi-label {
+            font-size: 13px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        ul.insights-list {
+            padding-left: 20px;
+            color: var(--text-muted);
+        }
+
+        ul.insights-list li {
+            margin-bottom: 12px;
+        }
+
+        ul.insights-list strong {
+            color: var(--text-main);
+        }
+
+        /* Comparator styles */
+        .controls {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+        
+        select {
+            padding: 10px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            background-color: var(--card-bg);
+            font-family: inherit;
+            font-size: 14px;
+            outline: none;
+            min-width: 200px;
+        }
+
+        select:focus {
+            border-color: var(--primary);
+        }
+
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 16px;
+        }
+        
+        .comparison-table th, .comparison-table td {
+            text-align: left;
+            padding: 12px;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .comparison-table th {
+            font-weight: 500;
+            color: var(--text-muted);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <i class="material-icons" style="color: var(--primary); margin-right: 12px;">analytics</i>
+        <h1>Reporte de Inteligencia Competitiva: Parent ASIN (Matcha Premium)</h1>
+    </div>
+
+    <div class="tabs">
+        <button class="tab-btn active" onclick="openTab('reporte', event)">Reporte Estático</button>
+        <button class="tab-btn" onclick="openTab('comparador', event)">Comparador Interactivo</button>
+    </div>
+
+    <div class="container">
+        
+        <!-- PESTAÑA 1: REPORTE ESTÁTICO -->
+        <div id="reporte" class="tab-content active">
+            
+            <div class="kpi-row">
+                <div class="kpi-card">
+                    <div class="kpi-label">Click Share (Última Sem)</div>
+                    <div class="kpi-value" style="color: var(--warning)">14.16%</div>
+                    <div class="kpi-label" style="text-transform: none; font-size: 12px;">▼ 4.61% vs ant.</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Top Competidor</div>
+                    <div class="kpi-value" style="color: var(--danger)">Perfect Ted</div>
+                    <div class="kpi-label" style="text-transform: none; font-size: 12px;">23.63% Share</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Correlación Precio / Clicks</div>
+                    <div class="kpi-value">-0.82</div>
+                    <div class="kpi-label" style="text-transform: none; font-size: 12px;">Fuerte elasticidad</div>
+                </div>
+            </div>
+
+            <div class="grid">
+                
+                <!-- 1. Tendencia Global -->
+                <div class="col-12 card">
+                    <div class="card-header">
+                        <i class="material-icons">timeline</i>
+                        <h2 class="card-title">1. Tendencia Global del Parent (Clicks & Click Share)</h2>
+                    </div>
+                    <div id="chart_trend" class="chart-container"></div>
+                </div>
+
+                <!-- 2. Competitividad -->
+                <div class="col-12 card">
+                    <div class="card-header">
+                        <i class="material-icons">insights</i>
+                        <h2 class="card-title">2. Competitividad de Marca (Nuestra Marca vs Top 3)</h2>
+                    </div>
+                    <div id="chart_competitiveness" class="chart-container"></div>
+                </div>
+
+                <!-- 3 & 4. Eficiencia y Palancas -->
+                <div class="col-6 card">
+                    <div class="card-header">
+                        <i class="material-icons">scatter_plot</i>
+                        <h2 class="card-title">4. Organic Rank vs Click Share (Eficiencia)</h2>
+                    </div>
+                    <div id="chart_efficiency" class="chart-container"></div>
+                </div>
+                
+                <div class="col-6 card">
+                    <div class="card-header">
+                        <i class="material-icons">monetization_on</i>
+                        <h2 class="card-title">3. Palancas Promocionales</h2>
+                    </div>
+                    <ul class="insights-list" style="margin-top:0;">
+                        <li><strong>Sensibilidad al Precio:</strong> El análisis revela una correlación fuertemente negativa (-0.82) entre el precio y el click share en nuestros ASINs. Somos extremadamente elásticos comparado al mercado general (-0.61).</li>
+                        <li><strong>Efecto Deal Days:</strong> Las semanas con mayor cantidad de Deal Days (5+) incrementan la cuota de clics más de un 40% respecto a semanas sin promociones o deals.</li>
+                        <li><strong>Amazon Choice:</strong> Obtener el badge de Amazon Choice es el driver más fuerte de crecimiento en la categoría. Semanas con este badge alcanzan hasta 18.5% de click share vs 5.3% en semanas sin el badge.</li>
+                        <li><strong>Coupons:</strong> Los cupones no mostraron un patrón lineal de mejora frente a los competidores; la reducción directa de precio en el listing es más efectiva que aplicar un cupón en esta categoría.</li>
+                    </ul>
+                </div>
+
+                <!-- 5. Conclusiones y Recomendaciones -->
+                <div class="col-6 card">
+                    <div class="card-header">
+                        <i class="material-icons">lightbulb</i>
+                        <h2 class="card-title">5. Conclusiones Clave (Basado en la última semana)</h2>
+                    </div>
+                    <ul class="insights-list">
+                        <li><strong>Pérdida de tracción reciente:</strong> Tras alcanzar un pico de 18.77% en la semana 12, hemos caído a 14.16% en la semana 13, perdiendo frente a competidores que activaron precios menores.</li>
+                        <li><strong>Perfect Ted domina el mercado:</strong> Lideran sólidamente (>23% share), apoyados en estrategias agresivas de precio (entre £8 y £9) y consistencia férrea en el Top 1 Orgánico.</li>
+                        <li><strong>La penalización del Rank:</strong> Nuestros ASINs pierden visibilidad drásticamente (underperformers) si caen debajo de la posición orgánica número 6.</li>
+                        <li><strong>Double Dragon es eficiente:</strong> Aunque no tienen Deal Days, su precio base ultra bajo (£6.94) los mantiene con ~10% de share estable y alta eficiencia por su conversion.</li>
+                        <li><strong>Eficiencia del Badge:</strong> Nuestra visibilidad es hiper-dependiente de los badges y los Deal Days; orgánicamente sin palancas promocionales somos superados.</li>
+                    </ul>
+                </div>
+                
+                <div class="col-6 card">
+                    <div class="card-header">
+                        <i class="material-icons">check_circle</i>
+                        <h2 class="card-title">Recomendaciones Accionables</h2>
+                    </div>
+                    <ul class="insights-list">
+                        <li><strong>1. Ajuste de Pricing Estratégico:</strong> Reducir el PVP de nuestro héroe ASIN temporalmente para acercarnos a la barrera de las £10, compitiendo de tú a tú con SuperSelf y Double Dragon para recuperar share perdido.</li>
+                        <li><strong>2. Activación de Lightning Deals:</strong> Dado que los Deal Days prolongados demostraron un pico abismal en click share, programar ofertas limitadas para recuperar posiciones en el Top 3 orgánico.</li>
+                        <li><strong>3. Recuperación del Amazon Choice:</strong> Enfocar la estrategia y los bid de PPC de manera agresiva en la root keyword "matcha" para re-obtener el badge de Amazon Choice, el cual perdimos en la última semana causando la caída abrupta de clics.</li>
+                    </ul>
+                </div>
+
+                <!-- 6. Otros Insights -->
+                <div class="col-12 card">
+                    <div class="card-header">
+                        <i class="material-icons">explore</i>
+                        <h2 class="card-title">6. Otros Insights (Riesgos y Oportunidades)</h2>
+                    </div>
+                    <p style="color: var(--text-muted);">
+                        <strong>Riesgo emergente de SuperSelf:</strong> Aunque históricamente eran un jugador pequeño en los clics (~4%), en la última semana han logrado duplicar su share captando el 7.32% de los clics. Mantienen sus precios bloqueados en £9.90. <br><br>
+                        <strong>Oportunidad Oculta:</strong> La marca <em>Nouri</em> tiene un rank promedio bajo (12-16) pero maneja precios competitivos (£7 - £10). Si logramos desplazar su posicionamiento inferior en patrocinados, podemos absorber su ~2.5% de mercado cautivo que busca exclusivamente precio bajo y no compra a Perfect Ted.
+                    </p>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- PESTAÑA 2: COMPARADOR INTERACTIVO -->
+        <div id="comparador" class="tab-content">
+            <div class="card">
+                <div class="card-header">
+                    <i class="material-icons">compare_arrows</i>
+                    <h2 class="card-title">Cara a Cara: Nuestra Marca vs Competidor</h2>
+                </div>
+                
+                <div class="controls">
+                    <select id="comp_week_select" onchange="updateComparator()">
+                        <option value="2026-10">Semana 10</option>
+                        <option value="2026-11">Semana 11</option>
+                        <option value="2026-12">Semana 12</option>
+                        <option value="2026-13" selected>Semana 13</option>
+                    </select>
+                    <select id="comp_brand_select" onchange="updateComparator()">
+                        <option value="Perfect Ted">Perfect Ted</option>
+                        <option value="Double Dragon">Double Dragon</option>
+                        <option value="SuperSelf">SuperSelf</option>
+                    </select>
+                </div>
+
+                <div id="comp_results">
+                    <!-- Dinámico por JS -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- DATOS Y LÓGICA -->
+    <script type="text/javascript">
+        // 1. Inyección de Datos Procesados
+        const marketData = {
+            "trend": [
+                {"week": "2026-10", "Y_share": 11.14, "N_share": 54.43, "Y_clicks": 16956.6, "N_clicks": 82849.9}, 
+                {"week": "2026-11", "Y_share": 18.58, "N_share": 43.93, "Y_clicks": 18725.7, "N_clicks": 44274.6}, 
+                {"week": "2026-12", "Y_share": 18.77, "N_share": 40.25, "Y_clicks": 18116.8, "N_clicks": 38849.4}, 
+                {"week": "2026-13", "Y_share": 14.16, "N_share": 49.46, "Y_clicks": 9746.6, "N_clicks": 34044.4}
+            ], 
+            "competitiveness": [
+                {"week": "2026-10", "Nuestra_Marca": 11.14, "Double_Dragon": 14.41, "Perfect_Ted": 27.80, "SuperSelf": 6.21, "Resto_Mercado": 6.01}, 
+                {"week": "2026-11", "Nuestra_Marca": 18.58, "Double_Dragon": 11.24, "Perfect_Ted": 24.27, "SuperSelf": 3.92, "Resto_Mercado": 4.50}, 
+                {"week": "2026-12", "Nuestra_Marca": 18.77, "Double_Dragon": 9.58, "Perfect_Ted": 21.55, "SuperSelf": 3.90, "Resto_Mercado": 5.22}, 
+                {"week": "2026-13", "Nuestra_Marca": 14.16, "Double_Dragon": 10.51, "Perfect_Ted": 23.63, "SuperSelf": 7.32, "Resto_Mercado": 8.00}
+            ], 
+            "efficiency": [
+                {"brand": "Double Dragon", "is_yaba": "N", "rank": 2.0, "share": 14.41, "price": 6.94}, 
+                {"brand": "Nuestra Marca", "is_yaba": "Y", "rank": 6.0, "share": 3.37, "price": 20.99}, 
+                {"brand": "PureVerra", "is_yaba": "N", "rank": 38.0, "share": 1.77, "price": 6.95}, 
+                {"brand": "SuperSelf", "is_yaba": "N", "rank": 6.0, "share": 3.92, "price": 9.90}, 
+                {"brand": "PureVerra", "is_yaba": "N", "rank": 8.0, "share": 2.85, "price": 7.54}, 
+                {"brand": "Nuestra Marca", "is_yaba": "Y", "rank": 7.0, "share": 2.18, "price": 20.99}, 
+                {"brand": "SuperSelf", "is_yaba": "N", "rank": 9.0, "share": 1.26, "price": 19.18}, 
+                {"brand": "Perfect Ted", "is_yaba": "N", "rank": 1.0, "share": 15.57, "price": 3.42}, 
+                {"brand": "Nuestra Marca", "is_yaba": "Y", "rank": 7.0, "share": 2.80, "price": 17.41}, 
+                {"brand": "Heapwell Superfoods", "is_yaba": "N", "rank": 8.0, "share": 4.22, "price": 9.99}, 
+                {"brand": "Perfect Ted", "is_yaba": "N", "rank": 3.0, "share": 6.85, "price": 19.99}, 
+                {"brand": "SuperSelf", "is_yaba": "N", "rank": 8.0, "share": 2.21, "price": 16.54}, 
+                {"brand": "Nuestra Marca", "is_yaba": "Y", "rank": 3.0, "share": 12.19, "price": 10.70}, 
+                {"brand": "Nouri", "is_yaba": "N", "rank": 8.0, "share": 3.72, "price": 7.55}, 
+                {"brand": "Double Dragon", "is_yaba": "N", "rank": 3.0, "share": 11.24, "price": 6.94}, 
+                {"brand": "Perfect Ted", "is_yaba": "N", "rank": 1.0, "share": 18.53, "price": 8.77}, 
+                {"brand": "Nouri", "is_yaba": "N", "rank": 12.0, "share": 2.37, "price": 8.34}, 
+                {"brand": "Perfect Ted", "is_yaba": "N", "rank": 9.0, "share": 3.12, "price": 9.49}, 
+                {"brand": "SuperSelf", "is_yaba": "N", "rank": 6.0, "share": 5.11, "price": 9.90}, 
+                {"brand": "Nuestra Marca", "is_yaba": "Y", "rank": 3.0, "share": 11.63, "price": 11.77}, 
+                {"brand": "Perfect Ted", "is_yaba": "N", "rank": 1.0, "share": 17.83, "price": 9.49}, 
+                {"brand": "Nuestra Marca", "is_yaba": "Y", "rank": 4.0, "share": 8.96, "price": 12.49}, 
+                {"brand": "Double Dragon", "is_yaba": "N", "rank": 3.0, "share": 10.51, "price": 6.94}, 
+                {"brand": "PureVerra", "is_yaba": "N", "rank": 22.0, "share": 1.69, "price": 7.32}, 
+                {"brand": "Perfect Ted", "is_yaba": "N", "rank": 3.0, "share": 5.74, "price": 19.99}, 
+                {"brand": "Perfect Ted", "is_yaba": "N", "rank": 3.0, "share": 8.06, "price": 19.99}, 
+                {"brand": "Heapwell Superfoods", "is_yaba": "N", "rank": 10.0, "share": 2.59, "price": 9.99}, 
+                {"brand": "Nuestra Marca", "is_yaba": "Y", "rank": 11.0, "share": 3.59, "price": 11.40}, 
+                {"brand": "Heapwell Superfoods", "is_yaba": "N", "rank": 9.0, "share": 2.73, "price": 9.99}, 
+                {"brand": "Nouri", "is_yaba": "N", "rank": 16.0, "share": 1.79, "price": 10.51}, 
+                {"brand": "SuperSelf", "is_yaba": "N", "rank": 8.0, "share": 3.90, "price": 9.90}, 
+                {"brand": "Perfect Ted", "is_yaba": "N", "rank": 1.0, "share": 14.77, "price": 8.13}, 
+                {"brand": "Nuestra Marca", "is_yaba": "Y", "rank": 6.0, "share": 3.69, "price": 19.56}, 
+                {"brand": "Nuestra Marca", "is_yaba": "Y", "rank": 7.0, "share": 3.45, "price": 13.53}, 
+                {"brand": "SuperSelf", "is_yaba": "N", "rank": 6.0, "share": 4.95, "price": 9.90}, 
+                {"brand": "Nuestra Marca", "is_yaba": "Y", "rank": 3.0, "share": 10.79, "price": 7.49}, 
+                {"brand": "Perfect Ted", "is_yaba": "N", "rank": 4.0, "share": 6.78, "price": 19.99}, 
+                {"brand": "Double Dragon", "is_yaba": "N", "rank": 3.0, "share": 9.58, "price": 6.94}
+            ], 
+            "raw_metrics": {
+                "2026-10": {
+                    "Nuestra Marca": {"price": 16.74, "share": 11.14}, "Perfect Ted": {"price": 14.74, "share": 27.80}, 
+                    "Double Dragon": {"price": 6.94, "share": 14.41}, "SuperSelf": {"price": 14.54, "share": 6.21}
+                },
+                "2026-11": {
+                    "Nuestra Marca": {"price": 13.17, "share": 18.58}, "Perfect Ted": {"price": 14.38, "share": 24.27}, 
+                    "Double Dragon": {"price": 6.94, "share": 11.24}, "SuperSelf": {"price": 9.90, "share": 3.92}
+                },
+                "2026-12": {
+                    "Nuestra Marca": {"price": 13.78, "share": 18.77}, "Perfect Ted": {"price": 14.06, "share": 21.55}, 
+                    "Double Dragon": {"price": 6.94, "share": 9.58}, "SuperSelf": {"price": 9.90, "share": 3.90}
+                },
+                "2026-13": {
+                    "Nuestra Marca": {"price": 14.24, "share": 14.16}, "Perfect Ted": {"price": 11.70, "share": 23.63}, 
+                    "Double Dragon": {"price": 6.94, "share": 10.51}, "SuperSelf": {"price": 13.22, "share": 7.32}
+                }
+            }
+        };
+
+        // Lógica de Pestañas
+        function openTab(tabName, event) {
+            var i, tabcontent, tablinks;
+            tabcontent = document.getElementsByClassName("tab-content");
+            for (i = 0; i < tabcontent.length; i++) {
+                tabcontent[i].classList.remove("active");
+            }
+            tablinks = document.getElementsByClassName("tab-btn");
+            for (i = 0; i < tablinks.length; i++) {
+                tablinks[i].classList.remove("active");
+            }
+            document.getElementById(tabName).classList.add("active");
+            
+            if(event) {
+                event.currentTarget.classList.add("active");
+            }
+
+            // Redibujar gráficos si se activa la pestaña estática y Google está cargado
+            if(tabName === 'reporte' && typeof google !== 'undefined' && google.visualization) {
+                drawCharts();
+            }
+        }
+
+        // 2. Inicialización de Gráficos de Google
+        google.charts.load('current', {'packages':['corechart']});
+        google.charts.setOnLoadCallback(drawCharts);
+
+        function drawCharts() {
+            // Evitar dibujar si el div está oculto (width = 0)
+            if(!document.getElementById('chart_trend').offsetWidth) return; 
+
+            /* --- GRÁFICO 1: TENDENCIA GLOBAL (COMBO) --- */
+            var dataTrend = new google.visualization.DataTable();
+            dataTrend.addColumn('string', 'Semana');
+            dataTrend.addColumn('number', 'Clics Nosotros');
+            dataTrend.addColumn('number', 'Clics Competencia');
+            dataTrend.addColumn('number', 'Share Nosotros (%)');
+            dataTrend.addColumn('number', 'Share Competencia (%)');
+
+            marketData.trend.forEach(d => {
+                dataTrend.addRow([d.week, d.Y_clicks, d.N_clicks, d.Y_share, d.N_share]);
+            });
+
+            var optionsTrend = {
+                vAxes: {
+                    0: {title: 'Volumen de Clics Estimado', textStyle: {color: '#5f6368'}},
+                    1: {title: 'Click Share (%)', textStyle: {color: '#5f6368'}, maxValue: 100}
+                },
+                hAxis: {title: 'Semanas'},
+                seriesType: 'bars',
+                series: {
+                    0: {targetAxisIndex: 0, color: '#4285F4'}, // Barras Clics us
+                    1: {targetAxisIndex: 0, color: '#dadce0'}, // Barras Clics them
+                    2: {type: 'line', targetAxisIndex: 1, color: '#174ea6', lineWidth: 3}, // Linea Share us
+                    3: {type: 'line', targetAxisIndex: 1, color: '#EA4335', lineWidth: 2, lineDashStyle: [4, 4]} // Linea Share them
+                },
+                legend: { position: 'top' },
+                chartArea: { width: '80%', height: '70%' },
+                backgroundColor: 'transparent'
+            };
+
+            var chart1 = new google.visualization.ComboChart(document.getElementById('chart_trend'));
+            chart1.draw(dataTrend, optionsTrend);
+
+
+            /* --- GRÁFICO 2: COMPETITIVIDAD DE MARCA (LINEAS) --- */
+            var dataComp = new google.visualization.DataTable();
+            dataComp.addColumn('string', 'Semana');
+            dataComp.addColumn('number', 'Nuestra Marca');
+            dataComp.addColumn('number', 'Perfect Ted');
+            dataComp.addColumn('number', 'Double Dragon');
+            dataComp.addColumn('number', 'SuperSelf');
+            dataComp.addColumn('number', 'Resto Mercado');
+
+            marketData.competitiveness.forEach(d => {
+                dataComp.addRow([d.week, d.Nuestra_Marca, d.Perfect_Ted, d.Double_Dragon, d.SuperSelf, d.Resto_Mercado]);
+            });
+
+            var optionsComp = {
+                curveType: 'function',
+                legend: { position: 'top' },
+                vAxis: { title: 'Click Share (%)' },
+                hAxis: { title: 'Semanas' },
+                colors: ['#4285F4', '#EA4335', '#FBBC05', '#34A853', '#9aa0a6'],
+                lineWidth: 3,
+                chartArea: { width: '85%', height: '70%' },
+                backgroundColor: 'transparent'
+            };
+
+            var chart2 = new google.visualization.LineChart(document.getElementById('chart_competitiveness'));
+            chart2.draw(dataComp, optionsComp);
+
+
+            /* --- GRÁFICO 3: EFICIENCIA (SCATTER) --- */
+            var dataEff = new google.visualization.DataTable();
+            dataEff.addColumn('number', 'Organic Rank');
+            dataEff.addColumn('number', 'Click Share (%)');
+            dataEff.addColumn({type: 'string', role: 'style'});
+            dataEff.addColumn({type: 'string', role: 'tooltip'});
+
+            marketData.efficiency.forEach(d => {
+                let color = d.is_yaba === 'Y' ? 'point { fill-color: #4285F4; size: 8; }' : 'point { fill-color: #dadce0; size: 5; }';
+                let tooltip = `${d.brand} \nRank: ${d.rank} \nShare: ${d.share}% \nPrecio: £${d.price.toFixed(2)}`;
+                dataEff.addRow([d.rank, d.share, color, tooltip]);
+            });
+
+            var optionsEff = {
+                hAxis: { title: 'Organic Rank (Más cerca del 1 es mejor)', direction: -1 },
+                vAxis: { title: 'Click Share (%)' },
+                legend: 'none',
+                chartArea: { width: '80%', height: '70%' },
+                backgroundColor: 'transparent'
+            };
+
+            var chart3 = new google.visualization.ScatterChart(document.getElementById('chart_efficiency'));
+            chart3.draw(dataEff, optionsEff);
+        }
+
+        /* --- LÓGICA COMPARADOR DINÁMICO --- */
+        function updateComparator() {
+            const week = document.getElementById('comp_week_select').value;
+            const comp = document.getElementById('comp_brand_select').value;
+            
+            const metrics = marketData.raw_metrics[week];
+            if(!metrics) return;
+
+            const us = metrics["Nuestra Marca"] || {price: 0, share: 0};
+            const them = metrics[comp] || {price: 0, share: 0};
+
+            const html = `
+                <table class="comparison-table">
+                    <thead>
+                        <tr>
+                            <th>Métrica Analizada (${week})</th>
+                            <th style="color: var(--primary)">Nuestra Marca</th>
+                            <th style="color: var(--danger)">${comp}</th>
+                            <th>Diferencia / Ventaja</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Click Share Total</strong></td>
+                            <td>${us.share.toFixed(2)}%</td>
+                            <td>${them.share.toFixed(2)}%</td>
+                            <td style="color: ${(us.share - them.share) > 0 ? 'var(--success)' : 'var(--danger)'}; font-weight: 500;">
+                                ${(us.share - them.share) > 0 ? '+' : ''}${(us.share - them.share).toFixed(2)}%
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><strong>Precio Promedio</strong></td>
+                            <td>£${us.price.toFixed(2)}</td>
+                            <td>£${them.price.toFixed(2)}</td>
+                            <td style="color: ${(us.price - them.price) < 0 ? 'var(--success)' : 'var(--danger)'}; font-weight: 500;">
+                                ${(us.price - them.price) > 0 ? '+' : ''}£${(us.price - them.price).toFixed(2)}
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            `;
+            document.getElementById('comp_results').innerHTML = html;
+        }
+
+        // Auto-redibujar en caso de redimensión para responsividad
+        window.addEventListener('resize', drawCharts);
+        document.addEventListener('DOMContentLoaded', () => {
+            updateComparator();
+        });
+
+    </script>
+</body>
+</html>
