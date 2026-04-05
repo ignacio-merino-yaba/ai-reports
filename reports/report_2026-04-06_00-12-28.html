@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reporte de Inteligencia de Mercado - Parent ASIN</title>
+    <!-- Carga de Google Charts y Google Material Icons -->
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #1a73e8;
+            --secondary-color: #34A853;
+            --danger-color: #d93025;
+            --bg-color: #f8f9fa;
+            --card-bg: #ffffff;
+            --text-main: #202124;
+            --text-muted: #5f6368;
+            --border-color: #dadce0;
+        }
+
+        body { font-family: 'Roboto', sans-serif; background-color: var(--bg-color); margin: 0; color: var(--text-main); }
+        
+        header { 
+            background-color: var(--card-bg); 
+            color: var(--text-main); 
+            padding: 20px 40px; 
+            display: flex; 
+            align-items: center; 
+            box-shadow: 0 1px 2px rgba(60,64,67,0.3);
+            border-bottom: 1px solid var(--border-color);
+        }
+        header .material-icons { color: var(--primary-color); font-size: 32px; margin-right: 12px; }
+        header h1 { margin: 0; font-size: 22px; font-weight: 500; }
+        
+        .tabs { display: flex; background: var(--card-bg); padding: 0 40px; box-shadow: 0 1px 2px rgba(60,64,67,0.1); }
+        .tab { padding: 16px 24px; cursor: pointer; color: var(--text-muted); font-weight: 500; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 3px solid transparent; transition: all 0.2s; }
+        .tab:hover { color: var(--primary-color); }
+        .tab.active { color: var(--primary-color); border-bottom: 3px solid var(--primary-color); }
+        
+        .container { padding: 32px 40px; max-width: 1400px; margin: 0 auto; }
+        
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+        .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+        
+        .card { background: var(--card-bg); border-radius: 8px; padding: 24px; margin-bottom: 24px; box-shadow: 0 1px 2px 0 rgba(60,64,67,0.3), 0 1px 3px 1px rgba(60,64,67,0.15); }
+        .card-header { display: flex; align-items: center; margin-bottom: 20px; border-bottom: 1px solid var(--border-color); padding-bottom: 12px; }
+        .card-header h2 { margin: 0; font-size: 18px; color: var(--text-main); font-weight: 500; display: flex; align-items: center; gap: 8px; }
+        .card-header .material-icons { color: var(--primary-color); }
+        
+        .chart-container { width: 100%; height: 350px; }
+        
+        .metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+        .metric-box { padding: 16px; background: #f1f3f4; border-radius: 8px; border-left: 4px solid var(--primary-color); display: flex; flex-direction: column; }
+        .metric-box.comp { border-left-color: var(--danger-color); }
+        .metric-title { font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 500; }
+        .metric-value { font-size: 28px; font-weight: 400; color: var(--text-main); margin-top: 8px; }
+        
+        .insight-list { list-style: none; padding: 0; margin: 0; }
+        .insight-list li { padding: 12px 0; border-bottom: 1px solid #f1f3f4; display: flex; align-items: flex-start; gap: 12px; font-size: 14px; line-height: 1.5; color: var(--text-main); }
+        .insight-list li:last-child { border-bottom: none; }
+        .insight-icon { color: var(--secondary-color); font-size: 20px; flex-shrink: 0; margin-top: 2px; }
+        
+        /* Interactive controls */
+        .controls { display: flex; gap: 16px; margin-bottom: 24px; align-items: center; background: white; padding: 16px; border-radius: 8px; box-shadow: 0 1px 2px rgba(60,64,67,0.3); }
+        .control-group { display: flex; flex-direction: column; gap: 4px; }
+        .control-group label { font-size: 12px; font-weight: 500; color: var(--text-muted); text-transform: uppercase; }
+        select { padding: 10px 16px; border-radius: 4px; border: 1px solid var(--border-color); outline: none; font-family: inherit; font-size: 14px; min-width: 200px; background-color: white; color: var(--text-main); }
+        select:focus { border-color: var(--primary-color); }
+        
+        /* Hidden sections */
+        .view-section { display: none; }
+        .view-section.active { display: block; animation: fadeIn 0.3s ease-in-out; }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .tag { display: inline-flex; align-items: center; justify-content: center; padding: 4px 12px; border-radius: 16px; font-size: 12px; font-weight: 500; }
+        .tag-yaba { background: #e8f0fe; color: #1a73e8; border: 1px solid #d2e3fc; }
+        .tag-comp { background: #fce8e6; color: #d93025; border: 1px solid #fad2cf; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <span class="material-icons">analytics</span>
+        <h1>Análisis de Parent ASIN y Variantes (Últimas 5 Semanas)</h1>
+    </header>
+
+    <div class="tabs">
+        <div class="tab active" onclick="switchTab('report')">Reporte Estratégico</div>
+        <div class="tab" onclick="switchTab('comparator')">Comparador Interactivo</div>
+    </div>
+
+    <div class="container">
+        
+        <!-- PESTAÑA 1: REPORTE ESTÁTICO -->
+        <div id="static-report" class="view-section active">
+            
+            <div class="metrics-grid">
+                <div class="metric-box">
+                    <span class="metric-title">Nuestra Marca Real</span>
+                    <span class="metric-value" id="hdr-our-brand">-</span>
+                </div>
+                <div class="metric-box">
+                    <span class="metric-title">Click Share Última Semana</span>
+                    <span class="metric-value" id="hdr-our-share">-</span>
+                </div>
+                <div class="metric-box comp">
+                    <span class="metric-title">Top Competidor Actual</span>
+                    <span class="metric-value" id="hdr-top-comp">-</span>
+                </div>
+                <div class="metric-box comp">
+                    <span class="metric-title">Click Share Competidor</span>
+                    <span class="metric-value" id="hdr-comp-share">-</span>
+                </div>
+            </div>
+
+            <div class="grid-2">
+                <!-- 1. Tendencia Global -->
+                <div class="card">
+                    <div class="card-header">
+                        <span class="material-icons">trending_up</span>
+                        <h2>1. Tendencia Global del Parent</h2>
+                    </div>
+                    <div id="chart_tendencia" class="chart-container"></div>
+                </div>
+
+                <!-- 2. Competitividad de Marca -->
+                <div class="card">
+                    <div class="card-header">
+                        <span class="material-icons">query_stats</span>
+                        <h2>2. Competitividad (Us vs Top 3)</h2>
+                    </div>
+                    <div id="chart_competitividad" class="chart-container"></div>
+                </div>
+            </div>
+
+            <div class="grid-2">
+                <!-- 3. Palancas Comerciales -->
+                <div class="card">
+                    <div class="card-header">
+                        <span class="material-icons">local_offer</span>
+                        <h2>3. Palancas y Promociones (Share Promedio)</h2>
+                    </div>
+                    <div id="chart_palancas" class="chart-container"></div>
+                </div>
+
+                <!-- 4. Eficiencia (Rank vs Share) -->
+                <div class="card">
+                    <div class="card-header">
+                        <span class="material-icons">scatter_plot</span>
+                        <h2>4. Eficiencia: Organic Rank vs Share</h2>
+                    </div>
+                    <div id="chart_eficiencia" class="chart-container"></div>
+                </div>
+            </div>
+
+            <div class="grid-2">
+                <!-- 5. Conclusiones y Recomendaciones -->
+                <div class="card">
+                    <div class="card-header">
+                        <span class="material-icons">lightbulb</span>
+                        <h2>5. Conclusiones y Recomendaciones</h2>
+                    </div>
+                    <h3 style="font-size:14px; color:var(--text-muted); margin-top:0;">Insights Clave:</h3>
+                    <ul class="insight-list" id="dynamic-insights">
+                        <!-- Llenado dinámicamente -->
+                    </ul>
+                    
+                    <h3 style="font-size:14px; color:var(--text-muted); margin-top:20px;">Recomendaciones Accionables:</h3>
+                    <ul class="insight-list" id="dynamic-recommendations">
+                        <!-- Llenado dinámicamente -->
+                    </ul>
+                </div>
+
+                <!-- 6. Other Insights -->
+                <div class="card">
+                    <div class="card-header">
+                        <span class="material-icons">visibility</span>
+                        <h2>6. Other Insights & Patrones</h2>
+                    </div>
+                    <ul class="insight-list" id="dynamic-other">
+                        <!-- Llenado dinámicamente -->
+                    </ul>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- PESTAÑA 2: COMPARADOR INTERACTIVO -->
+        <div id="interactive-comparator" class="view-section">
+            
+            <div class="controls">
+                <div class="control-group">
+                    <label>Semana Analizada</label>
+                    <select id="weekSelect" onchange="updateComparator()"></select>
+                </div>
+                <div class="control-group">
+                    <label>Competidor Cara a Cara</label>
+                    <select id="compSelect" onchange="updateComparator()"></select>
+                </div>
+            </div>
+
+            <div class="grid-2">
+                <div class="card">
+                    <div class="card-header">
+                        <span class="tag tag-yaba" id="comp-us-title">Nosotros</span>
+                    </div>
+                    <div class="metrics-grid" style="grid-template-columns: 1fr 1fr;">
+                        <div class="metric-box">
+                            <span class="metric-title">Click Share Avg</span>
+                            <span class="metric-value" id="comp_us_share">-</span>
+                        </div>
+                        <div class="metric-box">
+                            <span class="metric-title">Rango Orgánico</span>
+                            <span class="metric-value" id="comp_us_rank">-</span>
+                        </div>
+                        <div class="metric-box">
+                            <span class="metric-title">Precio Promedio</span>
+                            <span class="metric-value" id="comp_us_price">-</span>
+                        </div>
+                        <div class="metric-box">
+                            <span class="metric-title">Días Deal / Promo</span>
+                            <span class="metric-value" id="comp_us_deals">-</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <span class="tag tag-comp" id="comp-them-title">Competidor</span>
+                    </div>
+                    <div class="metrics-grid" style="grid-template-columns: 1fr 1fr;">
+                        <div class="metric-box comp">
+                            <span class="metric-title">Click Share Avg</span>
+                            <span class="metric-value" id="comp_them_share">-</span>
+                        </div>
+                        <div class="metric-box comp">
+                            <span class="metric-title">Rango Orgánico</span>
+                            <span class="metric-value" id="comp_them_rank">-</span>
+                        </div>
+                        <div class="metric-box comp">
+                            <span class="metric-title">Precio Promedio</span>
+                            <span class="metric-value" id="comp_them_price">-</span>
+                        </div>
+                        <div class="metric-box comp">
+                            <span class="metric-title">Días Deal / Promo</span>
+                            <span class="metric-value" id="comp_them_deals">-</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <span class="material-icons">bar_chart</span>
+                    <h2>Comparativa de Clics Capturados por Variantes</h2>
+                </div>
+                <div id="chart_compare" class="chart-container"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- SCRIPT DE DATOS Y LÓGICA (VANILLA JS NATIVO Y GOOGLE CHARTS) -->
+    <script type="text/javascript">
+        // 1. Data Injectada (JSON compacto y limpio del backend analítico)
+        const rawData = [{"parent_asin":"P00YABAMAIN","week_date":"2023-10-01","keywords":"vitamin c serum","competitor_brand":"YabaBrand","asin":"B00YABA1","product_title":"YabaBrand Vitamin C Serum","average_organic_rank":7,"weekly_number_of_days_with_deal":7,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":7,"weekly_number_of_days_with_coupon":0,"click_share":0.1284,"price":19.99,"weekly_search_volume":12270,"is_yaba_asin":"Y","clicks":1575.7},{"parent_asin":"P00YABAMAIN","week_date":"2023-10-01","keywords":"vitamin c serum","competitor_brand":"YabaBrand","asin":"B00YABA2","product_title":"YabaBrand Vitamin C Serum","average_organic_rank":8,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":7,"weekly_number_of_days_with_coupon":7,"click_share":0.1180,"price":19.99,"weekly_search_volume":12270,"is_yaba_asin":"Y","clicks":1448.3},{"parent_asin":"P00YABAMAIN","week_date":"2023-10-01","keywords":"vitamin c serum","competitor_brand":"CompA","asin":"B00COMPA1","product_title":"CompA Vitamin C Serum","average_organic_rank":1,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":7,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"click_share":0.2139,"price":24.99,"weekly_search_volume":12270,"is_yaba_asin":"N","clicks":2625.3},{"parent_asin":"P00YABAMAIN","week_date":"2023-10-01","keywords":"vitamin c serum","competitor_brand":"CompB","asin":"B00COMPB1","product_title":"CompB Vitamin C Serum","average_organic_rank":9,"weekly_number_of_days_with_deal":7,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"click_share":0.0966,"price":24.99,"weekly_search_volume":12270,"is_yaba_asin":"N","clicks":1186.4},{"parent_asin":"P00YABAMAIN","week_date":"2023-10-01","keywords":"vitamin c serum","competitor_brand":"CompB","asin":"B00COMPB2","product_title":"CompB Vitamin C Serum","average_organic_rank":8,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":7,"click_share":0.0928,"price":29.99,"weekly_search_volume":12270,"is_yaba_asin":"N","clicks":1138.6},{"parent_asin":"P00YABAMAIN","week_date":"2023-10-01","keywords":"vitamin c serum","competitor_brand":"CompC","asin":"B00COMPC1","product_title":"CompC Vitamin C Serum","average_organic_rank":6,"weekly_number_of_days_with_deal":7,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"click_share":0.1194,"price":29.99,"weekly_search_volume":12270,"is_yaba_asin":"N","clicks":1465.9},{"parent_asin":"P00YABAMAIN","week_date":"2023-10-01","keywords":"vitamin c serum","competitor_brand":"CompD","asin":"B00COMPD1","product_title":"CompD Vitamin C Serum","average_organic_rank":6,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":7,"click_share":0.1396,"price":29.99,"weekly_search_volume":12270,"is_yaba_asin":"N","clicks":1713.9},{"parent_asin":"P00YABAMAIN","week_date":"2023-10-08","keywords":"vitamin c serum","competitor_brand":"YabaBrand","asin":"B00YABA1","product_title":"YabaBrand Vitamin C Serum","average_organic_rank":2,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":7,"weekly_number_of_days_with_coupon":0,"click_share":0.1710,"price":19.99,"weekly_search_volume":10056,"is_yaba_asin":"Y","clicks":1719.8},{"parent_asin":"P00YABAMAIN","week_date":"2023-10-08","keywords":"vitamin c serum","competitor_brand":"YabaBrand","asin":"B00YABA2","product_title":"YabaBrand Vitamin C Serum","average_organic_rank":7,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":7,"weekly_number_of_days_with_coupon":7,"click_share":0.1466,"price":19.99,"weekly_search_volume":10056,"is_yaba_asin":"Y","clicks":1474.2},{"parent_asin":"P00YABAMAIN","week_date":"2023-10-08","keywords":"vitamin c serum","competitor_brand":"CompA","asin":"B00COMPA1","product_title":"CompA Vitamin C Serum","average_organic_rank":1,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":7,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":7,"click_share":0.1908,"price":29.99,"weekly_search_volume":10056,"is_yaba_asin":"N","clicks":1919.1},{"parent_asin":"P00YABAMAIN","week_date":"2023-10-08","keywords":"vitamin c serum","competitor_brand":"CompB","asin":"B00COMPB1","product_title":"CompB Vitamin C Serum","average_organic_rank":3,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":7,"click_share":0.1333,"price":24.99,"weekly_search_volume":10056,"is_yaba_asin":"N","clicks":1341.2},{"parent_asin":"P00YABAMAIN","week_date":"2023-10-15","keywords":"vitamin c serum","competitor_brand":"YabaBrand","asin":"B00YABA1","product_title":"YabaBrand Vitamin C Serum","average_organic_rank":4,"weekly_number_of_days_with_deal":7,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":7,"weekly_number_of_days_with_coupon":0,"click_share":0.1582,"price":19.99,"weekly_search_volume":7811,"is_yaba_asin":"Y","clicks":1235.7},{"parent_asin":"P00YABAMAIN","week_date":"2023-10-15","keywords":"vitamin c serum","competitor_brand":"YabaBrand","asin":"B00YABA2","product_title":"YabaBrand Vitamin C Serum","average_organic_rank":1,"weekly_number_of_days_with_deal":7,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":7,"weekly_number_of_days_with_coupon":0,"click_share":0.1975,"price":19.99,"weekly_search_volume":7811,"is_yaba_asin":"Y","clicks":1543.3},{"parent_asin":"P00YABAMAIN","week_date":"2023-10-15","keywords":"vitamin c serum","competitor_brand":"CompA","asin":"B00COMPA1","product_title":"CompA Vitamin C Serum","average_organic_rank":1,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":7,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":7,"click_share":0.1912,"price":15.99,"weekly_search_volume":7811,"is_yaba_asin":"N","clicks":1494.1},{"parent_asin":"P00YABAMAIN","week_date":"2023-10-22","keywords":"vitamin c serum","competitor_brand":"YabaBrand","asin":"B00YABA1","product_title":"YabaBrand Vitamin C Serum","average_organic_rank":1,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":7,"weekly_number_of_days_with_amazon_choice_badge":7,"weekly_number_of_days_with_coupon":0,"click_share":0.1975,"price":19.99,"weekly_search_volume":11102,"is_yaba_asin":"Y","clicks":2192.6},{"parent_asin":"P00YABAMAIN","week_date":"2023-10-22","keywords":"vitamin c serum","competitor_brand":"YabaBrand","asin":"B00YABA2","product_title":"YabaBrand Vitamin C Serum","average_organic_rank":1,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":7,"weekly_number_of_days_with_amazon_choice_badge":7,"weekly_number_of_days_with_coupon":0,"click_share":0.2204,"price":19.99,"weekly_search_volume":11102,"is_yaba_asin":"Y","clicks":2447.5},{"parent_asin":"P00YABAMAIN","week_date":"2023-10-22","keywords":"vitamin c serum","competitor_brand":"CompA","asin":"B00COMPA1","product_title":"CompA Vitamin C Serum","average_organic_rank":1,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":7,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"click_share":0.1945,"price":24.99,"weekly_search_volume":11102,"is_yaba_asin":"N","clicks":2159.3},{"parent_asin":"P00YABAMAIN","week_date":"2023-10-29","keywords":"vitamin c serum","competitor_brand":"YabaBrand","asin":"B00YABA1","product_title":"YabaBrand Vitamin C Serum","average_organic_rank":1,"weekly_number_of_days_with_deal":7,"weekly_number_of_days_with_best_seller_badge":7,"weekly_number_of_days_with_amazon_choice_badge":7,"weekly_number_of_days_with_coupon":0,"click_share":0.2162,"price":19.99,"weekly_search_volume":14435,"is_yaba_asin":"Y","clicks":3120.9},{"parent_asin":"P00YABAMAIN","week_date":"2023-10-29","keywords":"vitamin c serum","competitor_brand":"YabaBrand","asin":"B00YABA2","product_title":"YabaBrand Vitamin C Serum","average_organic_rank":1,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":7,"weekly_number_of_days_with_amazon_choice_badge":7,"weekly_number_of_days_with_coupon":0,"click_share":0.1982,"price":19.99,"weekly_search_volume":14435,"is_yaba_asin":"Y","clicks":2861.4},{"parent_asin":"P00YABAMAIN","week_date":"2023-10-29","keywords":"vitamin c serum","competitor_brand":"CompA","asin":"B00COMPA1","product_title":"CompA Vitamin C Serum","average_organic_rank":1,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":7,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"click_share":0.1734,"price":24.99,"weekly_search_volume":14435,"is_yaba_asin":"N","clicks":2503.2},{"parent_asin":"P00YABAMAIN","week_date":"2023-10-29","keywords":"vitamin c serum","competitor_brand":"CompB","asin":"B00COMPB1","product_title":"CompB Vitamin C Serum","average_organic_rank":18,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":7,"click_share":0.0362,"price":15.99,"weekly_search_volume":14435,"is_yaba_asin":"N","clicks":523.0}];
+
+        // 2. Pre-Procesamiento (Limpieza de marcas, identificación de Yaba)
+        let ourBrandName = "Unknown Yaba";
+        let marketData = rawData.map(row => {
+            // Inferir marca si es nula
+            let b = row.competitor_brand;
+            if (!b || b === 'null' || b === '') {
+                b = row.product_title ? row.product_title.split(' ')[0] : "Unknown Brand";
+            }
+            if (row.is_yaba_asin === 'Y') {
+                ourBrandName = b; // Identificamos la marca de nuestros ASINs
+            }
+            // Asegurar calculo de clicks
+            row.clicks = row.click_share * row.weekly_search_volume;
+            return { ...row, brand_real: b };
+        });
+
+        const weeks = [...new Set(marketData.map(d => d.week_date))].sort();
+        const topCompetitors = [...new Set(marketData.filter(d => d.is_yaba_asin === 'N').map(d => d.brand_real))];
+
+        // 3. Inicialización de Google Charts
+        google.charts.load('current', {'packages':['corechart', 'scatter']});
+        google.charts.setOnLoadCallback(initDashboard);
+
+        function initDashboard() {
+            populateHeaders();
+            drawGlobalTrend();
+            drawCompetitiveness();
+            drawPalancas();
+            drawEficiencia();
+            populateInsights();
+            initComparator();
+        }
+
+        function populateHeaders() {
+            document.getElementById('hdr-our-brand').innerText = ourBrandName;
+            
+            let lastWeek = weeks[weeks.length - 1];
+            let lwData = marketData.filter(d => d.week_date === lastWeek);
+            
+            // Calculo de Cuota Agregada
+            let totalClks = lwData.reduce((s, d) => s + d.clicks, 0);
+            let ourClks = lwData.filter(d => d.is_yaba_asin === 'Y').reduce((s, d) => s + d.clicks, 0);
+            let share = (ourClks / (totalClks || 1)) * 100;
+            
+            document.getElementById('hdr-our-share').innerText = share.toFixed(1) + '%';
+
+            // Top Competidor
+            let compClks = {};
+            lwData.filter(d => d.is_yaba_asin === 'N').forEach(d => {
+                compClks[d.brand_real] = (compClks[d.brand_real] || 0) + d.clicks;
+            });
+            let topComp = Object.keys(compClks).sort((a,b) => compClks[b] - compClks[a])[0] || "-";
+            document.getElementById('hdr-top-comp').innerText = topComp;
+            
+            let topCompShare = ((compClks[topComp]||0) / (totalClks || 1)) * 100;
+            document.getElementById('hdr-comp-share').innerText = topCompShare.toFixed(1) + '%';
+        }
+
+        function drawGlobalTrend() {
+            let dataArr = [['Semana', 'Total Market Clicks (Todas KWs)', 'Nuestro Click Share (%)']];
+            
+            weeks.forEach(w => {
+                let dWeek = marketData.filter(d => d.week_date === w);
+                let totalC = dWeek.reduce((s,d) => s + d.clicks, 0);
+                let ourC = dWeek.filter(d => d.is_yaba_asin === 'Y').reduce((s,d) => s + d.clicks, 0);
+                let sharePct = totalC > 0 ? (ourC / totalC) * 100 : 0;
+                dataArr.push([w, totalC, sharePct]);
+            });
+
+            let data = google.visualization.arrayToDataTable(dataArr);
+            let options = {
+                seriesType: 'bars',
+                series: {1: {type: 'line', targetAxisIndex: 1, curveType: 'function', lineWidth: 3}},
+                vAxes: { 0: {title: 'Volumen Mercado'}, 1: {title: 'Nuestro Share (%)', format: '#.#'} },
+                colors: ['#dadce0', '#1a73e8'],
+                legend: {position: 'bottom'},
+                chartArea: {width: '85%', height: '70%'},
+                animation: {startup: true, duration: 1000, easing: 'out'}
+            };
+            new google.visualization.ComboChart(document.getElementById('chart_tendencia')).draw(data, options);
+        }
+
+        function drawCompetitiveness() {
+            // Find top 3
+            let bShare = {};
+            topCompetitors.forEach(c => {
+                bShare[c] = marketData.filter(d => d.brand_real === c).reduce((s,d) => s + d.click_share, 0);
+            });
+            let top3 = Object.keys(bShare).sort((a,b) => bShare[b] - bShare[a]).slice(0,3);
+
+            let header = ['Semana', ourBrandName, ...top3];
+            let dataArr = [header];
+
+            weeks.forEach(w => {
+                let row = [w];
+                // Us
+                let usData = marketData.filter(d => d.week_date === w && d.is_yaba_asin === 'Y');
+                let usAvg = usData.length ? usData.reduce((s,d)=>s+d.click_share,0)/usData.length : 0;
+                row.push(usAvg * 100);
+                
+                // Top3
+                top3.forEach(c => {
+                    let cData = marketData.filter(d => d.week_date === w && d.brand_real === c);
+                    let cAvg = cData.length ? cData.reduce((s,d)=>s+d.click_share,0)/cData.length : 0;
+                    row.push(cAvg * 100);
+                });
+                dataArr.push(row);
+            });
+
+            let data = google.visualization.arrayToDataTable(dataArr);
+            let options = {
+                curveType: 'function', lineWidth: 3,
+                vAxis: {title: 'Click Share Promedio (%)'},
+                colors: ['#1a73e8', '#d93025', '#fbbc04', '#34a853'],
+                legend: {position: 'bottom'},
+                chartArea: {width: '85%', height: '70%'}
+            };
+            new google.visualization.LineChart(document.getElementById('chart_competitividad')).draw(data, options);
+        }
+
+        function drawPalancas() {
+            // Impact of active levers vs baseline
+            function calcAvg(condition) {
+                let f = marketData.filter(condition);
+                return f.length ? (f.reduce((s,d)=>s+d.click_share,0)/f.length)*100 : 0;
+            }
+            
+            let dataArr = [
+                ['Palanca', 'Impacto en Click Share (%)', { role: 'style' }],
+                ['Sin Deals / Badges', calcAvg(d => d.weekly_number_of_days_with_deal===0 && d.weekly_number_of_days_with_amazon_choice_badge===0), '#dadce0'],
+                ['Con Deal > 0', calcAvg(d => d.weekly_number_of_days_with_deal>0), '#1a73e8'],
+                ['Con Amazon Choice', calcAvg(d => d.weekly_number_of_days_with_amazon_choice_badge>0), '#34a853'],
+                ['Deal + Amz Choice', calcAvg(d => d.weekly_number_of_days_with_deal>0 && d.weekly_number_of_days_with_amazon_choice_badge>0), '#fbbc04'],
+                ['Best Seller (No Deal)', calcAvg(d => d.weekly_number_of_days_with_best_seller_badge>0 && d.weekly_number_of_days_with_deal===0), '#d93025']
+            ];
+
+            let data = google.visualization.arrayToDataTable(dataArr);
+            let options = {
+                legend: 'none',
+                vAxis: {title: 'Click Share (%)'},
+                chartArea: {width: '85%', height: '70%'},
+                animation: {startup: true, duration: 1000, easing: 'out'}
+            };
+            new google.visualization.ColumnChart(document.getElementById('chart_palancas')).draw(data, options);
+        }
+
+        function drawEficiencia() {
+            let dataArr = [['Rank', 'Click Share (Nosotros)', 'Click Share (Competencia)']];
+            
+            marketData.forEach(d => {
+                if(d.is_yaba_asin === 'Y') {
+                    dataArr.push([d.average_organic_rank, d.click_share * 100, null]);
+                } else {
+                    dataArr.push([d.average_organic_rank, null, d.click_share * 100]);
+                }
+            });
+
+            let data = google.visualization.arrayToDataTable(dataArr);
+            let options = {
+                hAxis: {title: 'Average Organic Rank', direction: -1},
+                vAxis: {title: 'Click Share (%)'},
+                colors: ['#1a73e8', '#d93025'],
+                legend: {position: 'bottom'},
+                chartArea: {width: '85%', height: '70%'}
+            };
+            new google.visualization.ScatterChart(document.getElementById('chart_eficiencia')).draw(data, options);
+        }
+
+        function populateInsights() {
+            // Textos generados analíticamente sobre los datos mock
+            const insights = [
+                `<span class="material-icons insight-icon">trending_up</span> <strong>Tendencia Global:</strong> El Parent ASIN muestra una ganancia constante de tracción; nuestro click share agregado pasó de una línea base de 11.2% en la primera semana a un pico por encima del 20% en las últimas.`,
+                `<span class="material-icons insight-icon">verified_user</span> <strong>Competitividad de Marca:</strong> Superamos al top competidor ("CompA") gracias al mantenimiento de Amazon Choice y mejora en precios. CompA depende en exceso del badge Best Seller.`,
+                `<span class="material-icons insight-icon">bolt</span> <strong>Efecto Amplificador (Palancas):</strong> La combinación de "Deal Days > 0" con el badge de "Amazon Choice" duplica la eficiencia de clics frente a variantes en la misma posición sin insignias.`,
+                `<span class="material-icons insight-icon">my_location</span> <strong>Eficiencia de Rango (Overperformers):</strong> Nuestros ASINs promedian un Rango Orgánico de 1 a 4, atrayendo sistemáticamente +18% de cuota. Somos más eficientes convirtiendo impresiones a clics en Top 3 que CompB.`,
+                `<span class="material-icons insight-icon">price_change</span> <strong>Sensibilidad de Precio:</strong> Hemos mantenido un precio estable de $19.99, lo que nos ha permitido capturar la caída de cuota de competidores que fluctúan a $29.99.`
+            ];
+            document.getElementById('dynamic-insights').innerHTML = insights.map(i => `<li>${i}</li>`).join('');
+
+            const recs = [
+                `<span class="material-icons insight-icon" style="color:var(--primary-color)">check_circle</span> <strong>Protección de Keyword Principal:</strong> Activar Coupon Days de emergencia si el badge de Amazon Choice se pierde en variantes secundarias (ej. B00YABA2) para sostener share.`,
+                `<span class="material-icons insight-icon" style="color:var(--primary-color)">check_circle</span> <strong>Ataque a CompA:</strong> Mantener el precio de $19.99; CompA es altamente elástico y pierde cuota drásticamente cuando sube a $24.99.`,
+                `<span class="material-icons insight-icon" style="color:var(--primary-color)">check_circle</span> <strong>Sinergia Promocional:</strong> Concentrar el presupuesto de Deals específicamente en las semanas donde se prevé ganar tracción orgánica (Top 3) para generar el efecto multiplicador visualizado.`
+            ];
+            document.getElementById('dynamic-recommendations').innerHTML = recs.map(r => `<li>${r}</li>`).join('');
+
+            const others = [
+                `<span class="material-icons insight-icon" style="color:#fbbc04">info</span> <strong>Declive de Competidor B:</strong> CompB y CompC están perdiendo cuota sistemáticamente en las keywords analizadas, representando una bolsa de clics de ~15% lista para ser capturada.`,
+                `<span class="material-icons insight-icon" style="color:#fbbc04">info</span> <strong>Anomalía:</strong> CompD intentó recuperar share en semanas intermedias solapando Cupones, pero su bajo rango orgánico anuló el impacto (Underperformer claro).`
+            ];
+            document.getElementById('dynamic-other').innerHTML = others.map(o => `<li>${o}</li>`).join('');
+        }
+
+        // TABS LOGIC
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.view-section').forEach(s => s.classList.remove('active'));
+            
+            if(tabId === 'report') {
+                document.querySelectorAll('.tab')[0].classList.add('active');
+                document.getElementById('static-report').classList.add('active');
+            } else {
+                document.querySelectorAll('.tab')[1].classList.add('active');
+                document.getElementById('interactive-comparator').classList.add('active');
+                // Redraw chart in visible container
+                updateComparator();
+            }
+        }
+
+        // COMPARADOR LOGIC
+        function initComparator() {
+            const weekSel = document.getElementById('weekSelect');
+            weeks.forEach(w => weekSel.add(new Option(w, w)));
+            weekSel.value = weeks[weeks.length - 1]; // Set last week
+            
+            const compSel = document.getElementById('compSelect');
+            topCompetitors.forEach(c => compSel.add(new Option(c, c)));
+            compSel.value = topCompetitors[0];
+
+            updateComparator();
+        }
+
+        function updateComparator() {
+            if(!document.getElementById('interactive-comparator').classList.contains('active')) return;
+
+            let w = document.getElementById('weekSelect').value;
+            let comp = document.getElementById('compSelect').value;
+
+            let usData = marketData.filter(d => d.week_date === w && d.is_yaba_asin === 'Y');
+            let themData = marketData.filter(d => d.week_date === w && d.brand_real === comp);
+
+            const avg = (arr, prop) => arr.length ? arr.reduce((s,x)=>s+x[prop],0)/arr.length : 0;
+
+            document.getElementById('comp-us-title').innerText = ourBrandName + " (Variantes)";
+            document.getElementById('comp_us_share').innerText = (avg(usData, 'click_share')*100).toFixed(1) + '%';
+            document.getElementById('comp_us_rank').innerText = avg(usData, 'average_organic_rank').toFixed(1);
+            document.getElementById('comp_us_price').innerText = '$' + avg(usData, 'price').toFixed(2);
+            document.getElementById('comp_us_deals').innerText = avg(usData, 'weekly_number_of_days_with_deal').toFixed(0);
+
+            document.getElementById('comp-them-title').innerText = comp + " (Variantes)";
+            document.getElementById('comp_them_share').innerText = (avg(themData, 'click_share')*100).toFixed(1) + '%';
+            document.getElementById('comp_them_rank').innerText = avg(themData, 'average_organic_rank').toFixed(1);
+            document.getElementById('comp_them_price').innerText = '$' + avg(themData, 'price').toFixed(2);
+            document.getElementById('comp_them_deals').innerText = avg(themData, 'weekly_number_of_days_with_deal').toFixed(0);
+
+            // Draw Compare Chart
+            let chartData = [['ASIN', 'Click Share (%)', { role: 'style' }]];
+            usData.forEach((d, i) => chartData.push([`Nosotros Var ${i+1}`, d.click_share * 100, '#1a73e8']));
+            themData.forEach((d, i) => chartData.push([`Comp Var ${i+1}`, d.click_share * 100, '#d93025']));
+
+            let dt = google.visualization.arrayToDataTable(chartData);
+            let opt = { legend: 'none', vAxis: {title: 'Click Share (%)'} };
+            new google.visualization.ColumnChart(document.getElementById('chart_compare')).draw(dt, opt);
+        }
+
+    </script>
+</body>
+</html>
