@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reporte de Mercado - Matcha Premium</title>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <script src="https://www.gstatic.com/charts/loader.js"></script>
+    <style>
+        body { font-family: 'Roboto', 'Segoe UI', Arial, sans-serif; background: #f8f9fa; color: #202124; margin: 0; }
+        .header { background: #fff; padding: 16px 24px; border-bottom: 1px solid #dadce0; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100;}
+        .header h1 { font-size: 20px; font-weight: 500; margin: 0; color: #3c4043; display: flex; align-items: center; gap: 8px;}
+        .tabs { display: flex; gap: 16px; }
+        .tab { padding: 8px 16px; cursor: pointer; border-radius: 24px; font-weight: 500; font-size: 14px; background: #f1f3f4; color: #5f6368; border: none; transition: background 0.2s;}
+        .tab.active { background: #e8f0fe; color: #1967d2; }
+        .container { max-width: 1200px; margin: 24px auto; padding: 0 16px; }
+        .view-section { display: none; }
+        .view-section.active { display: block; }
+        .card { background: #fff; border-radius: 12px; padding: 24px; margin-bottom: 24px; box-shadow: 0 1px 3px rgba(60,64,67,0.3); }
+        .card-title { font-size: 16px; font-weight: 500; margin-top: 0; margin-bottom: 16px; color: #202124; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid #f1f3f4; padding-bottom: 12px;}
+        .chart-container { width: 100%; height: 350px; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+        .insights-list { list-style: none; padding: 0; margin: 0; }
+        .insights-list li { padding: 12px 0; border-bottom: 1px solid #f1f3f4; display: flex; gap: 12px; }
+        .insights-list li:last-child { border-bottom: none; }
+        .icon { color: #1a73e8; font-family: 'Material Icons'; font-size: 20px;}
+        .insight-text { font-size: 14px; line-height: 1.5; color: #3c4043; }
+        .insight-text strong { color: #202124; }
+        
+        .kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px;}
+        .kpi-card { background: #fff; border-radius: 12px; padding: 20px; box-shadow: 0 1px 3px rgba(60,64,67,0.3); border-top: 4px solid #1a73e8; }
+        .kpi-label { font-size: 13px; color: #5f6368; font-weight: 500; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;}
+        .kpi-value { font-size: 28px; color: #202124; font-weight: 400; }
+        .kpi-sub { font-size: 12px; color: #137333; display: flex; align-items: center; gap: 4px; margin-top: 8px; font-weight: 500;}
+        .kpi-sub.down { color: #d93025; }
+
+        /* Comparador Styles */
+        .controls { display: flex; gap: 16px; margin-bottom: 24px; align-items: center; background: #fff; padding: 16px; border-radius: 12px; box-shadow: 0 1px 3px rgba(60,64,67,0.3);}
+        .controls label { font-size: 14px; font-weight: 500; color: #3c4043; }
+        select { padding: 8px 12px; border-radius: 8px; border: 1px solid #dadce0; outline: none; font-size: 14px; background: #f8f9fa; cursor: pointer; min-width: 150px;}
+        
+        .vs-wrapper { display: flex; flex-direction: column; gap: 16px; }
+        .vs-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; align-items: center; }
+        .vs-header { text-align: center; font-weight: 500; font-size: 16px; padding: 12px; border-radius: 8px; }
+        .vs-yaba-header { background: #e8f0fe; color: #1a73e8; border: 2px solid #1a73e8; }
+        .vs-comp-header { background: #fce8e6; color: #d93025; border: 2px solid #ea4335; }
+        
+        .vs-card { background: #fff; border-radius: 12px; box-shadow: 0 1px 3px rgba(60,64,67,0.3); padding: 16px; text-align: center; display: flex; flex-direction: column; justify-content: center;}
+        .vs-metric-name { font-size: 12px; color: #5f6368; text-transform: uppercase; font-weight: 500; margin-bottom: 8px;}
+        .vs-value { font-size: 24px; color: #202124; }
+        .vs-value.yaba-val { color: #1a73e8; font-weight: 500;}
+        .vs-value.comp-val { color: #d93025; font-weight: 500;}
+        .vs-winner { font-size: 12px; background: #e6f4ea; color: #137333; padding: 4px 8px; border-radius: 12px; display: inline-block; margin-top: 8px; font-weight: 500;}
+        .vs-loser { font-size: 12px; background: #fce8e6; color: #d93025; padding: 4px 8px; border-radius: 12px; display: inline-block; margin-top: 8px; font-weight: 500;}
+        .vs-neutral { font-size: 12px; background: #f1f3f4; color: #5f6368; padding: 4px 8px; border-radius: 12px; display: inline-block; margin-top: 8px; font-weight: 500;}
+        
+        .recommendation-card { background: #e8f0fe; border-left: 4px solid #1a73e8; padding: 16px; margin-bottom: 16px; border-radius: 0 8px 8px 0; }
+        .recommendation-title { font-weight: 500; color: #1967d2; margin-bottom: 8px; display: flex; align-items: center; gap: 8px;}
+        .recommendation-text { font-size: 14px; color: #3c4043; line-height: 1.5;}
+
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1><span class="material-icons" style="color: #1a73e8;">analytics</span> Market Intelligence - Parent ASIN: Matcha Premium</h1>
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('report')">Reporte Estático</button>
+            <button class="tab" onclick="switchTab('compare')">Comparador Interactivo</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- PESTAÑA 1: REPORTE -->
+        <div id="view-report" class="view-section active">
+            
+            <div class="kpi-row" id="kpi-container">
+                <!-- KPIs injected via JS -->
+            </div>
+
+            <div class="card">
+                <h2 class="card-title"><span class="material-icons icon">trending_up</span> 1. Tendencia Global del Parent (Volumen vs Share)</h2>
+                <div id="chart_trend" class="chart-container"></div>
+            </div>
+
+            <div class="grid">
+                <div class="card">
+                    <h2 class="card-title"><span class="material-icons icon">leaderboard</span> 2. Competitividad de Marca (Share Histórico)</h2>
+                    <div id="chart_comp" class="chart-container"></div>
+                </div>
+                <div class="card">
+                    <h2 class="card-title"><span class="material-icons icon">ads_click</span> 3. Impacto de Palancas en Click Share</h2>
+                    <div id="chart_palancas" class="chart-container"></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2 class="card-title"><span class="material-icons icon">scatter_plot</span> 4. Eficiencia: Organic Rank vs Click Share</h2>
+                <div id="chart_scatter" class="chart-container"></div>
+            </div>
+
+            <div class="grid">
+                <div class="card">
+                    <h2 class="card-title"><span class="material-icons icon">lightbulb</span> 5. Conclusiones Clave (Insights)</h2>
+                    <ul class="insights-list">
+                        <li><span class="material-icons icon">info</span><span class="insight-text"><strong>Crecimiento Sostenido (NaturaleBio):</strong> Ha mostrado una tendencia constante al alza, subiendo del 14.62% de Click Share en la Semana 10 al 18.63% en la Semana 13, posicionándose como la marca más estable del top frente a la volatilidad de los competidores.</span></li>
+                        <li><span class="material-icons icon">info</span><span class="insight-text"><strong>Desplome del Líder (KYU):</strong> Sufrió una caída dramática, perdiendo casi el 75% de su Share (del 28.08% al 7.64%) impulsada por una pérdida de Rank Orgánico (del #3 al #6 promedio) y variaciones erráticas de precio.</span></li>
+                        <li><span class="material-icons icon">info</span><span class="insight-text"><strong>Alta Elasticidad Precio (NORITUAL LAB):</strong> Absorbió gran parte del mercado perdido por KYU al desplomar su precio de 56€ a 10.8€, manteniendo el Rank #1 orgánico y duplicando su cuota de clicks (hasta 19.51%).</span></li>
+                        <li><span class="material-icons icon">info</span><span class="insight-text"><strong>Palancas Promocionales Efectivas:</strong> El uso intensivo de Cupones y Deals por parte de NaturaleBio (21 días de cupón, 14 de deal) permitió anclar el Ranking Orgánico al #2 y mejorar la tasa de captura frente a competidores directos.</span></li>
+                        <li><span class="material-icons icon">info</span><span class="insight-text"><strong>Concentración de la SERP:</strong> El Scatter plot de eficiencia demuestra que estar fuera del Top 3 aniquila el Share, pero marcas con cupones activos logran extraer clicks extras incluso en posiciones secundarias (estrategia compensatoria).</span></li>
+                    </ul>
+                </div>
+                <div>
+                    <div class="card">
+                        <h2 class="card-title"><span class="material-icons icon">recommend</span> Recomendaciones Accionables</h2>
+                        <div class="recommendation-card">
+                            <div class="recommendation-title"><span class="material-icons">task_alt</span> Estrategia Defensiva de Precio</div>
+                            <div class="recommendation-text">Mantener la estrategia dual de Cupones/Deals de NaturaleBio para defender la reciente ganancia de Share frente al precio agresivo (10.8€) de NORITUAL LAB, evitando erosionar de forma permanente el PVP base de nuestra marca.</div>
+                        </div>
+                        <div class="recommendation-card">
+                            <div class="recommendation-title"><span class="material-icons">task_alt</span> Ataque a Keywords de KYU</div>
+                            <div class="recommendation-text">Aprovechar el desplome orgánico de KYU. Es el momento crítico para priorizar campañas de Sponsored Products apuntando a los huecos en la SERP que KYU ha dejado vacantes.</div>
+                        </div>
+                        <div class="recommendation-card">
+                            <div class="recommendation-title"><span class="material-icons">task_alt</span> Optimización de Variantes</div>
+                            <div class="recommendation-text">Consolidar la inversión promocional en los ASINs (variantes) de NaturaleBio que ya rondan el Rank #2. Evitar diluir el presupuesto en variantes rezagadas y enfocarlo en disputar el Rank #1 que retiene NORITUAL LAB.</div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <h2 class="card-title"><span class="material-icons icon">visibility</span> OTHER INSIGHTS</h2>
+                        <ul class="insights-list">
+                            <li><span class="material-icons icon" style="color:#5f6368">insights</span><span class="insight-text">Marcas emergentes como <strong>Special Leaves</strong> usan cupones extremadamente agresivos (52 días acumulados) pero sin mejorar su Rank orgánico, lo que estanca su Share en el 5-8%. Promoción sin visibilidad no escala.</span></li>
+                            <li><span class="material-icons icon" style="color:#5f6368">insights</span><span class="insight-text">Existe un fuerte 18-20% de Click Share fragmentado en ASINs "Unknown Brand" (sin marca reconocible en título), lo que indica que una porción del mercado compra "Matcha" por impulso puramente basado en posición, no por fidelidad.</span></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PESTAÑA 2: COMPARADOR -->
+        <div id="view-compare" class="view-section">
+            <div class="controls">
+                <span class="material-icons" style="color:#1a73e8">compare_arrows</span>
+                <label>Semana:</label>
+                <select id="select-week" onchange="updateComparator()"></select>
+                
+                <label style="margin-left: 16px;">Competidor:</label>
+                <select id="select-comp" onchange="updateComparator()"></select>
+            </div>
+
+            <div class="vs-wrapper" id="vs-container">
+                <!-- Injected via JS -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const rawData = [{"week_date":"2026-11","weekly_search_volume":64377.54,"is_yaba_asin":"N","click_share":16.8,"competitor_brand":"KYU","average_organic_rank":4,"price":21.418571429,"weekly_number_of_days_with_deal":5,"weekly_number_of_days_with_coupon":0},{"week_date":"2026-11","weekly_search_volume":64377.54,"is_yaba_asin":"N","click_share":3.61,"competitor_brand":"KIRI","average_organic_rank":10,"price":37.33,"weekly_number_of_days_with_deal":5,"weekly_number_of_days_with_coupon":0},{"week_date":"2026-11","weekly_search_volume":64377.54,"is_yaba_asin":"N","click_share":2.84,"competitor_brand":"UNREAL","average_organic_rank":8,"price":29.405714286,"weekly_number_of_days_with_deal":4,"weekly_number_of_days_with_coupon":0},{"week_date":"2026-12","weekly_search_volume":49296.39,"is_yaba_asin":"N","click_share":2.11,"competitor_brand":"Unknown Brand","average_organic_rank":7,"price":13.206666667,"weekly_number_of_days_with_deal":2,"weekly_number_of_days_with_coupon":0},{"week_date":"2026-10","weekly_search_volume":59753.28,"is_yaba_asin":"N","click_share":10.82,"competitor_brand":"NORITUAL LAB","average_organic_rank":1,"price":56.258571429,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_coupon":0},{"week_date":"2026-11","weekly_search_volume":64377.54,"is_yaba_asin":"N","click_share":1.65,"competitor_brand":"Unknown Brand","average_organic_rank":7,"price":11.377142857,"weekly_number_of_days_with_deal":5,"weekly_number_of_days_with_coupon":0},{"week_date":"2026-12","weekly_search_volume":49296.39,"is_yaba_asin":"N","click_share":6.59,"competitor_brand":"KYU","average_organic_rank":6,"price":41.715,"weekly_number_of_days_with_deal":2,"weekly_number_of_days_with_coupon":0},{"week_date":"2026-12","weekly_search_volume":49296.39,"is_yaba_asin":"N","click_share":4.59,"competitor_brand":"Matcha & CO","average_organic_rank":6,"price":22.476666667,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_coupon":0},{"week_date":"2026-10","weekly_search_volume":59753.28,"is_yaba_asin":"N","click_share":2.77,"competitor_brand":"VAHDAM","average_organic_rank":12,"price":20.857142857,"weekly_number_of_days_with_deal":7,"weekly_number_of_days_with_coupon":0},{"week_date":"2026-12","weekly_search_volume":49296.39,"is_yaba_asin":"Y","click_share":11.64,"competitor_brand":"NaturaleBio","average_organic_rank":2,"price":15.125,"weekly_number_of_days_with_deal":2,"weekly_number_of_days_with_coupon":4},{"week_date":"2026-13","weekly_search_volume":49725.76,"is_yaba_asin":"N","click_share":19.51,"competitor_brand":"NORITUAL LAB","average_organic_rank":1,"price":10.814285714,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_coupon":0},{"week_date":"2026-12","weekly_search_volume":49296.39,"is_yaba_asin":"Y","click_share":6.96,"competitor_brand":"NaturaleBio","average_organic_rank":3,"price":26.126666667,"weekly_number_of_days_with_deal":2,"weekly_number_of_days_with_coupon":4},{"week_date":"2026-12","weekly_search_volume":49296.39,"is_yaba_asin":"N","click_share":1.83,"competitor_brand":"PoppaTea","average_organic_rank":14,"price":19.468,"weekly_number_of_days_with_deal":3,"weekly_number_of_days_with_coupon":0},{"week_date":"2026-11","weekly_search_volume":64377.54,"is_yaba_asin":"N","click_share":4.16,"competitor_brand":"KYU","average_organic_rank":5,"price":37.321428571,"weekly_number_of_days_with_deal":5,"weekly_number_of_days_with_coupon":0},{"week_date":"2026-12","weekly_search_volume":49296.39,"is_yaba_asin":"N","click_share":3.92,"competitor_brand":"Special Leaves","average_organic_rank":10,"price":10.223333333,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_coupon":6},{"week_date":"2026-12","weekly_search_volume":49296.39,"is_yaba_asin":"N","click_share":3.92,"competitor_brand":"Special Leaves","average_organic_rank":10,"price":10.223333333,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_coupon":6},{"week_date":"2026-11","weekly_search_volume":64377.54,"is_yaba_asin":"N","click_share":14.16,"competitor_brand":"NORITUAL LAB","average_organic_rank":1,"price":21.418571429,"weekly_number_of_days_with_deal":5,"weekly_number_of_days_with_coupon":0},{"week_date":"2026-10","weekly_search_volume":59753.28,"is_yaba_asin":"N","click_share":1.25,"competitor_brand":"Unknown Brand","average_organic_rank":6,"price":31.054285714,"weekly_number_of_days_with_deal":2,"weekly_number_of_days_with_coupon":0},{"week_date":"2026-13","weekly_search_volume":49725.76,"is_yaba_asin":"N","click_share":4.56,"competitor_brand":"Matcha & CO","average_organic_rank":5,"price":21.624285714,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_coupon":0},{"week_date":"2026-10","weekly_search_volume":59753.28,"is_yaba_asin":"Y","click_share":12.93,"competitor_brand":"NaturaleBio","average_organic_rank":2,"price":34.368571429,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_coupon":1},{"week_date":"2026-10","weekly_search_volume":59753.28,"is_yaba_asin":"N","click_share":4.1,"competitor_brand":"KIRI","average_organic_rank":10,"price":98.022857143,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_coupon":0},{"week_date":"2026-13","weekly_search_volume":49725.76,"is_yaba_asin":"N","click_share":7.64,"competitor_brand":"KYU","average_organic_rank":5,"price":43.963333333,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_coupon":0},{"week_date":"2026-13","weekly_search_volume":49725.76,"is_yaba_asin":"N","click_share":2.88,"competitor_brand":"Special Leaves","average_organic_rank":11,"price":10.713333333,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_coupon":6},{"week_date":"2026-13","weekly_search_volume":49725.76,"is_yaba_asin":"N","click_share":2.88,"competitor_brand":"Special Leaves","average_organic_rank":11,"price":10.713333333,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_coupon":6},{"week_date":"2026-11","weekly_search_volume":64377.54,"is_yaba_asin":"Y","click_share":13.76,"competitor_brand":"NaturaleBio","average_organic_rank":2,"price":14.118571429,"weekly_number_of_days_with_deal":5,"weekly_number_of_days_with_coupon":0},{"week_date":"2026-10","weekly_search_volume":59753.28,"is_yaba_asin":"N","click_share":1.99,"competitor_brand":"UNREAL","average_organic_rank":8,"price":73.577142857,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_coupon":0},{"week_date":"2026-13","weekly_search_volume":49725.76,"is_yaba_asin":"N","click_share":2.83,"competitor_brand":"Origeens","average_organic_rank":9,"price":10.736666667,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_coupon":0},{"week_date":"2026-13","weekly_search_volume":49725.76,"is_yaba_asin":"N","click_share":2.83,"competitor_brand":"Origeens","average_organic_rank":9,"price":10.736666667,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_coupon":0},{"week_date":"2026-10","weekly_search_volume":59753.28,"is_yaba_asin":"Y","click_share":1.69,"competitor_brand":"NaturaleBio","average_organic_rank":6,"price":61.392857143,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_coupon":0},{"week_date":"2026-10","weekly_search_volume":59753.28,"is_yaba_asin":"N","click_share":1.89,"competitor_brand":"Monte Nativo","average_organic_rank":9,"price":24.442857143,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_coupon":0},{"week_date":"2026-11","weekly_search_volume":64377.54,"is_yaba_asin":"Y","click_share":3.66,"competitor_brand":"NaturaleBio","average_organic_rank":4,"price":23.377142857,"weekly_number_of_days_with_deal":5,"weekly_number_of_days_with_coupon":0},{"week_date":"2026-13","weekly_search_volume":49725.76,"is_yaba_asin":"N","click_share":3.3,"competitor_brand":"PoppaTea","average_organic_rank":7,"price":19.381666667,"weekly_number_of_days_with_deal":4,"weekly_number_of_days_with_coupon":0},{"week_date":"2026-11","weekly_search_volume":64377.54,"is_yaba_asin":"N","click_share":4.44,"competitor_brand":"Special Leaves","average_organic_rank":11,"price":8.872857143,"weekly_number_of_days_with_deal":4,"weekly_number_of_days_with_coupon":7},{"week_date":"2026-11","weekly_search_volume":64377.54,"is_yaba_asin":"N","click_share":4.44,"competitor_brand":"Special Leaves","average_organic_rank":11,"price":8.872857143,"weekly_number_of_days_with_deal":4,"weekly_number_of_days_with_coupon":7},{"week_date":"2026-11","weekly_search_volume":64377.54,"is_yaba_asin":"N","click_share":2.16,"competitor_brand":"Matcha & CO","average_organic_rank":12,"price":26.244285714,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_coupon":0},{"week_date":"2026-13","weekly_search_volume":49725.76,"is_yaba_asin":"N","click_share":2.03,"competitor_brand":"Genbu Matcha Japanese Ceremonial Tea","average_organic_rank":17,"price":25.521666667,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_coupon":6},{"week_date":"2026-12","weekly_search_volume":49296.39,"is_yaba_asin":"N","click_share":3.87,"competitor_brand":"UNREAL","average_organic_rank":6,"price":31.315,"weekly_number_of_days_with_deal":2,"weekly_number_of_days_with_coupon":0},{"week_date":"2026-13","weekly_search_volume":49725.76,"is_yaba_asin":"N","click_share":3.1,"competitor_brand":"UNREAL","average_organic_rank":6,"price":32.25,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_coupon":0},{"week_date":"2026-13","weekly_search_volume":49725.76,"is_yaba_asin":"Y","click_share":11.45,"competitor_brand":"NaturaleBio","average_organic_rank":2,"price":15.063333333,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_coupon":6},{"week_date":"2026-12","weekly_search_volume":49296.39,"is_yaba_asin":"N","click_share":1.94,"competitor_brand":"Origeens","average_organic_rank":11,"price":11.208333333,"weekly_number_of_days_with_deal":2,"weekly_number_of_days_with_coupon":0},{"week_date":"2026-12","weekly_search_volume":49296.39,"is_yaba_asin":"N","click_share":1.94,"competitor_brand":"Origeens","average_organic_rank":11,"price":11.208333333,"weekly_number_of_days_with_deal":2,"weekly_number_of_days_with_coupon":0},{"week_date":"2026-10","weekly_search_volume":59753.28,"is_yaba_asin":"N","click_share":4.12,"competitor_brand":"Special Leaves","average_organic_rank":13,"price":23.952857143,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_coupon":7},{"week_date":"2026-10","weekly_search_volume":59753.28,"is_yaba_asin":"N","click_share":4.12,"competitor_brand":"Special Leaves","average_organic_rank":13,"price":23.952857143,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_coupon":7},{"week_date":"2026-12","weekly_search_volume":49296.39,"is_yaba_asin":"N","click_share":18.56,"competitor_brand":"NORITUAL LAB","average_organic_rank":1,"price":20.521428571,"weekly_number_of_days_with_deal":2,"weekly_number_of_days_with_coupon":0},{"week_date":"2026-10","weekly_search_volume":59753.28,"is_yaba_asin":"N","click_share":28.08,"competitor_brand":"KYU","average_organic_rank":3,"price":56.258571429,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_coupon":0},{"week_date":"2026-13","weekly_search_volume":49725.76,"is_yaba_asin":"Y","click_share":7.18,"competitor_brand":"NaturaleBio","average_organic_rank":2,"price":26.91,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_coupon":6}];
+
+        // Tab Switching Logic
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.view-section').forEach(v => v.classList.remove('active'));
+            
+            if(tabId === 'report') {
+                document.querySelectorAll('.tab')[0].classList.add('active');
+                document.getElementById('view-report').classList.add('active');
+            } else {
+                document.querySelectorAll('.tab')[1].classList.add('active');
+                document.getElementById('view-compare').classList.add('active');
+            }
+        }
+
+        // Data Processing
+        const weeks = [...new Set(rawData.map(d => d.week_date))].sort();
+        const latestWeek = weeks[weeks.length - 1];
+        
+        let yabaBrand = 'NaturaleBio';
+        let comps = [...new Set(rawData.filter(d => d.is_yaba_asin === 'N').map(d => d.competitor_brand))];
+        
+        // Populate Selectors
+        const selWeek = document.getElementById('select-week');
+        weeks.forEach(w => {
+            let opt = document.createElement('option');
+            opt.value = w;
+            opt.textContent = w;
+            if(w === latestWeek) opt.selected = true;
+            selWeek.appendChild(opt);
+        });
+        
+        const selComp = document.getElementById('select-comp');
+        const topComps = ['KYU', 'NORITUAL LAB', 'Special Leaves', 'UNREAL', 'Matcha & CO', 'Unknown Brand'];
+        topComps.forEach(c => {
+            let opt = document.createElement('option');
+            opt.value = c;
+            opt.textContent = c;
+            selComp.appendChild(opt);
+        });
+
+        // Build KPIs
+        function buildKPIs() {
+            let currWeekData = rawData.filter(d => d.week_date === latestWeek);
+            let prevWeekData = rawData.filter(d => d.week_date === weeks[weeks.length - 2]);
+            
+            let currShare = currWeekData.filter(d => d.is_yaba_asin === 'Y').reduce((s,d)=>s+d.click_share,0).toFixed(2);
+            let prevShare = prevWeekData.filter(d => d.is_yaba_asin === 'Y').reduce((s,d)=>s+d.click_share,0).toFixed(2);
+            let shareDiff = (currShare - prevShare).toFixed(2);
+            let shareIcon = shareDiff >= 0 ? 'arrow_upward' : 'arrow_downward';
+            let shareClass = shareDiff >= 0 ? '' : 'down';
+            
+            let yabaRanks = currWeekData.filter(d => d.is_yaba_asin === 'Y').map(d => d.average_organic_rank);
+            let avgRank = (yabaRanks.reduce((s,v)=>s+v,0)/yabaRanks.length).toFixed(1);
+            
+            let yabaPrices = currWeekData.filter(d => d.is_yaba_asin === 'Y').map(d => d.price);
+            let avgPrice = (yabaPrices.reduce((s,v)=>s+v,0)/yabaPrices.length).toFixed(2);
+
+            let searchVol = currWeekData[0].weekly_search_volume.toLocaleString('es-ES', { maximumFractionDigits: 0 });
+
+            const kpiHtml = `
+                <div class="kpi-card">
+                    <div class="kpi-label">Click Share (Nuestra Marca)</div>
+                    <div class="kpi-value">${currShare}%</div>
+                    <div class="kpi-sub ${shareClass}"><span class="material-icons" style="font-size:14px">${shareIcon}</span> ${Math.abs(shareDiff)}% vs sem ant.</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Rank Orgánico Avg (YABA)</div>
+                    <div class="kpi-value">#${avgRank}</div>
+                    <div class="kpi-sub"><span class="material-icons" style="font-size:14px">stars</span> Fuerte Tracción</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Precio Promedio (YABA)</div>
+                    <div class="kpi-value">€${avgPrice}</div>
+                    <div class="kpi-sub"><span class="material-icons" style="font-size:14px">sell</span> Cupones Activos</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Volumen Búsquedas Total</div>
+                    <div class="kpi-value">${searchVol}</div>
+                    <div class="kpi-sub"><span class="material-icons" style="font-size:14px">search</span> Última semana</div>
+                </div>
+            `;
+            document.getElementById('kpi-container').innerHTML = kpiHtml;
+        }
+        buildKPIs();
+
+        // Google Charts Setup
+        google.charts.load('current', {'packages':['corechart', 'bar']});
+        google.charts.setOnLoadCallback(drawCharts);
+
+        function drawCharts() {
+            // 1. Tendencia Global (ComboChart: Volume + Click Share Line)
+            let trendArray = [['Semana', 'Búsquedas (Volumen)', 'Nuestra Marca (%)', 'Competidores (%)']];
+            weeks.forEach(w => {
+                let dataW = rawData.filter(d => d.week_date === w);
+                let sv = dataW[0] ? dataW[0].weekly_search_volume : 0;
+                let yabaS = dataW.filter(d => d.is_yaba_asin === 'Y').reduce((s,d)=>s+d.click_share,0);
+                let compS = dataW.filter(d => d.is_yaba_asin === 'N').reduce((s,d)=>s+d.click_share,0);
+                trendArray.push([w, sv, yabaS, compS]);
+            });
+            
+            var dataTrend = google.visualization.arrayToDataTable(trendArray);
+            var optionsTrend = {
+                seriesType: 'bars',
+                series: {
+                    0: {targetAxisIndex: 0, color: '#e8eaed'},
+                    1: {type: 'line', targetAxisIndex: 1, color: '#1a73e8', lineWidth: 3},
+                    2: {type: 'line', targetAxisIndex: 1, color: '#ea4335', lineWidth: 3}
+                },
+                vAxes: {
+                    0: {title: 'Volumen', textStyle: {fontSize: 10}},
+                    1: {title: 'Click Share (%)', format: '#\'%\'', textStyle: {fontSize: 10}}
+                },
+                legend: {position: 'top'},
+                chartArea: {width: '85%', height: '70%'},
+                backgroundColor: 'transparent'
+            };
+            var chartTrend = new google.visualization.ComboChart(document.getElementById('chart_trend'));
+            chartTrend.draw(dataTrend, optionsTrend);
+
+            // 2. Competitividad (Top 3 vs Resto)
+            let compArray = [['Semana', 'NaturaleBio (Nosotros)', 'KYU', 'NORITUAL LAB', 'Resto del Mercado']];
+            weeks.forEach(w => {
+                let nat=0, kyu=0, nor=0, rest=0;
+                rawData.filter(d => d.week_date === w).forEach(d => {
+                    if(d.is_yaba_asin === 'Y') nat += d.click_share;
+                    else if(d.competitor_brand === 'KYU') kyu += d.click_share;
+                    else if(d.competitor_brand === 'NORITUAL LAB') nor += d.click_share;
+                    else rest += d.click_share;
+                });
+                compArray.push([w, nat, kyu, nor, rest]);
+            });
+            
+            var dataComp = google.visualization.arrayToDataTable(compArray);
+            var optionsComp = {
+                curveType: 'function',
+                legend: { position: 'top' },
+                colors: ['#1a73e8', '#ea4335', '#fbbc04', '#9aa0a6'],
+                lineWidth: 3,
+                vAxis: {title: 'Click Share (%)', format: '#\'%\''},
+                chartArea: {width: '85%', height: '70%'},
+                backgroundColor: 'transparent'
+            };
+            var chartComp = new google.visualization.LineChart(document.getElementById('chart_comp'));
+            chartComp.draw(dataComp, optionsComp);
+
+            // 3. Palancas (Deals & Cupones)
+            let dealsY=0, dealsN=0, cDealsY=0, cDealsN=0;
+            let coupY=0, coupN=0, cCoupY=0, cCoupN=0;
+            
+            rawData.forEach(d => {
+                if(d.weekly_number_of_days_with_deal > 0) { dealsY += d.click_share; cDealsY++; }
+                else { dealsN += d.click_share; cDealsN++; }
+                
+                if(d.weekly_number_of_days_with_coupon > 0) { coupY += d.click_share; cCoupY++; }
+                else { coupN += d.click_share; cCoupN++; }
+            });
+
+            var dataPalancas = google.visualization.arrayToDataTable([
+                ['Palanca', 'Con Palanca Activada', 'Sin Palanca'],
+                ['Días de Deal', dealsY/Math.max(1,cDealsY), dealsN/Math.max(1,cDealsN)],
+                ['Días de Cupón', coupY/Math.max(1,cCoupY), coupN/Math.max(1,cCoupN)]
+            ]);
+            var optionsPalancas = {
+                colors: ['#34a853', '#dadce0'],
+                legend: { position: 'top' },
+                vAxis: {title: 'Click Share Promedio por ASIN (%)'},
+                chartArea: {width: '80%', height: '70%'},
+                backgroundColor: 'transparent'
+            };
+            var chartPalancas = new google.visualization.ColumnChart(document.getElementById('chart_palancas'));
+            chartPalancas.draw(dataPalancas, optionsPalancas);
+
+            // 4. Scatter Eficiencia (Rank vs Share)
+            let scatterArray = [['Rank', 'Nuestra Marca', 'Competidores']];
+            rawData.forEach(d => {
+                if(d.is_yaba_asin === 'Y') scatterArray.push([d.average_organic_rank, d.click_share, null]);
+                else scatterArray.push([d.average_organic_rank, null, d.click_share]);
+            });
+            var dataScatter = google.visualization.arrayToDataTable(scatterArray);
+            var optionsScatter = {
+                hAxis: {title: 'Organic Rank (1 es mejor)', direction: -1},
+                vAxis: {title: 'Click Share (%)'},
+                colors: ['#1a73e8', '#ea4335'],
+                legend: {position: 'top'},
+                chartArea: {width: '85%', height: '70%'},
+                backgroundColor: 'transparent',
+                pointSize: 7
+            };
+            var chartScatter = new google.visualization.ScatterChart(document.getElementById('chart_scatter'));
+            chartScatter.draw(dataScatter, optionsScatter);
+        }
+
+        // Comparador Lógica
+        function updateComparator() {
+            const w = document.getElementById('select-week').value;
+            const c = document.getElementById('select-comp').value;
+            
+            let wData = rawData.filter(d => d.week_date === w);
+            let yabaItems = wData.filter(d => d.is_yaba_asin === 'Y');
+            let compItems = wData.filter(d => d.competitor_brand === c);
+            
+            const calcMetrics = (items) => {
+                if(items.length === 0) return { share: 0, price: 0, rank: 0, deals: 0 };
+                let share = items.reduce((s,d)=>s+d.click_share,0);
+                let price = items.reduce((s,d)=>s+d.price,0) / items.length;
+                let rank = items.reduce((s,d)=>s+d.average_organic_rank,0) / items.length;
+                let deals = items.reduce((s,d)=>s+(d.weekly_number_of_days_with_deal || 0),0);
+                return { share, price, rank, deals };
+            };
+            
+            let mYaba = calcMetrics(yabaItems);
+            let mComp = calcMetrics(compItems);
+
+            const buildRow = (label, vYaba, vComp, isLowerBetter = false, format = '') => {
+                let winnerClassY = '', winnerClassC = '';
+                
+                if (vYaba === 0 && vComp === 0) {
+                    winnerClassY = '<span class="vs-neutral">Sin Datos</span>';
+                    winnerClassC = '<span class="vs-neutral">Sin Datos</span>';
+                } else if (Math.abs(vYaba - vComp) < 0.01) {
+                    winnerClassY = '<span class="vs-neutral">Empate</span>';
+                    winnerClassC = '<span class="vs-neutral">Empate</span>';
+                } else {
+                    let yabaWins = isLowerBetter ? (vYaba < vComp && vYaba > 0) : (vYaba > vComp);
+                    if(vComp === 0 && isLowerBetter && vYaba > 0) yabaWins = true;
+                    
+                    if(yabaWins) {
+                        winnerClassY = '<span class="vs-winner">Mejor</span>';
+                        winnerClassC = '<span class="vs-loser">Peor</span>';
+                    } else {
+                        winnerClassY = '<span class="vs-loser">Peor</span>';
+                        winnerClassC = '<span class="vs-winner">Mejor</span>';
+                    }
+                }
+                
+                let sY = format === '%' ? vYaba.toFixed(2)+'%' : format === '€' ? '€'+vYaba.toFixed(2) : vYaba.toFixed(1);
+                let sC = format === '%' ? vComp.toFixed(2)+'%' : format === '€' ? '€'+vComp.toFixed(2) : vComp.toFixed(1);
+
+                return `
+                    <div class="vs-row">
+                        <div class="vs-card">
+                            <div class="vs-metric-name">${label}</div>
+                            <div class="vs-value yaba-val">${sY}</div>
+                            ${winnerClassY}
+                        </div>
+                        <div style="text-align:center; color:#5f6368; font-weight:500; font-size:12px;">VS</div>
+                        <div class="vs-card">
+                            <div class="vs-metric-name">${label}</div>
+                            <div class="vs-value comp-val">${sC}</div>
+                            ${winnerClassC}
+                        </div>
+                    </div>
+                `;
+            };
+
+            let html = `
+                <div class="vs-row" style="margin-bottom: 8px;">
+                    <div class="vs-header vs-yaba-header">NaturaleBio (YABA)</div>
+                    <div></div>
+                    <div class="vs-header vs-comp-header">${c}</div>
+                </div>
+                ${buildRow('Click Share Total', mYaba.share, mComp.share, false, '%')}
+                ${buildRow('Precio Promedio', mYaba.price, mComp.price, true, '€')}
+                ${buildRow('Rank Orgánico Avg', mYaba.rank, mComp.rank, true, '#')}
+                ${buildRow('Días de Deals Activos', mYaba.deals, mComp.deals, false, '#')}
+            `;
+            
+            document.getElementById('vs-container').innerHTML = html;
+        }
+        
+        // Init comparator on load
+        updateComparator();
+
+        // Resizing logic to redraw charts to keep responsiveness
+        window.addEventListener('resize', drawCharts);
+
+    </script>
+</body>
+</html>
