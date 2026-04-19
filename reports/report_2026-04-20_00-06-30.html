@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Amazon Market Intelligence Dashboard</title>
+    
+    <!-- Google Fonts & Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    
+    <!-- Google Charts -->
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    
+    <style>
+        :root {
+            --primary-color: #4285F4;
+            --secondary-color: #34A853;
+            --accent-color: #FBBC05;
+            --danger-color: #EA4335;
+            --background-color: #F8F9FA;
+            --surface-color: #FFFFFF;
+            --text-primary: #202124;
+            --text-secondary: #5F6368;
+            --border-color: #DADCE0;
+            --yaba-color: #4285F4;
+            --comp1-color: #EA4335;
+            --comp2-color: #FBBC05;
+            --comp3-color: #34A853;
+            --other-color: #9AA0A6;
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+        
+        .header {
+            background-color: var(--surface-color);
+            padding: 16px 24px;
+            box-shadow: 0 1px 2px 0 rgba(60,64,67,0.3), 0 1px 3px 1px rgba(60,64,67,0.15);
+            display: flex;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+        
+        .header h1 {
+            font-size: 20px;
+            font-weight: 500;
+            color: var(--text-primary);
+            margin-left: 12px;
+        }
+        
+        .tabs {
+            display: flex;
+            background: var(--surface-color);
+            border-bottom: 1px solid var(--border-color);
+            padding: 0 24px;
+        }
+        
+        .tab-btn {
+            background: none;
+            border: none;
+            padding: 16px 24px;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            text-transform: uppercase;
+            transition: all 0.2s;
+        }
+        
+        .tab-btn.active {
+            color: var(--primary-color);
+            border-bottom-color: var(--primary-color);
+        }
+        
+        .tab-content {
+            display: none;
+            padding: 24px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            gap: 24px;
+        }
+        
+        .card {
+            background: var(--surface-color);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 1px 2px 0 rgba(60,64,67,0.3), 0 1px 3px 1px rgba(60,64,67,0.15);
+        }
+        
+        .col-span-12 { grid-column: span 12; }
+        .col-span-6 { grid-column: span 6; }
+        .col-span-4 { grid-column: span 4; }
+        .col-span-8 { grid-column: span 8; }
+        
+        .card-title {
+            font-size: 16px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 12px;
+        }
+        
+        .chart-container {
+            width: 100%;
+            height: 350px;
+        }
+        
+        .metrics-row {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        
+        .metric-card {
+            flex: 1;
+            background: var(--surface-color);
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 1px 2px 0 rgba(60,64,67,0.3), 0 1px 3px 1px rgba(60,64,67,0.15);
+            display: flex;
+            flex-direction: column;
+            border-left: 4px solid var(--primary-color);
+        }
+        
+        .metric-value {
+            font-size: 28px;
+            font-weight: 400;
+            color: var(--text-primary);
+            margin: 8px 0;
+        }
+        
+        .metric-label {
+            font-size: 13px;
+            color: var(--text-secondary);
+            font-weight: 500;
+            text-transform: uppercase;
+        }
+        
+        .metric-change {
+            font-size: 13px;
+            font-weight: 500;
+        }
+        .positive { color: var(--secondary-color); }
+        .negative { color: var(--danger-color); }
+        
+        /* Typography for text sections */
+        .text-section h3 { margin-top: 16px; margin-bottom: 8px; color: var(--text-primary); font-size: 16px; }
+        .text-section ul { padding-left: 24px; margin-bottom: 16px; }
+        .text-section li { margin-bottom: 8px; color: var(--text-primary); font-size: 14px; }
+        
+        /* Interactive Tab elements */
+        .controls {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 24px;
+            background: var(--surface-color);
+            padding: 16px;
+            border-radius: 16px;
+            box-shadow: 0 1px 2px 0 rgba(60,64,67,0.3);
+        }
+        
+        select {
+            padding: 8px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            font-size: 14px;
+            color: var(--text-primary);
+            background: white;
+            outline: none;
+            min-width: 200px;
+        }
+        
+        .vs-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 24px;
+            margin-top: 24px;
+        }
+        
+        .vs-card {
+            flex: 1;
+            padding: 24px;
+            border-radius: 16px;
+            text-align: center;
+            box-shadow: 0 1px 2px 0 rgba(60,64,67,0.3);
+        }
+        
+        .vs-yaba { background-color: rgba(66, 133, 244, 0.05); border-top: 4px solid var(--yaba-color); }
+        .vs-comp { background-color: rgba(234, 67, 53, 0.05); border-top: 4px solid var(--comp1-color); }
+        
+        .vs-brand { font-size: 20px; font-weight: 500; margin-bottom: 16px; }
+        
+        .vs-stat {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .vs-stat:last-child { border-bottom: none; }
+        
+        .insight-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+            background: rgba(66, 133, 244, 0.1);
+            color: var(--primary-color);
+            margin-right: 8px;
+        }
+        .rec-badge {
+            background: rgba(52, 168, 83, 0.1);
+            color: var(--secondary-color);
+        }
+    </style>
+</head>
+<body>
+
+    <header class="header">
+        <span class="material-icons" style="color: var(--primary-color);">analytics</span>
+        <h1>Amazon Market Intelligence | Vitamin D3 (UK)</h1>
+    </header>
+
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('static')">Reporte Estático</button>
+        <button class="tab-btn" onclick="switchTab('interactive')">Comparador Interactivo</button>
+    </div>
+
+    <!-- PESTAÑA 1: REPORTE ESTÁTICO -->
+    <div id="static" class="tab-content active">
+        
+        <!-- Key Metrics Row (Latest Week) -->
+        <div class="metrics-row">
+            <div class="metric-card">
+                <span class="metric-label">Nuestro Click Share (Última Sem)</span>
+                <div class="metric-value" id="kpi-share">--%</div>
+                <div class="metric-change" id="kpi-share-change">-- vs semana ant.</div>
+            </div>
+            <div class="metric-card">
+                <span class="metric-label">Eficiencia (Rank Promedio)</span>
+                <div class="metric-value" id="kpi-rank">--</div>
+                <div class="metric-change positive">Top 3 Posiciones</div>
+            </div>
+            <div class="metric-card">
+                <span class="metric-label">Días con Promo (Última Sem)</span>
+                <div class="metric-value" id="kpi-promo">--</div>
+                <div class="metric-change" id="kpi-promo-desc">Deals / Badges activos</div>
+            </div>
+        </div>
+
+        <div class="dashboard-grid">
+            
+            <!-- 1. Tendencia Global -->
+            <div class="card col-span-12">
+                <div class="card-title"><span class="material-icons">trending_up</span> 1. Tendencia Global del Parent</div>
+                <div id="chart_tendencia" class="chart-container"></div>
+            </div>
+
+            <!-- 2. Competitividad -->
+            <div class="card col-span-8">
+                <div class="card-title"><span class="material-icons">query_stats</span> 2. Competitividad de Marca (Curva Click Share)</div>
+                <div id="chart_competitividad" class="chart-container"></div>
+            </div>
+            
+            <!-- 3. Palancas -->
+            <div class="card col-span-4">
+                <div class="card-title"><span class="material-icons">price_check</span> 3. Palancas que Aumentan Share</div>
+                <div id="chart_palancas" class="chart-container"></div>
+            </div>
+
+            <!-- 4. Eficiencia (Rank vs Share) -->
+            <div class="card col-span-6">
+                <div class="card-title"><span class="material-icons">scatter_plot</span> 4. Eficiencia: Organic Rank vs Click Share</div>
+                <div id="chart_eficiencia" class="chart-container"></div>
+            </div>
+
+            <!-- 5. Conclusiones y Recomendaciones -->
+            <div class="card col-span-6 text-section" style="overflow-y: auto; max-height: 440px;">
+                <div class="card-title"><span class="material-icons">lightbulb</span> 5. Insights Clave y Recomendaciones Accionables</div>
+                
+                <h3>Insights Clave (Mínimo 5)</h3>
+                <ul>
+                    <li><strong>1. Tendencia global resiliente:</strong> A pesar de la caída del volumen total de búsquedas estimado en la semana 2026-14, nuestra marca (Incite Nutrition) mantuvo un nivel de Click Share estable, mostrando lealtad y conversión.</li>
+                    <li><strong>2. Competitividad de Marca:</strong> Nutrition Geeks y WeightWorld lideran con el mayor click share global (~9%), apoyándose intensamente en badges. Nosotros estamos firmes en la 3ra posición.</li>
+                    <li><strong>3. Palancas que mejor funcionan:</strong> La posesión del badge "Amazon Choice" o la activación de Deals demuestran incrementar el share promedio más de un 40% vs el status quo.</li>
+                    <li><strong>4. Eficiencia excepcional:</strong> Incite Nutrition figura en la zona alta de eficiencia; logramos un rango orgánico promedio de 4.25 y extraemos un share de clics del ~7.38%, sobre-rindiendo en impresiones en comparación con Vita Premium.</li>
+                    <li><strong>5. Riesgos y oportunidades:</strong> Nutrition Geeks es muy agresivo en retención del #1 rank; nuestra oportunidad reside en picos de tráfico donde los líderes carecen de promos activas, como sucedió a inicios de mes.</li>
+                </ul>
+
+                <h3>Recomendaciones Accionables (Mínimo 3)</h3>
+                <ul>
+                    <li><strong><span class="insight-badge rec-badge">Recomendación 1</span> Ajuste de Precio:</strong> Nuestros ASINs rondan £7.64, mientras WeightWorld vende a £9.99 con share similar. Podemos testear subir el precio progresivamente a £8.49 sin riesgo de perder la alta eficiencia de rank-clicks.</li>
+                    <li><strong><span class="insight-badge rec-badge">Recomendación 2</span> Activación de Promociones Específicas:</strong> Lanzar cupones agresivos en semanas proyectadas de baja demanda orgánica (como se vio en la 2026-14) para robar cuota a Nu U Nutrition.</li>
+                    <li><strong><span class="insight-badge rec-badge">Recomendación 3</span> Priorización de Keywords:</strong> Focalizar campañas de PPC en la keyword "vitamin d3" exacta para disputar el badge de Amazon Choice a WeightWorld, ya que su retención de este badge en los últimos días ha cimentado su liderazgo.</li>
+                </ul>
+
+                <div class="card-title" style="margin-top:24px;"><span class="material-icons">explore</span> 6. OTHER INSIGHTS (Libre)</div>
+                <ul>
+                    <li><strong>Competidores emergentes:</strong> "G R O U N D E D COFFEE SCRUB" muestra una irrupción atípica en la categoría de Vitaminas D3 con un sólido ~5.5% de share a bajo precio (£5.99).</li>
+                    <li><strong>Anomalías de mercado:</strong> Natures Aid, pese a ser una marca reconocida y tener precio muy bajo (£3.99), es ineficiente en su rank (#17), lo que sugiere problemas en la ficha (imágenes/reviews) o falta total de soporte PPC.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- PESTAÑA 2: COMPARADOR INTERACTIVO -->
+    <div id="interactive" class="tab-content">
+        <div class="controls">
+            <div>
+                <label style="font-size:12px; color:var(--text-secondary); display:block; margin-bottom:4px;">Seleccionar Semana:</label>
+                <select id="select-week" onchange="updateComparator()"></select>
+            </div>
+            <div>
+                <label style="font-size:12px; color:var(--text-secondary); display:block; margin-bottom:4px;">Seleccionar Competidor:</label>
+                <select id="select-comp" onchange="updateComparator()"></select>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-title"><span class="material-icons">compare_arrows</span> Cara a Cara Dinámico: Nosotros vs Competencia</div>
+            
+            <div class="vs-container">
+                <div class="vs-card vs-yaba">
+                    <div class="vs-brand">Incite Nutrition (Nuestros ASINs)</div>
+                    <div class="vs-stat"><span>Precio Promedio:</span> <strong id="vs-yaba-price">£0.00</strong></div>
+                    <div class="vs-stat"><span>Click Share Total:</span> <strong id="vs-yaba-share">0%</strong></div>
+                    <div class="vs-stat"><span>Organic Rank Promedio:</span> <strong id="vs-yaba-rank">0</strong></div>
+                    <div class="vs-stat"><span>Días Totales con Promo:</span> <strong id="vs-yaba-deals">0</strong></div>
+                </div>
+                
+                <div style="font-size: 24px; font-weight: 700; color: var(--text-secondary);">VS</div>
+                
+                <div class="vs-card vs-comp">
+                    <div class="vs-brand" id="vs-comp-name">Competidor</div>
+                    <div class="vs-stat"><span>Precio Promedio:</span> <strong id="vs-comp-price">£0.00</strong></div>
+                    <div class="vs-stat"><span>Click Share Total:</span> <strong id="vs-comp-share">0%</strong></div>
+                    <div class="vs-stat"><span>Organic Rank Promedio:</span> <strong id="vs-comp-rank">0</strong></div>
+                    <div class="vs-stat"><span>Días Totales con Promo:</span> <strong id="vs-comp-deals">0</strong></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="text/javascript">
+        // 1. Inyección de Datos Procesados
+        const marketData = [{"brand_aggregation": "incite-nutrition", "parent_asin": "Vitamin D3", "reporting_date": "2026-03-21", "week_date": "2026-12", "keywords": "vitamin d3", "competitor_brand": "WeightWorld", "asin": "B086V74KKR", "product_title": "Vitamin D3 4000IU - 1+ Year Supply - 400 Tablets -...", "country_code": "uk", "average_organic_rank": 1, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7, "weekly_number_of_days_with_coupon": 0, "click_share": 13.37, "impression_share": 3.53, "price": 8.99, "click_share_rank": 2, "weekly_search_volume": 14721.32, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.co.uk/s?k=vitamin+d3"}, {"brand_aggregation": "incite-nutrition", "parent_asin": "Vitamin D3", "reporting_date": "2026-04-11", "week_date": "2026-15", "keywords": "vitamin d3", "competitor_brand": "WeightWorld", "asin": "B086V74KKR", "product_title": "Vitamin D3 4000IU - 1+ Year Supply - 400 Tablets -...", "country_code": "uk", "average_organic_rank": 1, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 4, "weekly_number_of_days_with_coupon": 0, "click_share": 12.66, "impression_share": 3.68, "price": 8.99, "click_share_rank": 2, "weekly_search_volume": 11820.24, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.co.uk/s?k=vitamin+d3"}, {"brand_aggregation": "incite-nutrition", "parent_asin": "Vitamin D3", "reporting_date": "2026-03-28", "week_date": "2026-13", "keywords": "vitamin d3", "competitor_brand": "Nu U Nutrition", "asin": "B07HM81L42", "product_title": "Nu U Nutrition - Vitamin D 4000IU - 365 Softgel Ca...", "country_code": "uk", "average_organic_rank": 13, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 4.19, "impression_share": 3.0, "price": 9.97, "click_share_rank": 6, "weekly_search_volume": 14222.06, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.co.uk/s?k=vitamin+d3"}, {"brand_aggregation": "incite-nutrition", "parent_asin": "Vitamin D3", "reporting_date": "2026-03-21", "week_date": "2026-12", "keywords": "vitamin d3", "competitor_brand": "Nutrition Geeks", "asin": "B08F5GBD9X", "product_title": "Vitamin D 1000iu - 1 Year Supply, 365 Easy-Swallow...", "country_code": "uk", "average_organic_rank": 4, "weekly_number_of_days_with_deal": 2, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 6.0, "impression_share": 3.47, "price": 6.69, "click_share_rank": 4, "weekly_search_volume": 14721.32, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.co.uk/s?k=vitamin+d3"}, {"brand_aggregation": "incite-nutrition", "parent_asin": "Vitamin D3", "reporting_date": "2026-04-04", "week_date": "2026-14", "keywords": "vitamin d3", "competitor_brand": "Incite Nutrition", "asin": "B00RXIIW7K", "product_title": "Vitamin D3 4000 IU - 400 High Strength Vitamin D T...", "country_code": "uk", "average_organic_rank": 3, "weekly_number_of_days_with_deal": 7, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 3, "weekly_number_of_days_with_coupon": 0, "click_share": 9.95, "impression_share": 4.04, "price": 6.79, "click_share_rank": 3, "weekly_search_volume": 2143.74, "is_yaba_asin": "Y", "keywords_link": "https://www.amazon.co.uk/s?k=vitamin+d3"}, {"brand_aggregation": "incite-nutrition", "parent_asin": "Vitamin D3", "reporting_date": "2026-03-28", "week_date": "2026-13", "keywords": "vitamin d3", "competitor_brand": "WeightWorld", "asin": "B08DG68P6B", "product_title": "WeightWorld Vitamin D3 4000IU & K2 125\u03bcg (MK7) | 3...", "country_code": "uk", "average_organic_rank": 15, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 2.67, "impression_share": 2.85, "price": 9.99, "click_share_rank": 9, "weekly_search_volume": 14222.06, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.co.uk/s?k=vitamin+d3"}, {"brand_aggregation": "incite-nutrition", "parent_asin": "Vitamin D3", "reporting_date": "2026-03-21", "week_date": "2026-12", "keywords": "vitamin d3", "competitor_brand": "Nutrition Geeks", "asin": "B0BQCNJ7WR", "product_title": "Nutrition Geeks, Vitamin D 4000 iu - 1 Year Supply...", "country_code": "uk", "average_organic_rank": 15, "weekly_number_of_days_with_deal": 2, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 4.52, "impression_share": 2.66, "price": 7.647142857, "click_share_rank": 6, "weekly_search_volume": 14721.32, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.co.uk/s?k=vitamin+d3"}, {"brand_aggregation": "incite-nutrition", "parent_asin": "Vitamin D3", "reporting_date": "2026-03-21", "week_date": "2026-12", "keywords": "vitamin d3", "competitor_brand": "Nutrition Geeks", "asin": "B0CR57HRDV", "product_title": "Vitamin D3 4000 iu & Vitamin K2 MK7 100\u03bcg - 1 Year...", "country_code": "uk", "average_organic_rank": 2, "weekly_number_of_days_with_deal": 2, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 19.53, "impression_share": 6.07, "price": 9.561428571, "click_share_rank": 1, "weekly_search_volume": 14721.32, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.co.uk/s?k=vitamin+d3"}, {"brand_aggregation": "incite-nutrition", "parent_asin": "Vitamin D3", "reporting_date": "2026-04-11", "week_date": "2026-15", "keywords": "vitamin d3", "competitor_brand": "Vita Premium", "asin": "B072L235Z5", "product_title": "Vitamin D 4,000 IU Gel Capsules, High Strength Vit...", "country_code": "uk", "average_organic_rank": 8, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 4.58, "impression_share": 5.74, "price": 9.99, "click_share_rank": 6, "weekly_search_volume": 11820.24, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.co.uk/s?k=vitamin+d3"}, {"brand_aggregation": "incite-nutrition", "parent_asin": "Vitamin D3", "reporting_date": "2026-04-11", "week_date": "2026-15", "keywords": "vitamin d3", "competitor_brand": "Nutrition Geeks", "asin": "B0BQCNJ7WR", "product_title": "Nutrition Geeks, Vitamin D 4000 iu - 1 Year Supply...", "country_code": "uk", "average_organic_rank": 19, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 3.68, "impression_share": 3.03, "price": 7.99, "click_share_rank": 7, "weekly_search_volume": 11820.24, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.co.uk/s?k=vitamin+d3"}, {"brand_aggregation": "incite-nutrition", "parent_asin": "Vitamin D3", "reporting_date": "2026-04-04", "week_date": "2026-14", "keywords": "vitamin d3", "competitor_brand": "Nutrition Geeks", "asin": "B0CR57HRDV", "product_title": "Vitamin D3 4000 iu & Vitamin K2 MK7 100\u03bcg - 1 Year...", "country_code": "uk", "average_organic_rank": 2, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 3, "weekly_number_of_days_with_coupon": 0, "click_share": 19.24, "impression_share": 6.07, "price": 9.99, "click_share_rank": 1, "weekly_search_volume": 2143.74, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.co.uk/s?k=vitamin+d3"}, {"brand_aggregation": "incite-nutrition", "parent_asin": "Vitamin D3", "reporting_date": "2026-04-04", "week_date": "2026-14", "keywords": "vitamin d3", "competitor_brand": "Nutrition Geeks", "asin": "B08F5GBD9X", "product_title": "Vitamin D 1000iu - 1 Year Supply, 365 Easy-Swallow...", "country_code": "uk", "average_organic_rank": 4, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 1, "weekly_number_of_days_with_coupon": 0, "click_share": 3.67, "impression_share": 3.42, "price": 6.99, "click_share_rank": 7, "weekly_search_volume": 2143.74, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.co.uk/s?k=vitamin+d3"}, {"brand_aggregation": "incite-nutrition", "parent_asin": "Vitamin D3", "reporting_date": "2026-04-11", "week_date": "2026-15", "keywords": "vitamin d3", "competitor_brand": "Nutrition Geeks", "asin": "B0CR57HRDV", "product_title": "Vitamin D3 4000 iu & Vitamin K2 MK7 100\u03bcg - 1 Year...", "country_code": "uk", "average_organic_rank": 3, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 1, "weekly_number_of_days_with_coupon": 0, "click_share": 19.34, "impression_share": 6.05, "price": 9.99, "click_share_rank": 1, "weekly_search_volume": 11820.24, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.co.uk/s?k=vitamin+d3"}, {"brand_aggregation": "incite-nutrition", "parent_asin": "Vitamin D3", "reporting_date": "2026-03-21", "week_date": "2026-12", "keywords": "vitamin d3", "competitor_brand": "Vita Premium", "asin": "B072L235Z5", "product_title": "Vitamin D 4,000 IU Gel Capsules, High Strength Vit...", "country_code": "uk", "average_organic_rank": 5, "weekly_number_of_days_with_deal": 2, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 3.18, "impression_share": 3.9, "price": 8.275714286, "click_share_rank": 8, "weekly_search_volume": 14721.32, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.co.uk/s?k=vitamin+d3"}, {"brand_aggregation": "incite-nutrition", "parent_asin": "Vitamin D3", "reporting_date": "2026-04-04", "week_date": "2026-14", "keywords": "vitamin d3", "competitor_brand": "Nutrition Geeks", "asin": "B0BQCNJ7WR", "product_title": "Nutrition Geeks, Vitamin D 4000 iu - 1 Year Supply...", "country_code": "uk", "average_organic_rank": 13, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 3.11, "impression_share": 3.37, "price": 7.99, "click_share_rank": 8, "weekly_search_volume": 2143.74, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.co.uk/s?k=vitamin+d3"}, {"brand_aggregation": "incite-nutrition", "parent_asin": "Vitamin D3", "reporting_date": "2026-04-04", "week_date": "2026-14", "keywords": "vitamin d3", "competitor_brand": "Natures Aid", "asin": "B002F5FODG", "product_title": "Natures Aid Vitamin D3 10\u00b5g (400IU) \u2013 High Strengt...", "country_code": "uk", "average_organic_rank": 17, "weekly_number_of_days_with_deal": 5, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 7, "click_share": 2.66, "impression_share": 2.24, "price": 3.997142857, "click_share_rank": 9, "weekly_search_volume": 2143.74, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.co.uk/s?k=vitamin+d3"}, {"brand_aggregation": "incite-nutrition", "parent_asin": "Vitamin D3", "reporting_date": "2026-04-04", "week_date": "2026-14", "keywords": "vitamin d3", "competitor_brand": "Vita Premium", "asin": "B072L235Z5", "product_title": "Vitamin D 4,000 IU Gel Capsules, High Strength Vit...", "country_code": "uk", "average_organic_rank": 6, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 5.91, "impression_share": 5.49, "price": 9.275714286, "click_share_rank": 5, "weekly_search_volume": 2143.74, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.co.uk/s?k=vitamin+d3"}, {"brand_aggregation": "incite-nutrition", "parent_asin": "Vitamin D3", "reporting_date": "2026-03-28", "week_date": "2026-13", "keywords": "vitamin d3", "competitor_brand": "Nutrition Geeks", "asin": "B08F5GBD9X", "product_title": "Vitamin D 1000iu - 1 Year Supply, 365 Easy-Swallow...", "country_code": "uk", "average_organic_rank": 3, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 5.29, "impression_share": 3.34, "price": 6.99, "click_share_rank": 5, "weekly_search_volume": 14222.06, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.co.uk/s?k=vitamin+d3"}, {"brand_aggregation": "incite-nutrition", "parent_asin": "Vitamin D3", "reporting_date": "2026-03-28", "week_date": "2026-13", "keywords": "vitamin d3", "competitor_brand": "G R O U N D E D COFFEE SCRUB", "asin": "B08BRSVYFM", "product_title": "Vitamin D3 4000 IU Micro Tablets - 365 Day Supply,...", "country_code": "uk", "average_organic_rank": 5, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 5.93, "impression_share": 4.87, "price": 5.99, "click_share_rank": 4, "weekly_search_volume": 14222.06, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.co.uk/s?k=vitamin+d3"}, {"brand_aggregation": "incite-nutrition", "parent_asin": "Vitamin D3", "reporting_date": "2026-04-04", "week_date": "2026-14", "keywords": "vitamin d3", "competitor_brand": "Vita Premium", "asin": "B0DJDFKXJT", "product_title": "Vitamin D 4,000 IU Tablets, Maximum Strength Vitam...", "country_code": "uk", "average_organic_rank": 8, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 2.6, "impression_share": 4.2, "price": 9.99, "click_share_rank": 10, "weekly_search_volume": 2143.74, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.co.uk/s?k=vitamin+d3"}, {"brand_aggregation": "incite-nutrition", "parent_asin": "Vitamin D3", "reporting_date": "2026-04-11", "week_date": "2026-15", "keywords": "vitamin d3", "competitor_brand": "Incite Nutrition", "asin": "B00RXIIW7K", "product_title": "Vitamin D3 4000 IU - 400 High Strength Vitamin D T...", "country_code": "uk", "average_organic_rank": 3, "weekly_number_of_days_with_deal": 2, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 2, "weekly_number_of_days_with_coupon": 0, "click_share": 7.21, "impression_share": 3.78, "price": 7.647142857, "click_share_rank": 3, "weekly_search_volume": 11820.24, "is_yaba_asin": "Y", "keywords_link": "https://www.amazon.co.uk/s?k=vitamin+d3"}, {"brand_aggregation": "incite-nutrition", "parent_asin": "Vitamin D3", "reporting_date": "2026-03-28", "week_date": "2026-13", "keywords": "vitamin d3", "competitor_brand": "Nutrition Geeks", "asin": "B0CR57HRDV", "product_title": "Vitamin D3 4000 iu & Vitamin K2 MK7 100\u03bcg - 1 Year...", "country_code": "uk", "average_organic_rank": 2, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 18.05, "impression_share": 5.81, "price": 9.99, "click_share_rank": 1, "weekly_search_volume": 14222.06, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.co.uk/s?k=vitamin+d3"}, {"brand_aggregation": "incite-nutrition", "parent_asin": "Vitamin D3", "reporting_date": "2026-03-28", "week_date": "2026-13", "keywords": "vitamin d3", "competitor_brand": "Incite Nutrition", "asin": "B00RXIIW7K", "product_title": "Vitamin D3 4000 IU - 400 High Strength Vitamin D T...", "country_code": "uk", "average_organic_rank": 5, "weekly_number_of_days_with_deal": 2, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 7.44, "impression_share": 4.63, "price": 4.222857143, "click_share_rank": 3, "weekly_search_volume": 14222.06, "is_yaba_asin": "Y", "keywords_link": "https://www.amazon.co.uk/s?k=vitamin+d3"}, {"brand_aggregation": "incite-nutrition", "parent_asin": "Vitamin D3", "reporting_date": "2026-03-21", "week_date": "2026-12", "keywords": "vitamin d3", "competitor_brand": "Vita Premium", "asin": "B0DJDFKXJT", "product_title": "Vitamin D 4,000 IU Tablets, Maximum Strength Vitam...", "country_code": "uk", "average_organic_rank": 4, "weekly_number_of_days_with_deal": 2, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 6.55, "impression_share": 5.8, "price": 9.032857143, "click_share_rank": 3, "weekly_search_volume": 14721.32, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.co.uk/s?k=vitamin+d3"}, {"brand_aggregation": "incite-nutrition", "parent_asin": "Vitamin D3", "reporting_date": "2026-04-04", "week_date": "2026-14", "keywords": "vitamin d3", "competitor_brand": "G R O U N D E D COFFEE SCRUB", "asin": "B08BRSVYFM", "product_title": "Vitamin D3 4000 IU Micro Tablets - 365 Day Supply,...", "country_code": "uk", "average_organic_rank": 5, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 5.97, "impression_share": 4.97, "price": 5.99, "click_share_rank": 4, "weekly_search_volume": 2143.74, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.co.uk/s?k=vitamin+d3"}, {"brand_aggregation": "incite-nutrition", "parent_asin": "Vitamin D3", "reporting_date": "2026-03-21", "week_date": "2026-12", "keywords": "vitamin d3", "competitor_brand": "Nu U Nutrition", "asin": "B07HM81L42", "product_title": "Nu U Nutrition - Vitamin D 4000IU - 365 Softgel Ca...", "country_code": "uk", "average_organic_rank": 14, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 2.49, "impression_share": 2.41, "price": 9.97, "click_share_rank": 9, "weekly_search_volume": 14721.32, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.co.uk/s?k=vitamin+d3"}, {"brand_aggregation": "incite-nutrition", "parent_asin": "Vitamin D3", "reporting_date": "2026-04-11", "week_date": "2026-15", "keywords": "vitamin d3", "competitor_brand": "Vita Premium", "asin": "B0DJDFKXJT", "product_title": "Vitamin D 4,000 IU Tablets, Maximum Strength Vitam...", "country_code": "uk", "average_organic_rank": 10, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 2.94, "impression_share": 4.81, "price": 9.99, "click_share_rank": 9, "weekly_search_volume": 11820.24, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.co.uk/s?k=vitamin+d3"}, {"brand_aggregation": "incite-nutrition", "parent_asin": "Vitamin D3", "reporting_date": "2026-03-28", "week_date": "2026-13", "keywords": "vitamin d3", "competitor_brand": "Vita Premium", "asin": "B072L235Z5", "product_title": "Vitamin D 4,000 IU Gel Capsules, High Strength Vit...", "country_code": "uk", "average_organic_rank": 7, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 2.92, "impression_share": 3.49, "price": 8.99, "click_share_rank": 8, "weekly_search_volume": 14222.06, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.co.uk/s?k=vitamin+d3"}, {"brand_aggregation": "incite-nutrition", "parent_asin": "Vitamin D3", "reporting_date": "2026-03-21", "week_date": "2026-12", "keywords": "vitamin d3", "competitor_brand": "Nu U Nutrition", "asin": "B0BFF8LYR2", "product_title": "Vitamin D3 4000 IU - 400 Vegetarian Tablets - 13 M...", "country_code": "uk", "average_organic_rank": 14, "weekly_number_of_days_with_deal": 2, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 1.55, "impression_share": 2.43, "price": 6.825714286, "click_share_rank": 10, "weekly_search_volume": 14721.32, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.co.uk/s?k=vitamin+d3"}, {"brand_aggregation": "incite-nutrition", "parent_asin": "Vitamin D3", "reporting_date": "2026-04-11", "week_date": "2026-15", "keywords": "vitamin d3", "competitor_brand": "Nu U Nutrition", "asin": "B07HM81L42", "product_title": "Nu U Nutrition - Vitamin D 4000IU - 365 Softgel Ca...", "country_code": "uk", "average_organic_rank": 13, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 2.01, "impression_share": 2.5, "price": 9.97, "click_share_rank": 10, "weekly_search_volume": 11820.24, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.co.uk/s?k=vitamin+d3"}, {"brand_aggregation": "incite-nutrition", "parent_asin": "Vitamin D3", "reporting_date": "2026-03-28", "week_date": "2026-13", "keywords": "vitamin d3", "competitor_brand": "WeightWorld", "asin": "B086V74KKR", "product_title": "Vitamin D3 4000IU - 1+ Year Supply - 400 Tablets -...", "country_code": "uk", "average_organic_rank": 1, "weekly_number_of_days_with_deal": 2, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 4, "weekly_number_of_days_with_coupon": 0, "click_share": 13.76, "impression_share": 3.58, "price": 8.765, "click_share_rank": 2, "weekly_search_volume": 14222.06, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.co.uk/s?k=vitamin+d3"}, {"brand_aggregation": "incite-nutrition", "parent_asin": "Vitamin D3", "reporting_date": "2026-03-28", "week_date": "2026-13", "keywords": "vitamin d3", "competitor_brand": "Vita Premium", "asin": "B0DJDFKXJT", "product_title": "Vitamin D 4,000 IU Tablets, Maximum Strength Vitam...", "country_code": "uk", "average_organic_rank": 6, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 2.16, "impression_share": 3.94, "price": 9.99, "click_share_rank": 10, "weekly_search_volume": 14222.06, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.co.uk/s?k=vitamin+d3"}, {"brand_aggregation": "incite-nutrition", "parent_asin": "Vitamin D3", "reporting_date": "2026-03-21", "week_date": "2026-12", "keywords": "vitamin d3", "competitor_brand": "Incite Nutrition", "asin": "B00RXIIW7K", "product_title": "Vitamin D3 4000 IU - 400 High Strength Vitamin D T...", "country_code": "uk", "average_organic_rank": 6, "weekly_number_of_days_with_deal": 2, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 4.94, "impression_share": 5.02, "price": 7.647142857, "click_share_rank": 5, "weekly_search_volume": 14721.32, "is_yaba_asin": "Y", "keywords_link": "https://www.amazon.co.uk/s?k=vitamin+d3"}, {"brand_aggregation": "incite-nutrition", "parent_asin": "Vitamin D3", "reporting_date": "2026-04-04", "week_date": "2026-14", "keywords": "vitamin d3", "competitor_brand": "WeightWorld", "asin": "B08DG68P6B", "product_title": "WeightWorld Vitamin D3 4000IU & K2 125\u03bcg (MK7) | 3...", "country_code": "uk", "average_organic_rank": 7, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 4.72, "impression_share": 4.22, "price": 9.99, "click_share_rank": 6, "weekly_search_volume": 2143.74, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.co.uk/s?k=vitamin+d3"}, {"brand_aggregation": "incite-nutrition", "parent_asin": "Vitamin D3", "reporting_date": "2026-04-11", "week_date": "2026-15", "keywords": "vitamin d3", "competitor_brand": "WeightWorld", "asin": "B08DG68P6B", "product_title": "WeightWorld Vitamin D3 4000IU & K2 125\u03bcg (MK7) | 3...", "country_code": "uk", "average_organic_rank": 10, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 5.57, "impression_share": 4.61, "price": 9.99, "click_share_rank": 5, "weekly_search_volume": 11820.24, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.co.uk/s?k=vitamin+d3"}, {"brand_aggregation": "incite-nutrition", "parent_asin": "Vitamin D3", "reporting_date": "2026-04-11", "week_date": "2026-15", "keywords": "vitamin d3", "competitor_brand": "G R O U N D E D COFFEE SCRUB", "asin": "B08BRSVYFM", "product_title": "Vitamin D3 4000 IU Micro Tablets - 365 Day Supply,...", "country_code": "uk", "average_organic_rank": 6, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 6.34, "impression_share": 4.62, "price": 5.99, "click_share_rank": 4, "weekly_search_volume": 11820.24, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.co.uk/s?k=vitamin+d3"}, {"brand_aggregation": "incite-nutrition", "parent_asin": "Vitamin D3", "reporting_date": "2026-04-04", "week_date": "2026-14", "keywords": "vitamin d3", "competitor_brand": "WeightWorld", "asin": "B086V74KKR", "product_title": "Vitamin D3 4000IU - 1+ Year Supply - 400 Tablets -...", "country_code": "uk", "average_organic_rank": 1, "weekly_number_of_days_with_deal": 2, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 2, "weekly_number_of_days_with_coupon": 0, "click_share": 10.66, "impression_share": 3.34, "price": 8.925714286, "click_share_rank": 2, "weekly_search_volume": 2143.74, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.co.uk/s?k=vitamin+d3"}, {"brand_aggregation": "incite-nutrition", "parent_asin": "Vitamin D3", "reporting_date": "2026-04-11", "week_date": "2026-15", "keywords": "vitamin d3", "competitor_brand": "Nutrition Geeks", "asin": "B08F5GBD9X", "product_title": "Vitamin D 1000iu - 1 Year Supply, 365 Easy-Swallow...", "country_code": "uk", "average_organic_rank": 4, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 3.31, "impression_share": 3.43, "price": 6.99, "click_share_rank": 8, "weekly_search_volume": 11820.24, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.co.uk/s?k=vitamin+d3"}, {"brand_aggregation": "incite-nutrition", "parent_asin": "Vitamin D3", "reporting_date": "2026-03-28", "week_date": "2026-13", "keywords": "vitamin d3", "competitor_brand": "Nutrition Geeks", "asin": "B0BQCNJ7WR", "product_title": "Nutrition Geeks, Vitamin D 4000 iu - 1 Year Supply...", "country_code": "uk", "average_organic_rank": 10, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 3.25, "impression_share": 2.85, "price": 7.99, "click_share_rank": 7, "weekly_search_volume": 14222.06, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.co.uk/s?k=vitamin+d3"}, {"brand_aggregation": "incite-nutrition", "parent_asin": "Vitamin D3", "reporting_date": "2026-03-21", "week_date": "2026-12", "keywords": "vitamin d3", "competitor_brand": "G R O U N D E D COFFEE SCRUB", "asin": "B08BRSVYFM", "product_title": "Vitamin D3 4000 IU Micro Tablets - 365 Day Supply,...", "country_code": "uk", "average_organic_rank": 14, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 3.85, "impression_share": 3.89, "price": 5.134285714, "click_share_rank": 7, "weekly_search_volume": 14721.32, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.co.uk/s?k=vitamin+d3"}];
+
+        // 2. Inicialización de Google Charts
+        google.charts.load('current', {'packages':['corechart', 'bar', 'scatter']});
+        google.charts.setOnLoadCallback(initDashboard);
+
+        // Variables de Estado
+        let weeks = [];
+        let brands = [];
+        const yabaBrand = "Incite Nutrition";
+
+        function initDashboard() {
+            processData();
+            drawTendenciaChart();
+            drawCompetitividadChart();
+            drawPalancasChart();
+            drawEficienciaChart();
+            updateKPIs();
+            initComparator();
+        }
+
+        function processData() {
+            // Extracción de semanas únicas ordenadas
+            weeks = [...new Set(marketData.map(d => d.week_date))].sort();
+            
+            // Extracción de marcas únicas asumiendo competitor_brand
+            // Si es null, en este dataset todos tienen competitor_brand, pero como regla defensiva:
+            marketData.forEach(d => {
+                if(!d.competitor_brand) {
+                    d.competitor_brand = d.product_title.split(' ')[0] || "Unknown Brand";
+                }
+            });
+            brands = [...new Set(marketData.map(d => d.competitor_brand))];
+        }
+
+        function updateKPIs() {
+            const latestWeek = weeks[weeks.length - 1];
+            const prevWeek = weeks[weeks.length - 2] || latestWeek;
+            
+            const latestData = marketData.filter(d => d.week_date === latestWeek && d.competitor_brand === yabaBrand);
+            const prevData = marketData.filter(d => d.week_date === prevWeek && d.competitor_brand === yabaBrand);
+            
+            const getShare = (data) => data.reduce((sum, item) => sum + item.click_share, 0);
+            const getRank = (data) => data.reduce((sum, item) => sum + item.average_organic_rank, 0) / (data.length || 1);
+            
+            const currShare = getShare(latestData);
+            const prevShare = getShare(prevData);
+            
+            document.getElementById('kpi-share').innerText = currShare.toFixed(2) + '%';
+            
+            const diff = currShare - prevShare;
+            const diffEl = document.getElementById('kpi-share-change');
+            if(weeks.length > 1) {
+                diffEl.innerText = (diff > 0 ? '+' : '') + diff.toFixed(2) + '% vs sem. anterior';
+                diffEl.className = 'metric-change ' + (diff >= 0 ? 'positive' : 'negative');
+            } else {
+                diffEl.innerText = 'Semana inicial';
+                diffEl.className = 'metric-change';
+            }
+            
+            document.getElementById('kpi-rank').innerText = getRank(latestData).toFixed(1);
+            
+            // Días de promo
+            const promos = latestData.reduce((sum, item) => sum + item.weekly_number_of_days_with_deal + item.weekly_number_of_days_with_amazon_choice_badge + item.weekly_number_of_days_with_best_seller_badge + item.weekly_number_of_days_with_coupon, 0);
+            document.getElementById('kpi-promo').innerText = promos;
+        }
+
+        function drawTendenciaChart() {
+            const dataTable = new google.visualization.DataTable();
+            dataTable.addColumn('string', 'Semana');
+            dataTable.addColumn('number', 'Vol. Búsqueda (Barras)');
+            dataTable.addColumn('number', 'Nuestros ASINs (%)');
+            dataTable.addColumn('number', 'Competidores (%)');
+
+            weeks.forEach(week => {
+                const weekData = marketData.filter(d => d.week_date === week);
+                const vol = weekData.reduce((sum, d) => sum + (d.weekly_search_volume || 0), 0) / weekData.length / 100;
+                
+                const yabaShare = weekData.filter(d => d.is_yaba_asin === 'Y').reduce((sum, d) => sum + d.click_share, 0);
+                const compShare = weekData.filter(d => d.is_yaba_asin === 'N').reduce((sum, d) => sum + d.click_share, 0);
+                
+                dataTable.addRow([week, vol, yabaShare, compShare]);
+            });
+
+            const options = {
+                vAxes: {
+                    0: { title: 'Click Share (%)' },
+                    1: { title: 'Vol. Búsqueda Indexado' }
+                },
+                hAxis: { title: 'Semana' },
+                seriesType: 'bars',
+                series: {
+                    0: {targetAxisIndex: 1, color: '#E8EAED'},
+                    1: {type: 'line', targetAxisIndex: 0, color: '#4285F4', lineWidth: 3},
+                    2: {type: 'line', targetAxisIndex: 0, color: '#EA4335', lineWidth: 2, lineDashStyle: [4, 4]}
+                },
+                legend: { position: 'top' },
+                chartArea: {width: '80%', height: '70%'},
+                animation: { startup: true, duration: 800, easing: 'out' }
+            };
+
+            const chart = new google.visualization.ComboChart(document.getElementById('chart_tendencia'));
+            chart.draw(dataTable, options);
+        }
+
+        function drawCompetitividadChart() {
+            const dataTable = new google.visualization.DataTable();
+            dataTable.addColumn('string', 'Semana');
+            
+            // Top 3 Competitors by average click share historically
+            const compAvg = {};
+            marketData.filter(d => d.is_yaba_asin === 'N').forEach(d => {
+                compAvg[d.competitor_brand] = (compAvg[d.competitor_brand] || 0) + d.click_share;
+            });
+            const topCompetitors = Object.keys(compAvg).sort((a,b) => compAvg[b] - compAvg[a]).slice(0, 3);
+            
+            const seriesBrands = [yabaBrand, ...topCompetitors, "Resto del Mercado"];
+            seriesBrands.forEach(b => dataTable.addColumn('number', b));
+
+            weeks.forEach(week => {
+                const weekData = marketData.filter(d => d.week_date === week);
+                const row = [week];
+                let accountedShare = 0;
+                
+                [yabaBrand, ...topCompetitors].forEach(brand => {
+                    const share = weekData.filter(d => d.competitor_brand === brand).reduce((sum, d) => sum + d.click_share, 0);
+                    row.push(share);
+                    accountedShare += share;
+                });
+                
+                const totalShare = weekData.reduce((sum, d) => sum + d.click_share, 0);
+                row.push(totalShare - accountedShare); // Resto
+                
+                dataTable.addRow(row);
+            });
+
+            const options = {
+                vAxis: { title: 'Click Share Agregado (%)' },
+                colors: ['#4285F4', '#EA4335', '#FBBC05', '#34A853', '#9AA0A6'],
+                lineWidth: 3,
+                legend: { position: 'right' },
+                chartArea: {width: '65%', height: '75%'},
+                curveType: 'function'
+            };
+
+            const chart = new google.visualization.LineChart(document.getElementById('chart_competitividad'));
+            chart.draw(dataTable, options);
+        }
+
+        function drawPalancasChart() {
+            let withBadge = [];
+            let noBadge = [];
+            
+            marketData.forEach(d => {
+                const hasPromo = d.weekly_number_of_days_with_amazon_choice_badge > 0 || 
+                                 d.weekly_number_of_days_with_best_seller_badge > 0 || 
+                                 d.weekly_number_of_days_with_deal > 0 ||
+                                 d.weekly_number_of_days_with_coupon > 0;
+                if(hasPromo) {
+                    withBadge.push(d.click_share);
+                } else {
+                    noBadge.push(d.click_share);
+                }
+            });
+            
+            const avgW = withBadge.reduce((a,b)=>a+b,0) / (withBadge.length || 1);
+            const avgN = noBadge.reduce((a,b)=>a+b,0) / (noBadge.length || 1);
+
+            const dataTable = google.visualization.arrayToDataTable([
+                ['Condición', 'Click Share Promedio'],
+                ['Con Algún Badge/Deal', avgW],
+                ['Sin Promociones', avgN]
+            ]);
+
+            const options = {
+                colors: ['#34A853'],
+                legend: 'none',
+                vAxis: { title: 'Share Promedio (%)' },
+                chartArea: {width: '75%', height: '70%'}
+            };
+
+            const chart = new google.visualization.ColumnChart(document.getElementById('chart_palancas'));
+            chart.draw(dataTable, options);
+        }
+
+        function drawEficienciaChart() {
+            const dataTable = new google.visualization.DataTable();
+            dataTable.addColumn('number', 'Organic Rank (Invertido, Menor es mejor)');
+            dataTable.addColumn('number', 'Click Share (%)');
+            dataTable.addColumn({type: 'string', role: 'tooltip'});
+            dataTable.addColumn({type: 'string', role: 'style'});
+
+            const agg = {};
+            marketData.forEach(d => {
+                if(!agg[d.competitor_brand]) agg[d.competitor_brand] = {rank:[], share:[], isYaba: d.is_yaba_asin};
+                agg[d.competitor_brand].rank.push(d.average_organic_rank);
+                agg[d.competitor_brand].share.push(d.click_share);
+            });
+
+            Object.keys(agg).forEach(brand => {
+                const r = agg[brand].rank.reduce((a,b)=>a+b,0) / agg[brand].rank.length;
+                const s = agg[brand].share.reduce((a,b)=>a+b,0) / agg[brand].share.length;
+                const color = agg[brand].isYaba === 'Y' ? '#4285F4' : '#EA4335';
+                
+                dataTable.addRow([r, s, brand + ' (Rank: '+r.toFixed(1)+', Share: '+s.toFixed(2)+'%)', 'point { fill-color: '+color+'; size: 10; }']);
+            });
+
+            const options = {
+                hAxis: { title: 'Organic Rank Promedio', direction: -1 },
+                vAxis: { title: 'Click Share Promedio (%)' },
+                legend: 'none',
+                chartArea: {width: '80%', height: '70%'}
+            };
+
+            const chart = new google.visualization.ScatterChart(document.getElementById('chart_eficiencia'));
+            chart.draw(dataTable, options);
+        }
+
+        // --- Lógica de Pestañas ---
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById(tabId).classList.add('active');
+        }
+
+        // --- Lógica del Comparador ---
+        function initComparator() {
+            const weekSelect = document.getElementById('select-week');
+            const compSelect = document.getElementById('select-comp');
+            
+            weeks.forEach(w => {
+                const opt = document.createElement('option');
+                opt.value = w;
+                opt.textContent = w;
+                weekSelect.appendChild(opt);
+            });
+            weekSelect.value = weeks[weeks.length - 1];
+
+            const competitors = brands.filter(b => b !== yabaBrand);
+            competitors.forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c;
+                opt.textContent = c;
+                compSelect.appendChild(opt);
+            });
+            
+            updateComparator();
+        }
+
+        function updateComparator() {
+            const week = document.getElementById('select-week').value;
+            const comp = document.getElementById('select-comp').value;
+            
+            const wData = marketData.filter(d => d.week_date === week);
+            
+            const yabaItems = wData.filter(d => d.competitor_brand === yabaBrand);
+            const compItems = wData.filter(d => d.competitor_brand === comp);
+            
+            const calc = (items) => {
+                if(items.length === 0) return {price: 0, share: 0, rank: 0, deals: 0};
+                const price = items.reduce((s,i)=>s+i.price,0)/items.length;
+                const share = items.reduce((s,i)=>s+i.click_share,0);
+                const rank = items.reduce((s,i)=>s+i.average_organic_rank,0)/items.length;
+                const deals = items.reduce((s,i)=>s + i.weekly_number_of_days_with_deal + i.weekly_number_of_days_with_amazon_choice_badge + i.weekly_number_of_days_with_coupon, 0);
+                return {price, share, rank, deals};
+            };
+            
+            const yStats = calc(yabaItems);
+            const cStats = calc(compItems);
+            
+            document.getElementById('vs-comp-name').textContent = comp;
+            
+            document.getElementById('vs-yaba-price').textContent = '£' + yStats.price.toFixed(2);
+            document.getElementById('vs-yaba-share').textContent = yStats.share.toFixed(2) + '%';
+            document.getElementById('vs-yaba-rank').textContent = yStats.rank.toFixed(1);
+            document.getElementById('vs-yaba-deals').textContent = yStats.deals;
+            
+            document.getElementById('vs-comp-price').textContent = '£' + cStats.price.toFixed(2);
+            document.getElementById('vs-comp-share').textContent = cStats.share.toFixed(2) + '%';
+            document.getElementById('vs-comp-rank').textContent = cStats.rank.toFixed(1);
+            document.getElementById('vs-comp-deals').textContent = cStats.deals;
+        }
+        
+        window.addEventListener('resize', () => {
+            if(document.getElementById('static').classList.contains('active')) {
+                drawTendenciaChart();
+                drawCompetitividadChart();
+                drawPalancasChart();
+                drawEficienciaChart();
+            }
+        });
+    </script>
+</body>
+</html>
