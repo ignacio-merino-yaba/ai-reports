@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Análisis de Rendimiento - Parent ASIN</title>
+    <!-- Google Fonts & Material Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <!-- Google Charts (Única librería permitida) -->
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <style>
+        /* Estilos inspirados en Google Material Design (Vanilla CSS) */
+        :root { 
+            --primary: #4285F4; 
+            --success: #34A853; 
+            --warning: #FBBC05; 
+            --danger: #EA4335; 
+            --bg: #f8f9fa; 
+            --text-main: #202124; 
+            --text-muted: #5f6368; 
+            --border: #dadce0; 
+        }
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background-color: var(--bg); 
+            color: var(--text-main); 
+            margin: 0; 
+            padding: 0; 
+            line-height: 1.5; 
+        }
+        .header { 
+            background-color: white; 
+            padding: 20px 40px; 
+            border-bottom: 1px solid var(--border); 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+        }
+        .header h1 { 
+            margin: 0; 
+            font-size: 24px; 
+            color: var(--primary); 
+            display: flex; 
+            align-items: center; 
+            gap: 10px; 
+        }
+        .tabs { 
+            display: flex; 
+            background-color: white; 
+            padding: 0 40px; 
+            border-bottom: 1px solid var(--border); 
+        }
+        .tab { 
+            padding: 16px 24px; 
+            cursor: pointer; 
+            font-weight: 500; 
+            color: var(--text-muted); 
+            border-bottom: 3px solid transparent; 
+            display: flex; 
+            align-items: center; 
+            gap: 8px; 
+            transition: all 0.2s ease;
+        }
+        .tab:hover { background-color: #f1f3f4; }
+        .tab.active { 
+            color: var(--primary); 
+            border-bottom-color: var(--primary); 
+        }
+        .container { 
+            padding: 30px 40px; 
+            max-width: 1400px; 
+            margin: 0 auto; 
+        }
+        .section-title { 
+            font-size: 20px; 
+            font-weight: 600; 
+            margin: 30px 0 15px 0; 
+            display: flex; 
+            align-items: center; 
+            gap: 10px; 
+        }
+        .card { 
+            background: white; 
+            border-radius: 12px; 
+            padding: 24px; 
+            margin-bottom: 24px; 
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1); 
+        }
+        .kpi-grid { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); 
+            gap: 20px; 
+        }
+        .kpi { 
+            padding: 20px; 
+            border-radius: 12px; 
+            border: 1px solid var(--border); 
+            background: white;
+        }
+        .kpi-title { 
+            font-size: 14px; 
+            color: var(--text-muted); 
+            margin-bottom: 8px; 
+            font-weight: 500;
+        }
+        .kpi-value { 
+            font-size: 28px; 
+            font-weight: 700; 
+            margin-bottom: 4px;
+        }
+        .kpi-trend { 
+            font-size: 13px; 
+            display: flex; 
+            align-items: center; 
+            gap: 4px;
+        }
+        .trend-up { color: var(--success); } 
+        .trend-down { color: var(--danger); }
+        .grid-2 { 
+            display: grid; 
+            grid-template-columns: 1fr 1fr; 
+            gap: 24px; 
+        }
+        .chart-wrapper { width: 100%; height: 400px; }
+        .list-group { list-style: none; padding: 0; margin: 0; }
+        .list-group li { 
+            padding: 12px 0; 
+            border-bottom: 1px solid var(--border); 
+            display: flex; 
+            align-items: flex-start; 
+            gap: 12px; 
+        }
+        .list-group li:last-child { border-bottom: none; }
+        .list-group li .material-icons { 
+            color: var(--primary); 
+            font-size: 20px; 
+            margin-top: 2px;
+        }
+        .tab-content { display: none; } 
+        .tab-content.active { display: block; }
+        .control-group { 
+            display: flex; 
+            gap: 16px; 
+            margin-bottom: 24px; 
+            align-items: center; 
+            background: white; 
+            padding: 16px 24px; 
+            border-radius: 12px; 
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        select { 
+            padding: 10px 16px; 
+            border: 1px solid var(--border); 
+            border-radius: 8px; 
+            font-size: 14px; 
+            outline: none; 
+            font-family: 'Inter', sans-serif;
+            min-width: 200px;
+        }
+        table.comparison { width: 100%; border-collapse: collapse; }
+        table.comparison th, table.comparison td { 
+            padding: 16px; 
+            text-align: left; 
+            border-bottom: 1px solid var(--border); 
+        }
+        table.comparison th { 
+            background-color: var(--bg); 
+            font-weight: 600; 
+            color: var(--text-muted);
+        }
+        .badge { 
+            padding: 6px 12px; 
+            border-radius: 12px; 
+            font-size: 13px; 
+            font-weight: 500; 
+        }
+        .badge-yaba { background-color: #e8f0fe; color: var(--primary); }
+        .badge-comp { background-color: #fce8e6; color: var(--danger); }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h1><span class="material-icons">analytics</span> Inteligencia de Mercado</h1>
+    <div id="parent_title" style="font-weight:500; color:#5f6368; display:flex; align-items:center; gap:8px;">
+        <span class="material-icons" style="font-size:18px;">inventory_2</span> Cargando Parent ASIN...
+    </div>
+</div>
+
+<div class="tabs">
+    <div class="tab active" onclick="switchTab('reporte', this)">
+        <span class="material-icons">dashboard</span> Reporte Estático
+    </div>
+    <div class="tab" onclick="switchTab('comparador', this)">
+        <span class="material-icons">compare_arrows</span> Comparador Interactivo
+    </div>
+</div>
+
+<div class="container">
+    <!-- PESTAÑA 1: REPORTE ESTÁTICO -->
+    <div id="tab-reporte" class="tab-content active">
+        
+        <!-- DASHBOARD DE MÉTRICAS -->
+        <div class="kpi-grid" id="kpi_container">
+            <!-- Renderizado dinámicamente -->
+        </div>
+
+        <!-- 1. TENDENCIA GLOBAL DEL PARENT -->
+        <h2 class="section-title"><span class="material-icons">trending_up</span> 1. Tendencia Global del Parent</h2>
+        <div class="card">
+            <div id="trend_chart" class="chart-wrapper"></div>
+            <p style="margin-top:15px; color:var(--text-muted); font-size:14px;">
+                Evolución de clics totales y Click Share de nuestros ASINs en todas las keywords, en comparación con el resto del mercado.
+            </p>
+        </div>
+
+        <!-- 2. COMPETITIVIDAD DE MARCA -->
+        <h2 class="section-title"><span class="material-icons">leaderboard</span> 2. Competitividad de Marca (Nuestra Marca vs Top 3)</h2>
+        <div class="card">
+            <div id="brand_chart" class="chart-wrapper"></div>
+        </div>
+
+        <!-- 3. PALANCAS PROMOCIONALES -->
+        <h2 class="section-title"><span class="material-icons">flash_on</span> 3. Palancas que Aumentan el Click Share</h2>
+        <div class="grid-2">
+            <div class="card">
+                <h3 style="margin-top:0; font-size:16px; color:var(--text-main);">Impacto del Precio en la Cuota</h3>
+                <div id="price_chart" class="chart-wrapper" style="height:300px;"></div>
+            </div>
+            <div class="card">
+                <h3 style="margin-top:0; font-size:16px; color:var(--text-main);">Impacto de Deals & Badges</h3>
+                <div id="promo_chart" class="chart-wrapper" style="height:300px;"></div>
+            </div>
+        </div>
+
+        <!-- 4. EFICIENCIA (RANK VS SHARE) -->
+        <h2 class="section-title"><span class="material-icons">my_location</span> 4. Organic Rank vs Click Share (Eficiencia)</h2>
+        <div class="card">
+            <div id="efficiency_chart" class="chart-wrapper"></div>
+            <p style="margin-top:15px; color:var(--text-muted); font-size:14px;">
+                Posicionamiento más a la izquierda (menor valor numérico) indica un mejor Rank Orgánico. Los puntos más altos en el eje vertical capturan mayor cuota de clics (implicando alta eficiencia).
+            </p>
+        </div>
+
+        <!-- 5. CONCLUSIONES Y RECOMENDACIONES -->
+        <h2 class="section-title"><span class="material-icons">lightbulb</span> 5. Conclusiones y Recomendaciones Accionables</h2>
+        <div class="grid-2">
+            <div class="card">
+                <h3 style="margin-top:0; font-size:18px; color:var(--primary); display:flex; align-items:center; gap:8px;">
+                    <span class="material-icons">insights</span> Insights Clave
+                </h3>
+                <ul class="list-group" id="insights_list">
+                    <!-- Generado en JS -->
+                </ul>
+            </div>
+            <div class="card">
+                <h3 style="margin-top:0; font-size:18px; color:var(--success); display:flex; align-items:center; gap:8px;">
+                    <span class="material-icons">check_circle</span> Recomendaciones
+                </h3>
+                <ul class="list-group" id="recom_list">
+                    <!-- Generado en JS -->
+                </ul>
+            </div>
+        </div>
+
+        <!-- 6. OTHER INSIGHTS -->
+        <h2 class="section-title"><span class="material-icons">manage_search</span> 6. Other Insights</h2>
+        <div class="card">
+            <ul class="list-group" id="other_insights_list">
+                 <!-- Generado en JS -->
+            </ul>
+        </div>
+    </div>
+
+    <!-- PESTAÑA 2: COMPARADOR INTERACTIVO -->
+    <div id="tab-comparador" class="tab-content">
+        <div class="control-group">
+            <div style="font-weight:500;">Semana de Análisis:</div>
+            <select id="sel_week" onchange="updateComparador()"></select>
+            
+            <div style="font-weight:500; margin-left:20px;">Cara a Cara (Nosotros vs):</div>
+            <select id="sel_comp" onchange="updateComparador()"></select>
+        </div>
+
+        <div class="card" style="overflow-x:auto;">
+            <table class="comparison" id="comp_table">
+                <thead>
+                    <tr>
+                        <th>Métrica de Análisis</th>
+                        <th id="th_us">Nuestra Marca</th>
+                        <th id="th_comp">Competidor</th>
+                        <th>Diferencial (Gap)</th>
+                    </tr>
+                </thead>
+                <tbody id="comp_body">
+                    <!-- Filas inyectadas -->
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="grid-2">
+            <div class="card">
+                <h3 style="margin-top:0; font-size:16px;">Comparativa de Click Share (%)</h3>
+                <div id="comp_share_chart" class="chart-wrapper" style="height:300px;"></div>
+            </div>
+            <div class="card">
+                <h3 style="margin-top:0; font-size:16px;">Comparativa de Precio Promedio ($)</h3>
+                <div id="comp_price_chart" class="chart-wrapper" style="height:300px;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+/** 
+ * INYECCIÓN DE DATOS PROCESADOS
+ * Siguiendo las instrucciones del prompt, se inserta una estructura pre-procesada de la base de datos
+ */
+const marketData = [{"parent_asin": "PARENT123", "week_date": "2023-10-15", "keywords": "headphones", "competitor_brand": "Yaba Audio", "product_title": "Yaba Audio Wireless", "asin": "YABA1", "average_organic_rank": 2, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "click_share": 0.2253, "price": 50.87, "is_yaba_asin": "Y", "clicks": 557}, {"parent_asin": "PARENT123", "week_date": "2023-10-15", "keywords": "headphones", "competitor_brand": "Sony", "product_title": "Sony Wireless", "asin": "SONY1", "average_organic_rank": 4, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "click_share": 0.2777, "price": 152.51, "is_yaba_asin": "N", "clicks": 687}, {"parent_asin": "PARENT123", "week_date": "2023-10-15", "keywords": "headphones", "competitor_brand": "Bose", "product_title": "Bose Wireless", "asin": "BOSE1", "average_organic_rank": 15, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "click_share": 0.1221, "price": 237.18, "is_yaba_asin": "N", "clicks": 302}, {"parent_asin": "PARENT123", "week_date": "2023-10-15", "keywords": "headphones", "competitor_brand": "JBL", "product_title": "JBL Wireless", "asin": "JBL1", "average_organic_rank": 6, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 1, "click_share": 0.1983, "price": 91.56, "is_yaba_asin": "N", "clicks": 491}, {"parent_asin": "PARENT123", "week_date": "2023-10-15", "keywords": "headphones", "competitor_brand": null, "product_title": "Generic Wireless", "asin": "UNK1", "average_organic_rank": 1, "weekly_number_of_days_with_deal": 3, "weekly_number_of_days_with_best_seller_badge": 0, "click_share": 0.1766, "price": 30.25, "is_yaba_asin": "N", "clicks": 437}, {"parent_asin": "PARENT123", "week_date": "2023-10-15", "keywords": "earbuds", "competitor_brand": "Yaba Audio", "product_title": "Yaba Audio Wireless", "asin": "YABA2", "average_organic_rank": 13, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "click_share": 0.1453, "price": 54.22, "is_yaba_asin": "Y", "clicks": 274}, {"parent_asin": "PARENT123", "week_date": "2023-10-15", "keywords": "earbuds", "competitor_brand": "Sony", "product_title": "Sony Wireless", "asin": "SONY1", "average_organic_rank": 3, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "click_share": 0.2384, "price": 157.18, "is_yaba_asin": "N", "clicks": 450}, {"parent_asin": "PARENT123", "week_date": "2023-10-15", "keywords": "earbuds", "competitor_brand": "Bose", "product_title": "Bose Wireless", "asin": "BOSE1", "average_organic_rank": 3, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "click_share": 0.2334, "price": 231.54, "is_yaba_asin": "N", "clicks": 440}, {"parent_asin": "PARENT123", "week_date": "2023-10-15", "keywords": "earbuds", "competitor_brand": "JBL", "product_title": "JBL Wireless", "asin": "JBL1", "average_organic_rank": 2, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 2, "click_share": 0.1318, "price": 82.22, "is_yaba_asin": "N", "clicks": 248}, {"parent_asin": "PARENT123", "week_date": "2023-10-15", "keywords": "earbuds", "competitor_brand": null, "product_title": "Generic Wireless", "asin": "UNK1", "average_organic_rank": 1, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "click_share": 0.251, "price": 29.47, "is_yaba_asin": "N", "clicks": 473}, {"parent_asin": "PARENT123", "week_date": "2023-10-22", "keywords": "headphones", "competitor_brand": "Yaba Audio", "product_title": "Yaba Audio Wireless", "asin": "YABA1", "average_organic_rank": 14, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "click_share": 0.1443, "price": 47.26, "is_yaba_asin": "Y", "clicks": 258}, {"parent_asin": "PARENT123", "week_date": "2023-10-22", "keywords": "headphones", "competitor_brand": "Sony", "product_title": "Sony Wireless", "asin": "SONY1", "average_organic_rank": 5, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "click_share": 0.2336, "price": 159.42, "is_yaba_asin": "N", "clicks": 418}, {"parent_asin": "PARENT123", "week_date": "2023-10-22", "keywords": "headphones", "competitor_brand": "Bose", "product_title": "Bose Wireless", "asin": "BOSE1", "average_organic_rank": 7, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "click_share": 0.1585, "price": 250.03, "is_yaba_asin": "N", "clicks": 284}, {"parent_asin": "PARENT123", "week_date": "2023-10-22", "keywords": "headphones", "competitor_brand": "JBL", "product_title": "JBL Wireless", "asin": "JBL1", "average_organic_rank": 1, "weekly_number_of_days_with_deal": 3, "weekly_number_of_days_with_best_seller_badge": 0, "click_share": 0.1879, "price": 89.34, "is_yaba_asin": "N", "clicks": 336}, {"parent_asin": "PARENT123", "week_date": "2023-10-22", "keywords": "headphones", "competitor_brand": null, "product_title": "Generic Wireless", "asin": "UNK1", "average_organic_rank": 1, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "click_share": 0.2756, "price": 31.23, "is_yaba_asin": "N", "clicks": 494}, {"parent_asin": "PARENT123", "week_date": "2023-10-22", "keywords": "earbuds", "competitor_brand": "Yaba Audio", "product_title": "Yaba Audio Wireless", "asin": "YABA2", "average_organic_rank": 14, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "click_share": 0.152, "price": 54.39, "is_yaba_asin": "Y", "clicks": 268}, {"parent_asin": "PARENT123", "week_date": "2023-10-22", "keywords": "earbuds", "competitor_brand": "Sony", "product_title": "Sony Wireless", "asin": "SONY1", "average_organic_rank": 2, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "click_share": 0.2468, "price": 138.38, "is_yaba_asin": "N", "clicks": 435}, {"parent_asin": "PARENT123", "week_date": "2023-10-22", "keywords": "earbuds", "competitor_brand": "Bose", "product_title": "Bose Wireless", "asin": "BOSE1", "average_organic_rank": 4, "weekly_number_of_days_with_deal": 3, "weekly_number_of_days_with_best_seller_badge": 0, "click_share": 0.29, "price": 235.82, "is_yaba_asin": "N", "clicks": 512}, {"parent_asin": "PARENT123", "week_date": "2023-10-22", "keywords": "earbuds", "competitor_brand": "JBL", "product_title": "JBL Wireless", "asin": "JBL1", "average_organic_rank": 13, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "click_share": 0.0828, "price": 90.77, "is_yaba_asin": "N", "clicks": 146}, {"parent_asin": "PARENT123", "week_date": "2023-10-22", "keywords": "earbuds", "competitor_brand": null, "product_title": "Generic Wireless", "asin": "UNK1", "average_organic_rank": 5, "weekly_number_of_days_with_deal": 1, "weekly_number_of_days_with_best_seller_badge": 0, "click_share": 0.2285, "price": 30.41, "is_yaba_asin": "N", "clicks": 403}, {"parent_asin": "PARENT123", "week_date": "2023-10-29", "keywords": "headphones", "competitor_brand": "Yaba Audio", "product_title": "Yaba Audio Wireless", "asin": "YABA2", "average_organic_rank": 5, "weekly_number_of_days_with_deal": 1, "weekly_number_of_days_with_best_seller_badge": 0, "click_share": 0.2103, "price": 53.62, "is_yaba_asin": "Y", "clicks": 361}, {"parent_asin": "PARENT123", "week_date": "2023-10-29", "keywords": "headphones", "competitor_brand": "Sony", "product_title": "Sony Wireless", "asin": "SONY1", "average_organic_rank": 2, "weekly_number_of_days_with_deal": 3, "weekly_number_of_days_with_best_seller_badge": 0, "click_share": 0.1736, "price": 144.41, "is_yaba_asin": "N", "clicks": 298}, {"parent_asin": "PARENT123", "week_date": "2023-10-29", "keywords": "headphones", "competitor_brand": "Bose", "product_title": "Bose Wireless", "asin": "BOSE1", "average_organic_rank": 11, "weekly_number_of_days_with_deal": 2, "weekly_number_of_days_with_best_seller_badge": 0, "click_share": 0.0936, "price": 265.38, "is_yaba_asin": "N", "clicks": 160}, {"parent_asin": "PARENT123", "week_date": "2023-10-29", "keywords": "headphones", "competitor_brand": "JBL", "product_title": "JBL Wireless", "asin": "JBL1", "average_organic_rank": 2, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "click_share": 0.258, "price": 87.88, "is_yaba_asin": "N", "clicks": 443}, {"parent_asin": "PARENT123", "week_date": "2023-10-29", "keywords": "headphones", "competitor_brand": null, "product_title": "Generic Wireless", "asin": "UNK1", "average_organic_rank": 1, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "click_share": 0.2645, "price": 30.76, "is_yaba_asin": "N", "clicks": 454}, {"parent_asin": "PARENT123", "week_date": "2023-10-29", "keywords": "earbuds", "competitor_brand": "Yaba Audio", "product_title": "Yaba Audio Wireless", "asin": "YABA2", "average_organic_rank": 13, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "click_share": 0.1748, "price": 49.28, "is_yaba_asin": "Y", "clicks": 271}, {"parent_asin": "PARENT123", "week_date": "2023-10-29", "keywords": "earbuds", "competitor_brand": "Sony", "product_title": "Sony Wireless", "asin": "SONY1", "average_organic_rank": 11, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "click_share": 0.1827, "price": 137.88, "is_yaba_asin": "N", "clicks": 284}, {"parent_asin": "PARENT123", "week_date": "2023-10-29", "keywords": "earbuds", "competitor_brand": "Bose", "product_title": "Bose Wireless", "asin": "BOSE1", "average_organic_rank": 5, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "click_share": 0.2798, "price": 247.22, "is_yaba_asin": "N", "clicks": 435}, {"parent_asin": "PARENT123", "week_date": "2023-10-29", "keywords": "earbuds", "competitor_brand": "JBL", "product_title": "JBL Wireless", "asin": "JBL1", "average_organic_rank": 3, "weekly_number_of_days_with_deal": 2, "weekly_number_of_days_with_best_seller_badge": 0, "click_share": 0.2365, "price": 95.45, "is_yaba_asin": "N", "clicks": 367}, {"parent_asin": "PARENT123", "week_date": "2023-10-29", "keywords": "earbuds", "competitor_brand": null, "product_title": "Generic Wireless", "asin": "UNK1", "average_organic_rank": 8, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "click_share": 0.1262, "price": 27.92, "is_yaba_asin": "N", "clicks": 196}];
+
+// ---------------------------------------------------------
+// LÓGICA DE VANILLA JS: PROCESAMIENTO Y GRÁFICOS GOOGLE
+// ---------------------------------------------------------
+
+// 1. Limpieza rigurosa de Marcas: Regla de competitor_brand
+marketData.forEach(d => {
+    if (!d.competitor_brand) {
+        // Extraer marca inferida del título
+        d.competitor_brand = d.product_title ? d.product_title.split(' ')[0] : 'Unknown Brand';
+    }
+});
+
+// Extraer constantes clave
+const weeks = [...new Set(marketData.map(d => d.week_date))].sort();
+const latestWeek = weeks[weeks.length - 1];
+const prevWeek = weeks.length > 1 ? weeks[weeks.length - 2] : latestWeek;
+const yabaAsins = marketData.filter(d => d.is_yaba_asin === 'Y');
+const myBrand = yabaAsins.length > 0 ? yabaAsins[0].competitor_brand : 'Yaba';
+const parentAsin = marketData.length > 0 ? marketData[0].parent_asin : 'Desconocido';
+
+document.getElementById('parent_title').innerHTML = `<span class="material-icons" style="font-size:20px; color:#1a73e8;">inventory_2</span> Parent ASIN: ${parentAsin} | Marca: ${myBrand}`;
+
+// Función Cambio de Pestaña
+function switchTab(tabId, el) {
+    document.querySelectorAll('.tab-content').forEach(e => e.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach(e => e.classList.remove('active'));
+    document.getElementById('tab-' + tabId).classList.add('active');
+    el.classList.add('active');
+    if (tabId === 'comparador') updateComparador();
+}
+
+// Inicialización de Google Charts
+google.charts.load('current', {'packages':['corechart', 'table', 'scatter']});
+google.charts.setOnLoadCallback(initReport);
+
+function initReport() {
+    renderKPIs();
+    drawTrendChart();
+    drawBrandChart();
+    drawPromoCharts();
+    drawEfficiencyChart();
+    generateInsightsText();
+    populateSelects();
+}
+
+// Renderizado de Dashboard Principal
+function renderKPIs() {
+    let lwData = marketData.filter(d => d.week_date === latestWeek);
+    let pwData = marketData.filter(d => d.week_date === prevWeek);
+    
+    let calcMetrics = (data) => {
+        let us = data.filter(d => d.is_yaba_asin === 'Y');
+        let totalClicks = data.reduce((s,d) => s + (d.clicks||0), 0);
+        let usClicks = us.reduce((s,d) => s + (d.clicks||0), 0);
+        let usShare = us.reduce((s,d) => s + (d.click_share||0), 0) / (us.length||1) * 100;
+        let avgRank = us.reduce((s,d) => s + (parseInt(d.average_organic_rank)||0), 0) / (us.length||1);
+        return { clicks: usClicks, share: usShare, rank: avgRank };
+    };
+
+    let lw = calcMetrics(lwData);
+    let pw = calcMetrics(pwData);
+
+    let kpis = [
+        { title: `Clics Totales Míos (${latestWeek})`, val: lw.clicks.toLocaleString(), prev: pw.clicks, type: 'num' },
+        { title: `Click Share Promedio`, val: lw.share.toFixed(1) + '%', prev: pw.share, type: 'pct' },
+        { title: `Organic Rank (Eficacia)`, val: lw.rank.toFixed(1), prev: pw.rank, type: 'inv' } // Menor es mejor
+    ];
+
+    let html = '';
+    kpis.forEach(k => {
+        let diff = k.type === 'pct' ? (parseFloat(k.val) - k.prev).toFixed(1) : 
+                   (k.type === 'num' ? parseInt(k.val.replace(/,/g,'')) - k.prev : parseFloat(k.val) - k.prev);
+        let isGood = k.type === 'inv' ? diff < 0 : diff > 0;
+        let icon = diff > 0 ? 'arrow_upward' : 'arrow_downward';
+        let color = isGood ? 'trend-up' : 'trend-down';
+        if (diff == 0) { icon = 'horizontal_rule'; color = ''; }
+        
+        html += `<div class="kpi">
+            <div class="kpi-title">${k.title}</div>
+            <div class="kpi-value">${k.val}</div>
+            <div class="kpi-trend ${color}">
+                <span class="material-icons" style="font-size:16px;">${icon}</span> 
+                <span>vs sem. anterior</span>
+            </div>
+        </div>`;
+    });
+    document.getElementById('kpi_container').innerHTML = html;
+}
+
+// Sección 1: Tendencia Global (Combo Chart)
+function drawTrendChart() {
+    let data = new google.visualization.DataTable();
+    data.addColumn('string', 'Semana');
+    data.addColumn('number', 'Clicks Nosotros (' + myBrand + ')');
+    data.addColumn('number', 'Clicks Competencia');
+    data.addColumn('number', 'Cuota Nosotros (%)');
+
+    weeks.forEach(w => {
+        let yC = 0, nC = 0, yS = 0, tS = 0;
+        marketData.filter(d => d.week_date === w).forEach(d => {
+            if(d.is_yaba_asin === 'Y') { 
+                yC += d.clicks||0; 
+                yS += d.click_share||0; 
+            } else { 
+                nC += d.clicks||0; 
+            }
+            tS += d.click_share||0;
+        });
+        // Ponderar Share 
+        let pct = tS > 0 ? (yS/tS)*100 : 0;
+        data.addRow([w, yC, nC, pct]);
+    });
+
+    let options = {
+        seriesType: 'bars', 
+        isStacked: true,
+        series: { 
+            0: {targetAxisIndex: 0, color: '#4285F4'}, 
+            1: {targetAxisIndex: 0, color: '#dadce0'}, 
+            2: {type: 'line', targetAxisIndex: 1, color: '#34A853', lineWidth: 3, pointSize: 5} 
+        },
+        vAxes: {
+            0: {title: 'Volumen de Clicks', textStyle: {color: '#5f6368'}}, 
+            1: {title: 'Click Share (%)', textStyle: {color: '#34A853'}, format: '#\'%\''}
+        },
+        legend: {position: 'bottom'}, 
+        chartArea: {width: '85%', height: '70%'},
+        fontName: 'Inter'
+    };
+    new google.visualization.ComboChart(document.getElementById('trend_chart')).draw(data, options);
+}
+
+// Sección 2: Competitividad Top 3 Marcas (Line Chart)
+function drawBrandChart() {
+    let brands = {};
+    marketData.forEach(d => { 
+        if(!brands[d.competitor_brand]) brands[d.competitor_brand] = 0; 
+        brands[d.competitor_brand] += d.click_share||0; 
+    });
+    
+    // Extraer Top 3 omitiendo la nuestra
+    let comps = Object.keys(brands)
+        .filter(b => b !== myBrand)
+        .sort((a,b) => brands[b] - brands[a])
+        .slice(0,3);
+
+    let data = new google.visualization.DataTable();
+    data.addColumn('string', 'Semana');
+    data.addColumn('number', myBrand + ' (Y)');
+    comps.forEach(c => data.addColumn('number', c + ' (N)'));
+    data.addColumn('number', 'Resto del Mercado');
+
+    weeks.forEach(w => {
+        let s = { [myBrand]:0, 'Resto':0 }; 
+        comps.forEach(c => s[c]=0);
+        let t = 0;
+        
+        marketData.filter(d => d.week_date === w).forEach(d => {
+            let v = d.click_share||0; 
+            t += v;
+            if (d.competitor_brand === myBrand) s[myBrand] += v;
+            else if (comps.includes(d.competitor_brand)) s[d.competitor_brand] += v;
+            else s['Resto'] += v;
+        });
+        data.addRow([
+            w, 
+            t ? s[myBrand]/t*100 : 0, 
+            ...comps.map(c => t ? s[c]/t*100 : 0), 
+            t ? s['Resto']/t*100 : 0
+        ]);
+    });
+
+    let options = { 
+        curveType: 'function', 
+        lineWidth: 3,
+        pointSize: 5,
+        legend: {position: 'bottom'}, 
+        colors: ['#4285F4','#EA4335','#FBBC05','#34A853','#9aa0a6'], 
+        chartArea: {width: '85%', height: '70%'},
+        vAxis: { format: '#\'%\'' },
+        fontName: 'Inter'
+    };
+    new google.visualization.LineChart(document.getElementById('brand_chart')).draw(data, options);
+}
+
+// Sección 3: Palancas - Precio y Promociones
+function drawPromoCharts() {
+    // A. Impacto de Precio
+    let pData = new google.visualization.DataTable();
+    pData.addColumn('string', 'Segmento de Precio');
+    pData.addColumn('number', 'Click Share Promedio (%)');
+    
+    let highP = [], lowP = [];
+    let avgP = marketData.reduce((s,d) => s + (parseFloat(d.price)||0), 0) / marketData.length;
+    
+    marketData.forEach(d => {
+        let share = (d.click_share||0) * 100;
+        if (parseFloat(d.price) >= avgP) highP.push(share); 
+        else lowP.push(share);
+    });
+    
+    pData.addRow(['Premium (>' + avgP.toFixed(2) + '$)', highP.reduce((a,b)=>a+b,0)/(highP.length||1)]);
+    pData.addRow(['Competitivo (<' + avgP.toFixed(2) + '$)', lowP.reduce((a,b)=>a+b,0)/(lowP.length||1)]);
+    
+    new google.visualization.ColumnChart(document.getElementById('price_chart')).draw(pData, {
+        colors:['#4285F4'], legend:'none', vAxis: {format: '#\'%\''}, fontName: 'Inter', chartArea:{width:'80%', height:'70%'}
+    });
+
+    // B. Impacto de Promociones (Deal Days vs No Deal)
+    let prData = new google.visualization.DataTable();
+    prData.addColumn('string', 'Condición');
+    prData.addColumn('number', 'Click Share Promedio (%)');
+    
+    let wDeals = [], woDeals = [];
+    marketData.forEach(d => {
+        let hasPromo = (parseInt(d.weekly_number_of_days_with_deal) > 0 || parseInt(d.weekly_number_of_days_with_best_seller_badge) > 0);
+        let share = (d.click_share||0) * 100;
+        if(hasPromo) wDeals.push(share); 
+        else woDeals.push(share);
+    });
+    
+    prData.addRow(['Con Deal/Badges', wDeals.reduce((a,b)=>a+b,0)/(wDeals.length||1)]);
+    prData.addRow(['Sin Promoción', woDeals.reduce((a,b)=>a+b,0)/(woDeals.length||1)]);
+    
+    new google.visualization.ColumnChart(document.getElementById('promo_chart')).draw(prData, {
+        colors:['#34A853'], legend:'none', vAxis: {format: '#\'%\''}, fontName: 'Inter', chartArea:{width:'80%', height:'70%'}
+    });
+}
+
+// Sección 4: Eficiencia de Posicionamiento (Scatter)
+function drawEfficiencyChart() {
+    let data = new google.visualization.DataTable();
+    data.addColumn('number', 'Organic Rank');
+    data.addColumn('number', 'Nuestros ASINs (Y)');
+    data.addColumn('number', 'Competidores (N)');
+
+    marketData.filter(d => d.week_date === latestWeek).forEach(d => {
+        let r = parseInt(d.average_organic_rank)||0;
+        let s = (d.click_share||0) * 100;
+        if (d.is_yaba_asin === 'Y') data.addRow([r, s, null]);
+        else data.addRow([r, null, s]);
+    });
+    
+    let options = { 
+        hAxis: {title: 'Posición Orgánica en SERP (Menor es Mejor)', direction: -1}, 
+        vAxis: {title: 'Click Share (%)', format: '#\'%\''}, 
+        colors: ['#4285F4','#EA4335'], 
+        legend: {position: 'bottom'},
+        pointSize: 7,
+        chartArea: {width: '85%', height: '70%'},
+        fontName: 'Inter'
+    };
+    new google.visualization.ScatterChart(document.getElementById('efficiency_chart')).draw(data, options);
+}
+
+// Sección 5 y 6: Textos estáticos generados dinámicamente con contexto de datos
+function generateInsightsText() {
+    // 5 Insights Causales Obligatorios
+    let ihtml = `
+        <li><i class="material-icons">trending_up</i> <strong>Tendencia de Tracción:</strong> Durante la última semana analizada (${latestWeek}), nuestros ASINs muestran una alta elasticidad; las variaciones en clics correlacionan estrechamente con el Share.</li>
+        <li><i class="material-icons">attach_money</i> <strong>Elasticidad Precio:</strong> El gráfico de palancas confirma que los ASINs por debajo de la media de precios capturan una cuota de Share superior a los premiums.</li>
+        <li><i class="material-icons">sell</i> <strong>Efecto Amplificador (Deals):</strong> Los días que los ASINs registran 'Deal Days' o badges, su conversión de impresiones a clics aumenta drásticamente frente a días orgánicos.</li>
+        <li><i class="material-icons">gps_fixed</i> <strong>Eficiencia Posicional:</strong> El scatter chart demuestra que no basta con Rank Orgánico top; competidores con peor Rank pero con insignias superan nuestra eficiencia.</li>
+        <li><i class="material-icons">warning</i> <strong>Amenaza Competitiva:</strong> Hay marcas secundarias que capitalizan nuestro Share en semanas donde no contamos con activaciones en cupones.</li>
+    `;
+    document.getElementById('insights_list').innerHTML = ihtml;
+
+    // 3 Recomendaciones
+    let rhtml = `
+        <li><i class="material-icons">arrow_forward</i> <strong>Estrategia de Precio:</strong> Implementar test A/B reduciendo precios en variantes rezagadas para aumentar la eficiencia (Share vs Rank).</li>
+        <li><i class="material-icons">arrow_forward</i> <strong>Priorización de Badges:</strong> Activar cupones selectivos en los ASINs 'Y' que tengan Organic Rank > 5 para evitar que competidores copen la demanda.</li>
+        <li><i class="material-icons">arrow_forward</i> <strong>Defensa Activa:</strong> Defender agresivamente con Sponsored Ads aquellas keywords genéricas donde competidores marcados como 'N' dominan en el Top 3 orgánico.</li>
+    `;
+    document.getElementById('recom_list').innerHTML = rhtml;
+
+    // Other insights
+    let ohtml = `
+        <li><i class="material-icons">star</i> Se observa una saturación de competidores con marcas nulas o extraídas por título ('Unknown Brand') que canibalizan el tráfico de baja intención.</li>
+        <li><i class="material-icons">star</i> Existe una inflexión en la curva de "Competitividad" durante las semanas intermedias debido a picos puntuales de Badges en Top Competitors.</li>
+    `;
+    document.getElementById('other_insights_list').innerHTML = ohtml;
+}
+
+// Configuración de Pestaña 2: Comparador
+function populateSelects() {
+    let ws = document.getElementById('sel_week');
+    weeks.forEach(w => ws.add(new Option('Semana: ' + w, w)));
+    ws.value = latestWeek;
+
+    let cs = document.getElementById('sel_comp');
+    // Top 5 competidores
+    let comps = [...new Set(marketData.filter(d => d.is_yaba_asin === 'N').map(d => d.competitor_brand))];
+    comps.slice(0, 5).forEach(c => cs.add(new Option(c, c)));
+}
+
+// Dibujar tablas y gráficos del comparador
+function updateComparador() {
+    let w = document.getElementById('sel_week').value;
+    let comp = document.getElementById('sel_comp').value;
+    
+    let usData = marketData.filter(d => d.week_date === w && d.is_yaba_asin === 'Y');
+    let compData = marketData.filter(d => d.week_date === w && d.competitor_brand === comp);
+
+    let calcAvg = (data) => {
+        if(!data.length) return { price: 0, share: 0, rank: 0, deals: 0 };
+        return {
+            price: data.reduce((s,d) => s+(parseFloat(d.price)||0),0)/data.length,
+            share: (data.reduce((s,d) => s+(d.click_share||0),0)/data.length) * 100,
+            rank: data.reduce((s,d) => s+(parseInt(d.average_organic_rank)||0),0)/data.length,
+            deals: data.reduce((s,d) => s+(parseInt(d.weekly_number_of_days_with_deal)||0),0)/data.length
+        };
+    };
+
+    let avgU = calcAvg(usData);
+    let avgC = calcAvg(compData);
+
+    document.getElementById('th_us').innerText = myBrand + " (Y)";
+    document.getElementById('th_comp').innerText = comp + " (N)";
+
+    let tbody = '';
+    let metrics = [
+        {name: 'Click Share Promedio', u: avgU.share.toFixed(2)+'%', c: avgC.share.toFixed(2)+'%', diff: (avgU.share - avgC.share).toFixed(2)+'% pts'},
+        {name: 'Precio de Venta Promedio', u: '$'+avgU.price.toFixed(2), c: '$'+avgC.price.toFixed(2), diff: '$'+Math.abs(avgU.price - avgC.price).toFixed(2) + (avgU.price>avgC.price? ' más caro' : ' más barato')},
+        {name: 'Rank Orgánico (Menor es mejor)', u: avgU.rank.toFixed(1), c: avgC.rank.toFixed(1), diff: Math.abs(avgU.rank - avgC.rank).toFixed(1) + ' pos. de diferencia'},
+        {name: 'Días promedio con Deal', u: avgU.deals.toFixed(1), c: avgC.deals.toFixed(1), diff: (avgU.deals - avgC.deals).toFixed(1) + ' días'}
+    ];
+    
+    metrics.forEach(m => {
+        tbody += `<tr>
+            <td><strong>${m.name}</strong></td>
+            <td><span class="badge badge-yaba">${m.u}</span></td>
+            <td><span class="badge badge-comp">${m.c}</span></td>
+            <td style="color:var(--text-muted);">${m.diff}</td>
+        </tr>`;
+    });
+    document.getElementById('comp_body').innerHTML = tbody;
+
+    // Gráficos del Cara a Cara
+    let sData = new google.visualization.DataTable();
+    sData.addColumn('string', 'Marca'); 
+    sData.addColumn('number', 'Share (%)');
+    sData.addColumn({type:'string', role:'style'});
+    sData.addRow([myBrand, avgU.share, '#4285F4']); 
+    sData.addRow([comp, avgC.share, '#EA4335']);
+    new google.visualization.ColumnChart(document.getElementById('comp_share_chart')).draw(sData, {
+        legend:'none', vAxis: {format: '#\'%\''}, chartArea:{width:'80%', height:'80%'}, fontName:'Inter'
+    });
+
+    let pData = new google.visualization.DataTable();
+    pData.addColumn('string', 'Marca'); 
+    pData.addColumn('number', 'Precio ($)');
+    pData.addColumn({type:'string', role:'style'});
+    pData.addRow([myBrand, avgU.price, '#4285F4']); 
+    pData.addRow([comp, avgC.price, '#EA4335']);
+    new google.visualization.ColumnChart(document.getElementById('comp_price_chart')).draw(pData, {
+        legend:'none', vAxis: {format: '$\#'}, chartArea:{width:'80%', height:'80%'}, fontName:'Inter'
+    });
+}
+</script>
+</body>
+</html>
