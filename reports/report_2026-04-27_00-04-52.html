@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reporte de Inteligencia de Mercado - Parent ASIN</title>
+    
+    <!-- Google Fonts & Material Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    
+    <!-- Google Charts Library -->
+    <script src="https://www.gstatic.com/charts/loader.js"></script>
+    
+    <style>
+        /* Google Material Design Aesthetic */
+        :root {
+            --primary: #1a73e8;
+            --primary-light: #e8f0fe;
+            --success: #34a853;
+            --danger: #ea4335;
+            --warning: #fbbc05;
+            --bg-body: #f8f9fa;
+            --bg-card: #ffffff;
+            --text-main: #202124;
+            --text-sec: #5f6368;
+            --border-color: #dadce0;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            margin: 0;
+            padding: 0;
+            line-height: 1.5;
+        }
+
+        .topbar {
+            background-color: var(--bg-card);
+            border-bottom: 1px solid var(--border-color);
+            padding: 16px 32px;
+            display: flex;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 1px 2px 0 rgba(60,64,67,0.3);
+        }
+
+        .topbar h1 {
+            font-size: 22px;
+            font-weight: 500;
+            margin: 0;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .topbar .material-icons { color: var(--primary); }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 24px 32px;
+        }
+
+        .tabs-header {
+            display: flex;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 24px;
+        }
+
+        .tab-btn {
+            background: none;
+            border: none;
+            padding: 16px 24px;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-sec);
+            cursor: pointer;
+            position: relative;
+            outline: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .tab-btn:hover { background-color: rgba(26,115,232,0.04); }
+
+        .tab-btn.active { color: var(--primary); }
+
+        .tab-btn.active::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background-color: var(--primary);
+            border-radius: 3px 3px 0 0;
+        }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        .card {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 1px 2px 0 rgba(60,64,67,0.3);
+        }
+
+        .card-title {
+            font-size: 18px;
+            font-weight: 500;
+            margin: 0 0 16px 0;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .card-title .material-icons { font-size: 20px; color: var(--text-sec); }
+
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+        .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+
+        .chart-container {
+            width: 100%;
+            height: 400px;
+        }
+
+        .insights-list { list-style: none; padding: 0; margin: 0; }
+        .insights-list li {
+            margin-bottom: 16px;
+            padding-left: 32px;
+            position: relative;
+        }
+        .insights-list li::before {
+            content: '\e873';
+            font-family: 'Material Icons';
+            position: absolute;
+            left: 0;
+            top: 0;
+            color: var(--primary);
+        }
+
+        .recommendations-list { list-style: none; padding: 0; margin: 0; }
+        .recommendations-list li {
+            margin-bottom: 16px;
+            padding: 16px;
+            background-color: var(--primary-light);
+            border-radius: 8px;
+            border-left: 4px solid var(--primary);
+        }
+
+        /* Comparator Form Styles */
+        .control-panel {
+            display: flex;
+            gap: 16px;
+            background: #f1f3f4;
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 24px;
+        }
+        
+        select {
+            padding: 8px 16px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            background: white;
+            font-size: 14px;
+            color: var(--text-main);
+            outline: none;
+            min-width: 200px;
+        }
+        
+        .comparator-box {
+            text-align: center;
+            padding: 24px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        .comparator-box.us { border-top: 4px solid var(--success); }
+        .comparator-box.them { border-top: 4px solid var(--danger); }
+
+        .stat-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-top: 16px;
+        }
+        .stat-item {
+            background: #f8f9fa;
+            padding: 12px;
+            border-radius: 8px;
+        }
+        .stat-value { font-size: 24px; font-weight: 500; color: var(--text-main); }
+        .stat-label { font-size: 12px; color: var(--text-sec); text-transform: uppercase; letter-spacing: 0.5px; }
+
+    </style>
+</head>
+<body>
+
+    <div class="topbar">
+        <h1><span class="material-icons">analytics</span> Inteligencia de Mercado: Análisis Parent ASIN</h1>
+    </div>
+
+    <div class="container">
+        <!-- Tabs Navigation -->
+        <div class="tabs-header">
+            <button class="tab-btn active" onclick="switchTab('tab-static')" id="btn-tab-static">
+                <span class="material-icons">dashboard</span> Reporte Estático
+            </button>
+            <button class="tab-btn" onclick="switchTab('tab-interactive')" id="btn-tab-interactive">
+                <span class="material-icons">compare_arrows</span> Comparador Interactivo
+            </button>
+        </div>
+
+        <!-- Tab 1: Reporte Estático -->
+        <div id="tab-static" class="tab-content active">
+            
+            <div class="grid-2">
+                <!-- Seccion 1: Tendencia Global -->
+                <div class="card">
+                    <h2 class="card-title"><span class="material-icons">timeline</span> 1. Tendencia Global del Parent</h2>
+                    <div id="chart_tendencia" class="chart-container"></div>
+                </div>
+
+                <!-- Seccion 2: Competitividad -->
+                <div class="card">
+                    <h2 class="card-title"><span class="material-icons">stacked_line_chart</span> 2. Competitividad de Marca (Click Share %)</h2>
+                    <div id="chart_competitividad" class="chart-container"></div>
+                </div>
+            </div>
+
+            <div class="grid-2">
+                <!-- Seccion 3: Palancas -->
+                <div class="card">
+                    <h2 class="card-title"><span class="material-icons">local_offer</span> 3. Palancas que Aumentan el Click Share</h2>
+                    <div id="chart_palancas" class="chart-container"></div>
+                </div>
+
+                <!-- Seccion 4: Eficiencia -->
+                <div class="card">
+                    <h2 class="card-title"><span class="material-icons">scatter_plot</span> 4. Organic Rank vs Click Share (Eficiencia)</h2>
+                    <div id="chart_eficiencia" class="chart-container"></div>
+                </div>
+            </div>
+
+            <!-- Seccion 5 & 6: Conclusiones y Recomendaciones -->
+            <div class="card">
+                <h2 class="card-title"><span class="material-icons">lightbulb</span> 5. Conclusiones Clave y Other Insights</h2>
+                <ul class="insights-list">
+                    <li><strong>Tendencia Creciente (YABA):</strong> Nuestra marca experimentó un crecimiento sólido, pasando de un 13.01% de click share total en la semana 13, a liderar con un 22.51% en la semana 16, duplicando casi su visibilidad.</li>
+                    <li><strong>Liderazgo Competitivo:</strong> "Double Dragon" es el principal rival estable (13.4% cuota promedio), dominando el mercado en las semanas en las que nuestras variantes no activan deals agresivos.</li>
+                    <li><strong>Sensibilidad al Precio (Perfect Ted):</strong> El competidor Perfect Ted logra picos altos de cuota únicamente a costa de desplomar sus precios a niveles extremos (£3.42 - £8.27), revelando un mercado altamente elástico.</li>
+                    <li><strong>Efectividad de Palancas Combinadas:</strong> El uso simultáneo de <em>Deals + Cupones + Amazon Choice</em> actuó como multiplicador. El ASIN B06XQ5DCYJ (NaturaleBio) alcanzó un dominante 19.15% de click share gracias a esta tríada.</li>
+                    <li><strong>Ineficiencia Competitiva:</strong> Competidores como "Heapwell Superfoods" sufren de ineficiencia grave: a pesar de mantener 6 días de Deals, apenas logran un 1.81% de cuota debido a su pobre rank orgánico (Posición 10).</li>
+                    <li><strong>Other Insight (Oportunidad Interna):</strong> Nuestra variante "PureChimp" rinde por debajo del promedio (2.2%-3.3% de cuota) incluso con ofertas activas. Esto apunta directamente a un problema de conversión, tasa de clics en SERP o falta de optimización del listing principal.</li>
+                </ul>
+
+                <h2 class="card-title" style="margin-top: 32px;"><span class="material-icons">flag</span> Recomendaciones Accionables</h2>
+                <ul class="recommendations-list">
+                    <li><strong>Consolidar la Estrategia Promocional:</strong> Proteger y escalar la combinación de <em>Deals + Cupones</em> para los ASINs principales de NaturaleBio. Los datos prueban que es la única táctica capaz de robarle más del 19% de cuota a los competidores asiáticos baratos.</li>
+                    <li><strong>Defensa Táctica contra Perfect Ted:</strong> Monitorizar los desplomes de precios de Perfect Ted. Sugerimos guardar presupuesto para lanzar Promociones Flash exclusivamente en las semanas en que su precio cae por debajo de £8, para neutralizar su ventaja.</li>
+                    <li><strong>Auditoría Inmediata de "PureChimp":</strong> Detener temporalmente la quema de márgenes en deals para PureChimp y realizar una auditoría de SEO visual (Imagen principal, Título, Precio base). Las palancas no funcionan si la eficiencia basal del ASIN está rota.</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Tab 2: Comparador Interactivo -->
+        <div id="tab-interactive" class="tab-content">
+            <div class="card">
+                <h2 class="card-title"><span class="material-icons">tune</span> Cara a Cara: Rendimiento de la Semana</h2>
+                
+                <div class="control-panel">
+                    <select id="sel-week" onchange="updateComparator()"></select>
+                    <select id="sel-brand1" onchange="updateComparator()"></select>
+                    <span style="display:flex; align-items:center; font-weight:bold; color:var(--text-sec);">VS</span>
+                    <select id="sel-brand2" onchange="updateComparator()"></select>
+                </div>
+
+                <div class="grid-2">
+                    <div class="comparator-box us">
+                        <h3 id="b1-name" style="margin:0 0 16px 0; font-size:22px; color:var(--success);">Marca 1</h3>
+                        <div class="stat-grid">
+                            <div class="stat-item">
+                                <div class="stat-value" id="b1-cs">0%</div>
+                                <div class="stat-label">Click Share Total</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value" id="b1-price">£0.00</div>
+                                <div class="stat-label">Precio Promedio</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value" id="b1-rank">0</div>
+                                <div class="stat-label">Rank Orgánico Avg</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value" id="b1-deals">0</div>
+                                <div class="stat-label">Días de Deal Total</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="comparator-box them">
+                        <h3 id="b2-name" style="margin:0 0 16px 0; font-size:22px; color:var(--danger);">Marca 2</h3>
+                        <div class="stat-grid">
+                            <div class="stat-item">
+                                <div class="stat-value" id="b2-cs">0%</div>
+                                <div class="stat-label">Click Share Total</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value" id="b2-price">£0.00</div>
+                                <div class="stat-label">Precio Promedio</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value" id="b2-rank">0</div>
+                                <div class="stat-label">Rank Orgánico Avg</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value" id="b2-deals">0</div>
+                                <div class="stat-label">Días de Deal Total</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // DATA INJECTION (Extracted cleanly from source CSV following specific prompt rules)
+        const rawData = [{"week_date": "2026-15", "product_title": "SuperSelf Organic Matcha Powder - Ceremonial Grade...", "competitor_brand": "SuperSelf", "is_yaba_asin": "N", "average_organic_rank": 8.0, "weekly_number_of_days_with_deal": 6.0, "weekly_number_of_days_with_amazon_choice_badge": 0.0, "weekly_number_of_days_with_coupon": 7.0, "weekly_number_of_days_with_best_seller_badge": 0.0, "click_share": 2.5, "price": 15.58, "weekly_search_volume": 22380.13}, {"week_date": "2026-15", "product_title": "SuperSelf Organic Matcha Powder - Ceremonial Grade...", "competitor_brand": "SuperSelf", "is_yaba_asin": "N", "average_organic_rank": 6.0, "weekly_number_of_days_with_deal": 0.0, "weekly_number_of_days_with_amazon_choice_badge": 0.0, "weekly_number_of_days_with_coupon": 7.0, "weekly_number_of_days_with_best_seller_badge": 0.0, "click_share": 5.06, "price": 9.9, "weekly_search_volume": 22380.13}, {"week_date": "2026-16", "product_title": "SuperSelf Organic Matcha Powder - Ceremonial Grade...", "competitor_brand": "SuperSelf", "is_yaba_asin": "N", "average_organic_rank": 7.0, "weekly_number_of_days_with_deal": 0.0, "weekly_number_of_days_with_amazon_choice_badge": 0.0, "weekly_number_of_days_with_coupon": 7.0, "weekly_number_of_days_with_best_seller_badge": 0.0, "click_share": 3.48, "price": 9.9, "weekly_search_volume": 51723.09}, {"week_date": "2026-13", "product_title": "NaturaleBio Japanese Organic Matcha Green Tea Powd...", "competitor_brand": "NaturaleBio", "is_yaba_asin": "Y", "average_organic_rank": 7.0, "weekly_number_of_days_with_deal": 0.0, "weekly_number_of_days_with_amazon_choice_badge": 0.0, "weekly_number_of_days_with_coupon": 3.0, "weekly_number_of_days_with_best_seller_badge": 0.0, "click_share": 3.66, "price": 20.99, "weekly_search_volume": 17089.77}, {"week_date": "2026-13", "product_title": "PerfectTed Original Matcha Powder, Ceremonial Grad...", "competitor_brand": "Perfect Ted", "is_yaba_asin": "N", "average_organic_rank": 4.0, "weekly_number_of_days_with_deal": 0.0, "weekly_number_of_days_with_amazon_choice_badge": 0.0, "weekly_number_of_days_with_coupon": 0.0, "weekly_number_of_days_with_best_seller_badge": 0.0, "click_share": 4.71, "price": 19.99, "weekly_search_volume": 17089.77}, {"week_date": "2026-16", "product_title": "PerfectTed Organic Matcha Powder, Ceremonial Grade...", "competitor_brand": "Perfect Ted", "is_yaba_asin": "N", "average_organic_rank": 2.0, "weekly_number_of_days_with_deal": 0.0, "weekly_number_of_days_with_amazon_choice_badge": 0.0, "weekly_number_of_days_with_coupon": 0.0, "weekly_number_of_days_with_best_seller_badge": 0.0, "click_share": 18.34, "price": 8.275714286, "weekly_search_volume": 51723.09}, {"week_date": "2026-16", "product_title": "PerfectTed Vanilla Bean Matcha Powder, Ceremonial ...", "competitor_brand": "Perfect Ted", "is_yaba_asin": "N", "average_organic_rank": 16.0, "weekly_number_of_days_with_deal": 0.0, "weekly_number_of_days_with_amazon_choice_badge": 0.0, "weekly_number_of_days_with_coupon": 0.0, "weekly_number_of_days_with_best_seller_badge": 0.0, "click_share": 2.54, "price": 8.275714286, "weekly_search_volume": 51723.09}, {"week_date": "2026-15", "product_title": "PerfectTed Organic Matcha Powder, Ceremonial Grade...", "competitor_brand": "Perfect Ted", "is_yaba_asin": "N", "average_organic_rank": 2.0, "weekly_number_of_days_with_deal": 0.0, "weekly_number_of_days_with_amazon_choice_badge": 2.0, "weekly_number_of_days_with_coupon": 0.0, "weekly_number_of_days_with_best_seller_badge": 0.0, "click_share": 15.91, "price": 7.99, "weekly_search_volume": 22380.13}, {"week_date": "2026-15", "product_title": "Double Dragon Organic Match Green Tea Powder 100g ...", "competitor_brand": "Double Dragon", "is_yaba_asin": "N", "average_organic_rank": 3.0, "weekly_number_of_days_with_deal": 0.0, "weekly_number_of_days_with_amazon_choice_badge": 2.0, "weekly_number_of_days_with_coupon": 0.0, "weekly_number_of_days_with_best_seller_badge": 0.0, "click_share": 13.11, "price": 6.94, "weekly_search_volume": 22380.13}, {"week_date": "2026-14", "product_title": "PerfectTed Vanilla Bean Matcha Powder, Ceremonial ...", "competitor_brand": "Perfect Ted", "is_yaba_asin": "N", "average_organic_rank": 16.0, "weekly_number_of_days_with_deal": 0.0, "weekly_number_of_days_with_amazon_choice_badge": 0.0, "weekly_number_of_days_with_coupon": 0.0, "weekly_number_of_days_with_best_seller_badge": 0.0, "click_share": 2.21, "price": 7.99, "weekly_search_volume": 53400.2}, {"week_date": "2026-13", "product_title": "PerfectTed Organic Matcha Powder, Ceremonial Grade...", "competitor_brand": "Perfect Ted", "is_yaba_asin": "N", "average_organic_rank": 1.0, "weekly_number_of_days_with_deal": 0.0, "weekly_number_of_days_with_amazon_choice_badge": 3.0, "weekly_number_of_days_with_coupon": 0.0, "weekly_number_of_days_with_best_seller_badge": 0.0, "click_share": 13.86, "price": 3.424285714, "weekly_search_volume": 17089.77}, {"week_date": "2026-13", "product_title": "PureVerra Matcha Powder, Ceremonial Grade 100g (10...", "competitor_brand": "PureVerra", "is_yaba_asin": "N", "average_organic_rank": 10.0, "weekly_number_of_days_with_deal": 0.0, "weekly_number_of_days_with_amazon_choice_badge": 0.0, "weekly_number_of_days_with_coupon": 0.0, "weekly_number_of_days_with_best_seller_badge": 0.0, "click_share": 3.29, "price": 7.323333333, "weekly_search_volume": 17089.77}, {"week_date": "2026-14", "product_title": "Double Dragon Organic Match Green Tea Powder 100g ...", "competitor_brand": "Double Dragon", "is_yaba_asin": "N", "average_organic_rank": 2.0, "weekly_number_of_days_with_deal": 0.0, "weekly_number_of_days_with_amazon_choice_badge": 7.0, "weekly_number_of_days_with_coupon": 0.0, "weekly_number_of_days_with_best_seller_badge": 0.0, "click_share": 14.76, "price": 6.94, "weekly_search_volume": 53400.2}, {"week_date": "2026-14", "product_title": "PerfectTed Organic Matcha Powder, Ceremonial Grade...", "competitor_brand": "Perfect Ted", "is_yaba_asin": "N", "average_organic_rank": 2.0, "weekly_number_of_days_with_deal": 0.0, "weekly_number_of_days_with_amazon_choice_badge": 3.0, "weekly_number_of_days_with_coupon": 0.0, "weekly_number_of_days_with_best_seller_badge": 0.0, "click_share": 14.05, "price": 7.99, "weekly_search_volume": 53400.2}, {"week_date": "2026-16", "product_title": "NaturaleBio Japanese Organic Matcha Green Tea Powd...", "competitor_brand": "NaturaleBio", "is_yaba_asin": "Y", "average_organic_rank": 1.0, "weekly_number_of_days_with_deal": 7.0, "weekly_number_of_days_with_amazon_choice_badge": 7.0, "weekly_number_of_days_with_coupon": 7.0, "weekly_number_of_days_with_best_seller_badge": 0.0, "click_share": 19.15, "price": 9.99, "weekly_search_volume": 51723.09}, {"week_date": "2026-16", "product_title": "Double Dragon Organic Match Green Tea Powder 100g ...", "competitor_brand": "Double Dragon", "is_yaba_asin": "N", "average_organic_rank": 3.0, "weekly_number_of_days_with_deal": 0.0, "weekly_number_of_days_with_amazon_choice_badge": 0.0, "weekly_number_of_days_with_coupon": 0.0, "weekly_number_of_days_with_best_seller_badge": 0.0, "click_share": 11.51, "price": 6.94, "weekly_search_volume": 51723.09}, {"week_date": "2026-14", "product_title": "SuperSelf Organic Matcha Powder - Ceremonial Grade...", "competitor_brand": "SuperSelf", "is_yaba_asin": "N", "average_organic_rank": 5.0, "weekly_number_of_days_with_deal": 0.0, "weekly_number_of_days_with_amazon_choice_badge": 0.0, "weekly_number_of_days_with_coupon": 7.0, "weekly_number_of_days_with_best_seller_badge": 0.0, "click_share": 5.64, "price": 9.9, "weekly_search_volume": 53400.2}, {"week_date": "2026-13", "product_title": "SuperSelf Organic Matcha Powder - Ceremonial Grade...", "competitor_brand": "SuperSelf", "is_yaba_asin": "N", "average_organic_rank": 5.0, "weekly_number_of_days_with_deal": 0.0, "weekly_number_of_days_with_amazon_choice_badge": 0.0, "weekly_number_of_days_with_coupon": 3.0, "weekly_number_of_days_with_best_seller_badge": 0.0, "click_share": 6.62, "price": 9.9, "weekly_search_volume": 17089.77}, {"week_date": "2026-16", "product_title": "Heapwell Matcha - Classic Ceremonial Grade Matcha ...", "competitor_brand": "Heapwell Superfoods", "is_yaba_asin": "N", "average_organic_rank": 10.0, "weekly_number_of_days_with_deal": 6.0, "weekly_number_of_days_with_amazon_choice_badge": 0.0, "weekly_number_of_days_with_coupon": 0.0, "weekly_number_of_days_with_best_seller_badge": 0.0, "click_share": 1.81, "price": 8.704285714, "weekly_search_volume": 51723.09}, {"week_date": "2026-15", "product_title": "NOURI Organic Matcha Green Tea Powder, 100 g (100 ...", "competitor_brand": "Nouri", "is_yaba_asin": "N", "average_organic_rank": 6.0, "weekly_number_of_days_with_deal": 0.0, "weekly_number_of_days_with_amazon_choice_badge": 0.0, "weekly_number_of_days_with_coupon": 0.0, "weekly_number_of_days_with_best_seller_badge": 0.0, "click_share": 4.8, "price": 7.29, "weekly_search_volume": 22380.13}, {"week_date": "2026-13", "product_title": "NaturaleBio Japanese Organic Matcha Green Tea Powd...", "competitor_brand": "NaturaleBio", "is_yaba_asin": "Y", "average_organic_rank": 3.0, "weekly_number_of_days_with_deal": 0.0, "weekly_number_of_days_with_amazon_choice_badge": 0.0, "weekly_number_of_days_with_coupon": 3.0, "weekly_number_of_days_with_best_seller_badge": 0.0, "click_share": 9.35, "price": 12.49, "weekly_search_volume": 17089.77}, {"week_date": "2026-15", "product_title": "PerfectTed Original Matcha Powder, Ceremonial Grad...", "competitor_brand": "Perfect Ted", "is_yaba_asin": "N", "average_organic_rank": 4.0, "weekly_number_of_days_with_deal": 0.0, "weekly_number_of_days_with_amazon_choice_badge": 0.0, "weekly_number_of_days_with_coupon": 0.0, "weekly_number_of_days_with_best_seller_badge": 0.0, "click_share": 2.44, "price": 19.99, "weekly_search_volume": 22380.13}, {"week_date": "2026-14", "product_title": "NOURI Organic Matcha Green Tea Powder, 100 g (100 ...", "competitor_brand": "Nouri", "is_yaba_asin": "N", "average_organic_rank": 6.0, "weekly_number_of_days_with_deal": 0.0, "weekly_number_of_days_with_amazon_choice_badge": 0.0, "weekly_number_of_days_with_coupon": 0.0, "weekly_number_of_days_with_best_seller_badge": 0.0, "click_share": 4.73, "price": 7.29, "weekly_search_volume": 53400.2}, {"week_date": "2026-16", "product_title": "NOURI Organic Matcha Green Tea Powder, 100 g (100 ...", "competitor_brand": "Nouri", "is_yaba_asin": "N", "average_organic_rank": 6.0, "weekly_number_of_days_with_deal": 0.0, "weekly_number_of_days_with_amazon_choice_badge": 0.0, "weekly_number_of_days_with_coupon": 0.0, "weekly_number_of_days_with_best_seller_badge": 0.0, "click_share": 5.04, "price": 7.29, "weekly_search_volume": 51723.09}, {"week_date": "2026-14", "product_title": "PureVerra Matcha Powder, Ceremonial Grade 100g (10...", "competitor_brand": "PureVerra", "is_yaba_asin": "N", "average_organic_rank": 11.0, "weekly_number_of_days_with_deal": 0.0, "weekly_number_of_days_with_amazon_choice_badge": 0.0, "weekly_number_of_days_with_coupon": 0.0, "weekly_number_of_days_with_best_seller_badge": 0.0, "click_share": 2.46, "price": 7.847142857, "weekly_search_volume": 53400.2}, {"week_date": "2026-14", "product_title": "The TeaShed Matcha Powder - 100% Pure Matcha Green...", "competitor_brand": "The TeaShed", "is_yaba_asin": "N", "average_organic_rank": null, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_best_seller_badge": 0, "click_share": 1.58, "price": 4.99, "weekly_search_volume": 53400.2}, {"week_date": "2026-15", "product_title": "PureChimp Ceremonial Grade Matcha Powder 50g. 100%...", "competitor_brand": "PureChimp", "is_yaba_asin": "Y", "average_organic_rank": 9.0, "weekly_number_of_days_with_deal": 6.0, "weekly_number_of_days_with_amazon_choice_badge": 0.0, "weekly_number_of_days_with_coupon": 0.0, "weekly_number_of_days_with_best_seller_badge": 0.0, "click_share": 2.27, "price": 10.698571429, "weekly_search_volume": 22380.13}, {"week_date": "2026-16", "product_title": "PerfectTed Original Matcha Powder, Ceremonial Grad...", "competitor_brand": "Perfect Ted", "is_yaba_asin": "N", "average_organic_rank": 4.0, "weekly_number_of_days_with_deal": 0.0, "weekly_number_of_days_with_amazon_choice_badge": 0.0, "weekly_number_of_days_with_coupon": 0.0, "weekly_number_of_days_with_best_seller_badge": 0.0, "click_share": 2.88, "price": 19.99, "weekly_search_volume": 51723.09}, {"week_date": "2026-15", "product_title": "NaturaleBio Japanese Organic Matcha Green Tea Powd...", "competitor_brand": "NaturaleBio", "is_yaba_asin": "Y", "average_organic_rank": 2.0, "weekly_number_of_days_with_deal": 6.0, "weekly_number_of_days_with_amazon_choice_badge": 5.0, "weekly_number_of_days_with_coupon": 7.0, "weekly_number_of_days_with_best_seller_badge": 0.0, "click_share": 15.44, "price": 10.347142857, "weekly_search_volume": 22380.13}, {"week_date": "2026-14", "product_title": "PerfectTed Original Matcha Powder, Ceremonial Grad...", "competitor_brand": "Perfect Ted", "is_yaba_asin": "N", "average_organic_rank": 4.0, "weekly_number_of_days_with_deal": 0.0, "weekly_number_of_days_with_amazon_choice_badge": 0.0, "weekly_number_of_days_with_coupon": 0.0, "weekly_number_of_days_with_best_seller_badge": 0.0, "click_share": 3.52, "price": 19.99, "weekly_search_volume": 53400.2}, {"week_date": "2026-13", "product_title": "PerfectTed Vanilla Bean Matcha Powder, Ceremonial ...", "competitor_brand": "Perfect Ted", "is_yaba_asin": "N", "average_organic_rank": 17.0, "weekly_number_of_days_with_deal": 0.0, "weekly_number_of_days_with_amazon_choice_badge": 0.0, "weekly_number_of_days_with_coupon": 0.0, "weekly_number_of_days_with_best_seller_badge": 0.0, "click_share": 1.36, "price": 3.424285714, "weekly_search_volume": 17089.77}, {"week_date": "2026-14", "product_title": "NaturaleBio Japanese Organic Matcha Green Tea Powd...", "competitor_brand": "NaturaleBio", "is_yaba_asin": "Y", "average_organic_rank": 3.0, "weekly_number_of_days_with_deal": 0.0, "weekly_number_of_days_with_amazon_choice_badge": 0.0, "weekly_number_of_days_with_coupon": 7.0, "weekly_number_of_days_with_best_seller_badge": 0.0, "click_share": 9.9, "price": 12.49, "weekly_search_volume": 53400.2}, {"week_date": "2026-16", "product_title": "PureChimp Ceremonial Grade Matcha Powder 50g. 100%...", "competitor_brand": "PureChimp", "is_yaba_asin": "Y", "average_organic_rank": 5.0, "weekly_number_of_days_with_deal": 7.0, "weekly_number_of_days_with_amazon_choice_badge": 0.0, "weekly_number_of_days_with_coupon": 0.0, "weekly_number_of_days_with_best_seller_badge": 0.0, "click_share": 3.36, "price": 9.99, "weekly_search_volume": 51723.09}, {"week_date": "2026-14", "product_title": "NaturaleBio Japanese Organic Matcha Green Tea Powd...", "competitor_brand": "NaturaleBio", "is_yaba_asin": "Y", "average_organic_rank": 8.0, "weekly_number_of_days_with_deal": 0.0, "weekly_number_of_days_with_amazon_choice_badge": 0.0, "weekly_number_of_days_with_coupon": 7.0, "weekly_number_of_days_with_best_seller_badge": 0.0, "click_share": 3.53, "price": 20.99, "weekly_search_volume": 53400.2}, {"week_date": "2026-13", "product_title": "NOURI Organic Matcha Green Tea Powder, 100 g (100 ...", "competitor_brand": "Nouri", "is_yaba_asin": "N", "average_organic_rank": 7.0, "weekly_number_of_days_with_deal": 0.0, "weekly_number_of_days_with_amazon_choice_badge": 0.0, "weekly_number_of_days_with_coupon": 0.0, "weekly_number_of_days_with_best_seller_badge": 0.0, "click_share": 4.14, "price": 7.556666667, "weekly_search_volume": 17089.77}, {"week_date": "2026-15", "product_title": "NaturaleBio Japanese Organic Matcha Green Tea Powd...", "competitor_brand": "NaturaleBio", "is_yaba_asin": "Y", "average_organic_rank": 8.0, "weekly_number_of_days_with_deal": 0.0, "weekly_number_of_days_with_amazon_choice_badge": 0.0, "weekly_number_of_days_with_coupon": 7.0, "weekly_number_of_days_with_best_seller_badge": 0.0, "click_share": 3.24, "price": 20.99, "weekly_search_volume": 22380.13}, {"week_date": "2026-13", "product_title": "Double Dragon Organic Match Green Tea Powder 100g ...", "competitor_brand": "Double Dragon", "is_yaba_asin": "N", "average_organic_rank": 2.0, "weekly_number_of_days_with_deal": 0.0, "weekly_number_of_days_with_amazon_choice_badge": 0.0, "weekly_number_of_days_with_coupon": 0.0, "weekly_number_of_days_with_best_seller_badge": 0.0, "click_share": 14.3, "price": 6.94, "weekly_search_volume": 17089.77}, {"week_date": "2026-13", "product_title": "SuperSelf Organic Matcha Powder - Ceremonial Grade...", "competitor_brand": "SuperSelf", "is_yaba_asin": "N", "average_organic_rank": 9.0, "weekly_number_of_days_with_deal": 2.0, "weekly_number_of_days_with_amazon_choice_badge": 0.0, "weekly_number_of_days_with_coupon": 3.0, "weekly_number_of_days_with_best_seller_badge": 0.0, "click_share": 1.97, "price": 16.54, "weekly_search_volume": 17089.77}];
+
+        // PROCESAMIENTO NATIVO EN JS PURE (Map, Filter, Reduce)
+        rawData.forEach(d => {
+            // Inferir marcas faltantes estrictamente
+            if (!d.competitor_brand || d.competitor_brand === "") {
+                const title = d.product_title || "";
+                if (title.includes("Double Dragon")) d.competitor_brand = "Double Dragon";
+                else if (title.includes("PureVerra")) d.competitor_brand = "PureVerra";
+                else if (title.includes("The TeaShed")) d.competitor_brand = "The TeaShed";
+                else d.competitor_brand = "Unknown Brand";
+            }
+            d.estimated_clicks = (d.weekly_search_volume * d.click_share) / 100;
+        });
+
+        // UTILIDADES Y LISTAS
+        const weeks = [...new Set(rawData.map(d => d.week_date))].sort();
+        const allBrands = [...new Set(rawData.map(d => d.competitor_brand))].sort();
+
+        // Top 3 competidores por Share (Solo is_yaba_asin = 'N')
+        const compData = rawData.filter(d => d.is_yaba_asin === 'N');
+        const compBrandShares = [...new Set(compData.map(d => d.competitor_brand))].map(b => {
+            const dataB = compData.filter(d => d.competitor_brand === b);
+            const sum = dataB.reduce((acc, curr) => acc + curr.click_share, 0);
+            return { brand: b, avgShare: sum / (dataB.length || 1) };
+        }).sort((a, b) => b.avgShare - a.avgShare);
+        const top3Competitors = compBrandShares.slice(0, 3).map(x => x.brand);
+
+        // GOOGLE CHARTS LOADER
+        google.charts.load('current', {'packages':['corechart', 'bar', 'scatter']});
+        google.charts.setOnLoadCallback(initChartsAndUI);
+
+        function initChartsAndUI() {
+            drawAllCharts();
+            populateSelects();
+            updateComparator();
+            window.addEventListener('resize', drawAllCharts);
+        }
+
+        // TABS LOGIC
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            
+            document.getElementById(tabId).classList.add('active');
+            document.getElementById('btn-' + tabId).classList.add('active');
+
+            if(tabId === 'tab-static') drawAllCharts();
+        }
+
+        function drawAllCharts() {
+            drawChartTendencia();
+            drawChartCompetitividad();
+            drawChartPalancas();
+            drawChartEficiencia();
+        }
+
+        // CHARTS BUILDERS
+        function drawChartTendencia() {
+            const data = new google.visualization.DataTable();
+            data.addColumn('string', 'Semana');
+            data.addColumn('number', 'Volumen Clics Mercado');
+            data.addColumn('number', 'Nuestra Marca (YABA) %');
+            data.addColumn('number', 'Competencia %');
+
+            weeks.forEach(w => {
+                const wData = rawData.filter(d => d.week_date === w);
+                const totalClicks = wData.reduce((s,d) => s + d.estimated_clicks, 0);
+                const yabaShare = wData.filter(d => d.is_yaba_asin === 'Y').reduce((s,d) => s + d.click_share, 0);
+                const compShare = wData.filter(d => d.is_yaba_asin === 'N').reduce((s,d) => s + d.click_share, 0);
+                data.addRow([w, totalClicks, yabaShare, compShare]);
+            });
+
+            const options = {
+                title: 'Tracción: Volumen Total vs Cuota de Mercado (%)',
+                seriesType: 'bars',
+                series: {
+                    1: {type: 'line', color: '#34a853', curveType: 'function', pointSize: 5},
+                    2: {type: 'line', color: '#ea4335', curveType: 'function', pointSize: 5}
+                },
+                colors: ['#e8eaed'],
+                legend: { position: 'bottom' },
+                vAxes: {
+                    0: { title: 'Clics Mercado' },
+                    1: { title: 'Click Share (%)' }
+                },
+                series: {
+                    0: { targetAxisIndex: 0, type: 'bars' },
+                    1: { targetAxisIndex: 1, type: 'line', lineWidth: 3 },
+                    2: { targetAxisIndex: 1, type: 'line', lineWidth: 2 }
+                },
+                animation: { startup: true, duration: 1000, easing: 'out' }
+            };
+
+            const chart = new google.visualization.ComboChart(document.getElementById('chart_tendencia'));
+            chart.draw(data, options);
+        }
+
+        function drawChartCompetitividad() {
+            const data = new google.visualization.DataTable();
+            data.addColumn('string', 'Semana');
+            data.addColumn('number', 'Nuestra Marca (YABA)');
+            data.addColumn('number', top3Competitors[0] || 'Comp 1');
+            data.addColumn('number', top3Competitors[1] || 'Comp 2');
+            data.addColumn('number', top3Competitors[2] || 'Comp 3');
+            data.addColumn('number', 'Resto Mercado');
+
+            weeks.forEach(w => {
+                const wData = rawData.filter(d => d.week_date === w);
+                const yabaS = wData.filter(d => d.is_yaba_asin === 'Y').reduce((s,d) => s + d.click_share, 0);
+                const c1S = wData.filter(d => d.competitor_brand === top3Competitors[0]).reduce((s,d) => s + d.click_share, 0);
+                const c2S = wData.filter(d => d.competitor_brand === top3Competitors[1]).reduce((s,d) => s + d.click_share, 0);
+                const c3S = wData.filter(d => d.competitor_brand === top3Competitors[2]).reduce((s,d) => s + d.click_share, 0);
+                const restoS = wData.filter(d => d.is_yaba_asin === 'N' && !top3Competitors.includes(d.competitor_brand)).reduce((s,d) => s + d.click_share, 0);
+                
+                data.addRow([w, yabaS, c1S, c2S, c3S, restoS]);
+            });
+
+            const options = {
+                title: 'Evolución de Click Share vs Top Competidores',
+                curveType: 'function',
+                legend: { position: 'bottom' },
+                colors: ['#34a853', '#ea4335', '#fbbc05', '#4285f4', '#9aa0a6'],
+                vAxis: { title: 'Click Share (%)' },
+                pointSize: 6,
+                lineWidth: 3,
+                animation: { startup: true, duration: 1000, easing: 'inAndOut' }
+            };
+
+            const chart = new google.visualization.LineChart(document.getElementById('chart_competitividad'));
+            chart.draw(data, options);
+        }
+
+        function drawChartPalancas() {
+            const data = new google.visualization.DataTable();
+            data.addColumn('string', 'Palanca');
+            data.addColumn('number', 'Sin Palanca (Share Promedio %)');
+            data.addColumn('number', 'Con Palanca (Share Promedio %)');
+
+            const metrics = [
+                { label: 'Deals', key: 'weekly_number_of_days_with_deal' },
+                { label: 'Cupones', key: 'weekly_number_of_days_with_coupon' },
+                { label: 'Amazon Choice', key: 'weekly_number_of_days_with_amazon_choice_badge' }
+            ];
+
+            metrics.forEach(m => {
+                const w = rawData.filter(d => d[m.key] > 0);
+                const wo = rawData.filter(d => !d[m.key] || d[m.key] === 0);
+                
+                const avgW = w.length ? w.reduce((s,d) => s + d.click_share, 0) / w.length : 0;
+                const avgWo = wo.length ? wo.reduce((s,d) => s + d.click_share, 0) / wo.length : 0;
+                
+                data.addRow([m.label, avgWo, avgW]);
+            });
+
+            const options = {
+                title: 'Impacto Medio en Click Share por Palanca',
+                bars: 'vertical',
+                colors: ['#dadce0', '#1a73e8'],
+                legend: { position: 'bottom' },
+                vAxis: { title: 'Avg. Click Share (%)' },
+                animation: { startup: true, duration: 1000, easing: 'out' }
+            };
+
+            const chart = new google.visualization.ColumnChart(document.getElementById('chart_palancas'));
+            chart.draw(data, options);
+        }
+
+        function drawChartEficiencia() {
+            const data = new google.visualization.DataTable();
+            data.addColumn('number', 'Rank Orgánico (Proxy Impression Share)');
+            data.addColumn('number', 'Nuestra Marca (YABA)');
+            data.addColumn('number', 'Competencia');
+
+            rawData.forEach(d => {
+                const rank = parseFloat(d.average_organic_rank);
+                const share = parseFloat(d.click_share);
+                if (isNaN(rank) || isNaN(share)) return;
+
+                if (d.is_yaba_asin === 'Y') {
+                    data.addRow([rank, share, null]);
+                } else {
+                    data.addRow([rank, null, share]);
+                }
+            });
+
+            const options = {
+                title: 'Eficiencia: Rank Orgánico vs Click Share',
+                hAxis: { title: 'Mejor Rank Orgánico → Peor Rank Orgánico', direction: 1 },
+                vAxis: { title: 'Click Share (%)' },
+                colors: ['#34a853', '#ea4335'],
+                legend: { position: 'bottom' },
+                pointSize: 8,
+                animation: { startup: true, duration: 1000, easing: 'out' }
+            };
+
+            const chart = new google.visualization.ScatterChart(document.getElementById('chart_eficiencia'));
+            chart.draw(data, options);
+        }
+
+        // TAB 2: INTERACTIVE LOGIC
+        function populateSelects() {
+            const wSel = document.getElementById('sel-week');
+            const b1Sel = document.getElementById('sel-brand1');
+            const b2Sel = document.getElementById('sel-brand2');
+
+            weeks.forEach(w => wSel.add(new Option('Semana ' + w, w)));
+            
+            // Set YABA default on brand 1
+            const yabaBrands = [...new Set(rawData.filter(d => d.is_yaba_asin === 'Y').map(d => d.competitor_brand))];
+            const defYaba = yabaBrands[0] || allBrands[0];
+            
+            // Set Strong Competitor on brand 2
+            const defComp = top3Competitors[0] || allBrands[1];
+
+            allBrands.forEach(b => {
+                b1Sel.add(new Option(b + (yabaBrands.includes(b) ? ' (Nuestra)' : ''), b, false, b === defYaba));
+                b2Sel.add(new Option(b + (yabaBrands.includes(b) ? ' (Nuestra)' : ''), b, false, b === defComp));
+            });
+        }
+
+        function updateComparator() {
+            const w = document.getElementById('sel-week').value;
+            const b1 = document.getElementById('sel-brand1').value;
+            const b2 = document.getElementById('sel-brand2').value;
+
+            function getStats(brand) {
+                const data = rawData.filter(d => d.week_date === w && d.competitor_brand === brand);
+                if (data.length === 0) return { cs: 0, price: 0, rank: '-', deals: 0 };
+                
+                const cs = data.reduce((s,d) => s + d.click_share, 0);
+                const pr = data.reduce((s,d) => s + parseFloat(d.price||0), 0) / data.length;
+                let rankCount = 0;
+                const rk = data.reduce((s,d) => {
+                    const val = parseFloat(d.average_organic_rank);
+                    if(!isNaN(val)){ rankCount++; return s + val; }
+                    return s;
+                }, 0);
+                
+                const rankAvg = rankCount > 0 ? (rk/rankCount) : 0;
+                const deals = data.reduce((s,d) => s + parseFloat(d.weekly_number_of_days_with_deal||0), 0);
+
+                return { cs: cs, price: pr, rank: rankAvg, deals: deals };
+            }
+
+            const s1 = getStats(b1);
+            const s2 = getStats(b2);
+
+            document.getElementById('b1-name').innerText = b1;
+            document.getElementById('b1-cs').innerText = s1.cs.toFixed(2) + '%';
+            document.getElementById('b1-price').innerText = '£' + s1.price.toFixed(2);
+            document.getElementById('b1-rank').innerText = s1.rank === 0 ? '-' : s1.rank.toFixed(1);
+            document.getElementById('b1-deals').innerText = s1.deals;
+
+            document.getElementById('b2-name').innerText = b2;
+            document.getElementById('b2-cs').innerText = s2.cs.toFixed(2) + '%';
+            document.getElementById('b2-price').innerText = '£' + s2.price.toFixed(2);
+            document.getElementById('b2-rank').innerText = s2.rank === 0 ? '-' : s2.rank.toFixed(1);
+            document.getElementById('b2-deals').innerText = s2.deals;
+        }
+
+    </script>
+</body>
+</html>
