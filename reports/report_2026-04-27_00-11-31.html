@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Análisis de Rendimiento ASIN - Amazon Market Intelligence</title>
+    
+    <!-- Google Fonts & Material Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    
+    <!-- Google Charts -->
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+
+    <style>
+        :root {
+            --bg-color: #f8f9fa;
+            --surface: #ffffff;
+            --google-blue: #4285F4;
+            --google-red: #EA4335;
+            --google-yellow: #FBBC05;
+            --google-green: #34A853;
+            --text-primary: #202124;
+            --text-secondary: #5f6368;
+            --border: #dadce0;
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            margin: 0;
+            padding: 0;
+            line-height: 1.6;
+        }
+
+        /* Top App Bar */
+        .header {
+            background-color: var(--surface);
+            padding: 16px 32px;
+            box-shadow: 0 1px 2px 0 rgba(60,64,67,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 22px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: var(--google-blue);
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 24px;
+        }
+
+        .tab-btn {
+            background: none;
+            border: none;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            padding: 8px 16px;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .tab-btn.active {
+            color: var(--google-blue);
+            border-bottom: 3px solid var(--google-blue);
+        }
+
+        /* Container */
+        .container {
+            max-width: 1400px;
+            margin: 32px auto;
+            padding: 0 24px;
+        }
+
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Grid Layouts */
+        .grid-2 {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+
+        /* Cards */
+        .card {
+            background: var(--surface);
+            border-radius: 12px;
+            box-shadow: 0 2px 6px rgba(60,64,67,0.15);
+            padding: 24px;
+            border: 1px solid var(--border);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 16px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 12px;
+        }
+
+        .card-header h2 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .card-header .material-icons {
+            color: var(--google-blue);
+        }
+
+        .chart-container {
+            width: 100%;
+            height: 350px;
+        }
+
+        /* Insights List */
+        .insight-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .insight-list li {
+            margin-bottom: 16px;
+            padding-left: 32px;
+            position: relative;
+        }
+
+        .insight-list li::before {
+            content: 'lightbulb';
+            font-family: 'Material Icons';
+            position: absolute;
+            left: 0;
+            top: 0;
+            color: var(--google-yellow);
+        }
+
+        .recommendation-list li::before {
+            content: 'trending_up';
+            color: var(--google-green);
+        }
+
+        .insight-title {
+            font-weight: 700;
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        /* Interactive Comparator */
+        .controls {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 24px;
+            background: var(--surface);
+            padding: 16px;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        select {
+            padding: 8px 12px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 14px;
+            outline: none;
+            font-family: 'Roboto', sans-serif;
+        }
+
+        select:focus {
+            border-color: var(--google-blue);
+        }
+
+        .vs-card {
+            text-align: center;
+            padding: 24px;
+            background: #f1f3f4;
+            border-radius: 8px;
+        }
+
+        .vs-value {
+            font-size: 28px;
+            font-weight: 700;
+            margin: 8px 0;
+        }
+
+        .vs-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .us-color { color: var(--google-blue); }
+        .comp-color { color: var(--google-red); }
+
+        .kpi-row {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 16px;
+        }
+    </style>
+</head>
+<body>
+
+    <header class="header">
+        <h1>
+            <span class="material-icons">analytics</span>
+            Reporte de Mercado: Parent ASIN (Matcha Premium)
+        </h1>
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('static')">Reporte Estratégico</button>
+            <button class="tab-btn" onclick="switchTab('interactive')">Comparador Interactivo</button>
+        </div>
+    </header>
+
+    <div class="container">
+        
+        <!-- PESTAÑA 1: REPORTE ESTÁTICO -->
+        <div id="static-tab" class="tab-content active">
+            
+            <div class="grid-2">
+                <!-- Sección 1: Tendencia Global -->
+                <div class="card">
+                    <div class="card-header">
+                        <span class="material-icons">timeline</span>
+                        <h2>1. Tendencia Global del Parent (Clicks & Share)</h2>
+                    </div>
+                    <p style="font-size: 13px; color: #5f6368; margin-bottom: 8px;">Volumen de búsqueda vs. Click Share (Nosotros vs Competencia)</p>
+                    <div id="chart_trend" class="chart-container"></div>
+                </div>
+
+                <!-- Sección 2: Competitividad de Marca -->
+                <div class="card">
+                    <div class="card-header">
+                        <span class="material-icons">query_stats</span>
+                        <h2>2. Competitividad de Marca (Share a través del tiempo)</h2>
+                    </div>
+                    <p style="font-size: 13px; color: #5f6368; margin-bottom: 8px;">Evolución de Click Share: Nuestra Marca vs Top 3 Competidores</p>
+                    <div id="chart_competitiveness" class="chart-container"></div>
+                </div>
+            </div>
+
+            <div class="grid-2">
+                <!-- Sección 3: Palancas que Aumentan el Click Share -->
+                <div class="card">
+                    <div class="card-header">
+                        <span class="material-icons">local_offer</span>
+                        <h2>3. Palancas: Impacto de Deals & Cupones (Última Semana)</h2>
+                    </div>
+                    <div id="chart_levers" class="chart-container"></div>
+                </div>
+
+                <!-- Sección 4: Eficiencia Rank vs Share -->
+                <div class="card">
+                    <div class="card-header">
+                        <span class="material-icons">scatter_plot</span>
+                        <h2>4. Eficiencia: Organic Rank vs Click Share</h2>
+                    </div>
+                    <p style="font-size: 13px; color: #5f6368; margin-bottom: 8px;">Burbujas en la parte superior izquierda indican alta eficiencia.</p>
+                    <div id="chart_efficiency" class="chart-container"></div>
+                </div>
+            </div>
+
+            <!-- Secciones 5 y 6: Textos Analíticos -->
+            <div class="grid-2">
+                <div class="card">
+                    <div class="card-header">
+                        <span class="material-icons">insights</span>
+                        <h2>5.1 Insights Estratégicos</h2>
+                    </div>
+                    <ul class="insight-list">
+                        <li>
+                            <span class="insight-title">Fuerte crecimiento de Nuestra Marca (NaturaleBio + PureChimp):</span>
+                            Pasamos de capturar ~14% del Click Share en W13 a casi un 24% en la W16. Este incremento absorbió el share perdido por Double Dragon y SuperSelf.
+                        </li>
+                        <li>
+                            <span class="insight-title">Dominio absoluto de Perfect Ted:</span>
+                            Es el líder indiscutible del mercado. Mantiene un share de ~28.7% en W16 gracias a su ASIN principal (Rank 1 continuo) apoyado por un precio ultra competitivo (~£7.99 - £8.27).
+                        </li>
+                        <li>
+                            <span class="insight-title">Altísima dependencia de los Deal Days:</span>
+                            Nuestro principal ASIN (B06XQ5DCYJ) alcanzó su pico máximo de share (16.42%) en la W16 coincidiendo con 7 días de Deal y un precio efectivo de £9.99. En semanas sin Deal (W14), cayó al 9.95%.
+                        </li>
+                        <li>
+                            <span class="insight-title">Ineficiencia en el posicionamiento Premium:</span>
+                            Nuestro ASIN secundario (B079VQ52MK), con precio >£20, mantiene un rank promedio entre 6 y 9, pero apenas genera un 3.5% - 4% de share. La elasticidad del precio en la SERP es drástica.
+                        </li>
+                        <li>
+                            <span class="insight-title">Los cupones por sí solos no salvan el Share:</span>
+                            La marca competidora SuperSelf utiliza Cupones los 7 días de la semana, pero su share ha caído de >5% a ~2%. La combinación Rank + Precio Base + Deal es mucho más potente que el badge de cupón aislado.
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <span class="material-icons">assignment_turned_in</span>
+                        <h2>5.2 Recomendaciones & Otras Observaciones</h2>
+                    </div>
+                    <ul class="insight-list recommendation-list">
+                        <li>
+                            <span class="insight-title">Ataque Frontal con Precio (B06XQ5DCYJ):</span>
+                            Perfect Ted domina el Rank 1 porque su precio base roza las £8. Para pelear la posición #1 real, necesitamos mantener el precio promocionado de £9.99 (o inferior) durante un periodo extendido, sacrificando margen inicial por masa crítica y BSR.
+                        </li>
+                        <li>
+                            <span class="insight-title">Revisar estrategia del ASIN Premium (B079VQ52MK):</span>
+                            Dado su bajo rendimiento en clics pese al ranking aceptable, sugerimos realizar un test A/B en el Product Title o Main Image para justificar el precio de £20.99, o desviar la inversión publicitaria hacia los ASINs más eficientes.
+                        </li>
+                        <li>
+                            <span class="insight-title">Sincronización de Portafolio (NaturaleBio + PureChimp):</span>
+                            Al identificar a PureChimp como ASIN propio (Yaba = Y), representamos en conjunto la 2ª fuerza del mercado. Debemos rotar los "Deal Days" entre ambas marcas para no canibalizar clics y asegurar que siempre tengamos un producto en oferta compitiendo contra Perfect Ted.
+                        </li>
+                    </ul>
+                    
+                    <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border);">
+                        <h3 style="font-size: 14px; margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+                            <span class="material-icons" style="font-size: 18px; color: var(--text-secondary);">visibility</span>
+                            6. Other Insights
+                        </h3>
+                        <p style="font-size: 13px; color: var(--text-secondary);">
+                            <strong>Anomalía:</strong> Double Dragon tiene un precio extremadamente bajo (£6.94) y rank 3-4, pero su share no despega del ~7-10%. Esto indica un grave problema de CTR (posiblemente la imagen principal, reviews o título) frente a NaturaleBio y Perfect Ted. Es una oportunidad si adquirimos tráfico cruzado.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PESTAÑA 2: COMPARADOR INTERACTIVO -->
+        <div id="interactive-tab" class="tab-content">
+            <div class="controls">
+                <div class="control-group">
+                    <label style="font-size: 12px; font-weight: 500;">Semana</label>
+                    <select id="select_week" onchange="updateComparator()">
+                        <option value="2026-16">Semana 16 (Última)</option>
+                        <option value="2026-15">Semana 15</option>
+                        <option value="2026-14">Semana 14</option>
+                        <option value="2026-13">Semana 13</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label style="font-size: 12px; font-weight: 500;">Competidor a comparar</label>
+                    <select id="select_competitor" onchange="updateComparator()">
+                        <option value="Perfect Ted">Perfect Ted (Líder)</option>
+                        <option value="Double Dragon">Double Dragon</option>
+                        <option value="SuperSelf">SuperSelf</option>
+                        <option value="Nouri">Nouri</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="grid-2">
+                <div class="card" style="display: flex; flex-direction: column; justify-content: center;">
+                    <div class="card-header">
+                        <span class="material-icons">compare_arrows</span>
+                        <h2>Cara a Cara: Share de Mercado</h2>
+                    </div>
+                    <div id="chart_interactive_share" class="chart-container" style="height: 250px;"></div>
+                </div>
+
+                <div class="grid-2" style="margin-bottom: 0;">
+                    <div class="vs-card">
+                        <div class="vs-label">Nosotros (NaturaleBio + PureChimp)</div>
+                        <div class="vs-value us-color" id="vs_us_share">--%</div>
+                        <div class="vs-label" style="margin-top: 16px;">Precio Promedio</div>
+                        <div style="font-size: 20px; font-weight: 500;" id="vs_us_price">£--</div>
+                        <div class="vs-label" style="margin-top: 16px;">Mejor Rank Orgánico</div>
+                        <div style="font-size: 20px; font-weight: 500;" id="vs_us_rank">#--</div>
+                    </div>
+                    
+                    <div class="vs-card">
+                        <div class="vs-label" id="vs_comp_name">Competidor</div>
+                        <div class="vs-value comp-color" id="vs_comp_share">--%</div>
+                        <div class="vs-label" style="margin-top: 16px;">Precio Promedio</div>
+                        <div style="font-size: 20px; font-weight: 500;" id="vs_comp_price">£--</div>
+                        <div class="vs-label" style="margin-top: 16px;">Mejor Rank Orgánico</div>
+                        <div style="font-size: 20px; font-weight: 500;" id="vs_comp_rank">#--</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Lógica JavaScript Vanilla & Google Charts -->
+    <script type="text/javascript">
+        // 1. CARGA DE DATOS RAW DESDE CSV
+        const rawCSV = `brand_aggregation,parent_asin,reporting_date,week_date,keywords,competitor_brand,asin,product_title,country_code,average_organic_rank,weekly_number_of_days_with_deal,weekly_number_of_days_with_best_seller_badge,weekly_number_of_days_with_amazon_choice_badge,weekly_number_of_days_with_coupon,click_share,impression_share,price,click_share_rank,weekly_search_volume,is_yaba_asin,keywords_link
+naturalebio,Matcha Premium,2026-04-04,2026-14,matcha,,B0G1MR1HQD,PureVerra Matcha Powder, Ceremonial Grade 100g,uk,22,0,0,0,0,2.01,2.81,7.84,9,126815.85,N,url
+naturalebio,Matcha Premium,2026-03-28,2026-13,matcha,Nouri,B08VLJ3T27,NOURI Organic Matcha,uk,8,0,0,0,0,3.72,3.71,7.55,6,68843.16,N,url
+naturalebio,Matcha Premium,2026-04-11,2026-15,matcha,SuperSelf,B08YK2RPBZ,SuperSelf Organic Matcha,uk,6,0,0,0,7,3.71,3.72,9.9,6,53297.44,N,url
+naturalebio,Matcha Premium,2026-04-04,2026-14,matcha,SuperSelf,B082DKRSB4,SuperSelf Organic Matcha,uk,9,1,0,0,7,2.1,3.18,19.18,8,126815.85,N,url
+naturalebio,Matcha Premium,2026-04-04,2026-14,matcha,Perfect Ted,B0D9M91WZD,PerfectTed Vanilla Bean Matcha,uk,22,0,0,0,0,1.62,1.16,7.99,10,126815.85,N,url
+naturalebio,Matcha Premium,2026-04-18,2026-16,matcha,NaturaleBio,B06XQ5DCYJ,NaturaleBio Japanese Organic Matcha,uk,2,7,0,2,7,16.42,4.56,9.99,2,96583.91,Y,url
+naturalebio,Matcha Premium,2026-03-28,2026-13,matcha,Perfect Ted,B0F21VZMJQ,PerfectTed Original Matcha,uk,3,0,0,0,0,8.06,5.26,19.99,4,68843.16,N,url
+naturalebio,Matcha Premium,2026-03-28,2026-13,matcha,SuperSelf,B082DKRSB4,SuperSelf Organic Matcha,uk,8,2,0,0,3,2.21,2.72,16.54,9,68843.16,N,url
+naturalebio,Matcha Premium,2026-04-04,2026-14,matcha,,B08YRXQ2JH,Double Dragon Organic Match,uk,4,0,0,2,0,10.28,4.13,6.94,2,126815.85,N,url
+naturalebio,Matcha Premium,2026-04-04,2026-14,matcha,NaturaleBio,B06XQ5DCYJ,NaturaleBio Japanese Organic Matcha,uk,4,0,0,2,7,9.95,4.55,12.49,3,126815.85,Y,url
+naturalebio,Matcha Premium,2026-04-18,2026-16,matcha,Heapwell Superfoods,B06XTYYYJ8,Heapwell Matcha,uk,8,6,0,0,0,2.61,4,8.70,9,96583.91,N,url
+naturalebio,Matcha Premium,2026-04-11,2026-15,matcha,PureChimp,B00HNDSOCI,PureChimp Ceremonial Grade Matcha,uk,10,6,0,0,0,2.4,2.86,10.69,8,53297.44,Y,url
+naturalebio,Matcha Premium,2026-04-18,2026-16,matcha,Perfect Ted,B0F21VZMJQ,PerfectTed Original Matcha,uk,4,0,0,0,0,5.28,4.08,19.99,4,96583.91,N,url
+naturalebio,Matcha Premium,2026-04-11,2026-15,matcha,SuperSelf,B082DKRSB4,SuperSelf Organic Matcha,uk,11,6,0,0,7,2.16,3.37,15.58,10,53297.44,N,url
+naturalebio,Matcha Premium,2026-04-11,2026-15,matcha,,B08YRXQ2JH,Double Dragon Organic Match,uk,4,0,0,0,0,8.01,4,6.94,3,53297.44,N,url
+naturalebio,Matcha Premium,2026-03-28,2026-13,matcha,Perfect Ted,B09DQ1PWGX,PerfectTed Organic Matcha,uk,1,0,0,3,0,15.57,4.79,3.42,1,68843.16,N,url
+naturalebio,Matcha Premium,2026-04-04,2026-14,matcha,Perfect Ted,B09DQ1PWGX,PerfectTed Organic Matcha,uk,1,0,0,4,0,17.42,5.56,7.99,1,126815.85,N,url
+naturalebio,Matcha Premium,2026-04-18,2026-16,matcha,PureChimp,B00HNDSOCI,PureChimp Ceremonial Grade Matcha,uk,5,7,0,0,0,3.88,4.31,9.99,6,96583.91,Y,url
+naturalebio,Matcha Premium,2026-04-04,2026-14,matcha,NaturaleBio,B079VQ52MK,NaturaleBio Japanese Organic Matcha,uk,7,0,0,0,7,3.51,4.04,20.99,7,126815.85,Y,url
+naturalebio,Matcha Premium,2026-03-28,2026-13,matcha,,B08YRXQ2JH,Double Dragon Organic Match,uk,3,0,0,0,0,10.51,4.03,6.94,3,68843.16,N,url
+naturalebio,Matcha Premium,2026-03-28,2026-13,matcha,,B0G1MR1HQD,PureVerra Matcha Powder,uk,22,0,0,0,0,1.69,3.03,7.32,10,68843.16,N,url
+naturalebio,Matcha Premium,2026-04-18,2026-16,matcha,Perfect Ted,B09DQ1PWGX,PerfectTed Organic Matcha,uk,1,0,0,7,0,21.24,5.54,8.27,1,96583.91,N,url
+naturalebio,Matcha Premium,2026-04-11,2026-15,matcha,Nouri,B08VLJ3T27,NOURI Organic Matcha,uk,7,0,0,0,0,4.7,4.41,7.29,5,53297.44,N,url
+naturalebio,Matcha Premium,2026-04-11,2026-15,matcha,Perfect Ted,B0F21VZMJQ,PerfectTed Original Matcha,uk,4,0,0,1,0,5.4,4.44,19.99,4,53297.44,N,url
+naturalebio,Matcha Premium,2026-04-04,2026-14,matcha,SuperSelf,B08YK2RPBZ,SuperSelf Organic Matcha,uk,7,0,0,0,7,4.55,3.96,9.9,5,126815.85,N,url
+naturalebio,Matcha Premium,2026-04-18,2026-16,matcha,NaturaleBio,B079VQ52MK,NaturaleBio Japanese Organic Matcha,uk,9,0,0,0,7,3.65,3.95,20.99,8,96583.91,Y,url
+naturalebio,Matcha Premium,2026-03-28,2026-13,matcha,NaturaleBio,B06XQ5DCYJ,NaturaleBio Japanese Organic Matcha,uk,3,0,0,0,3,10.79,4.42,7.49,2,68843.16,Y,url
+naturalebio,Matcha Premium,2026-04-11,2026-15,matcha,NaturaleBio,B06XQ5DCYJ,NaturaleBio Japanese Organic Matcha,uk,2,6,0,1,7,13.83,4.74,10.34,2,53297.44,Y,url
+naturalebio,Matcha Premium,2026-04-04,2026-14,matcha,Perfect Ted,B0F21VZMJQ,PerfectTed Original Matcha,uk,2,0,0,2,0,6.59,4.66,19.99,4,126815.85,N,url
+naturalebio,Matcha Premium,2026-04-04,2026-14,matcha,Nouri,B08VLJ3T27,NOURI Organic Matcha,uk,7,0,0,0,0,4.44,4.4,7.29,6,126815.85,N,url
+naturalebio,Matcha Premium,2026-04-18,2026-16,matcha,Nouri,B08VLJ3T27,NOURI Organic Matcha,uk,8,0,0,0,0,4,4.08,7.29,5,96583.91,N,url
+naturalebio,Matcha Premium,2026-04-18,2026-16,matcha,Perfect Ted,B0D9M91WZD,PerfectTed Vanilla Bean Matcha,uk,16,0,0,0,0,2.25,1.35,8.27,10,96583.91,N,url
+naturalebio,Matcha Premium,2026-04-11,2026-15,matcha,Perfect Ted,B09DQ1PWGX,PerfectTed Organic Matcha,uk,1,0,0,7,0,18.49,5.67,7.99,1,53297.44,N,url
+naturalebio,Matcha Premium,2026-03-28,2026-13,matcha,NaturaleBio,B079VQ52MK,NaturaleBio Japanese Organic Matcha,uk,6,0,0,0,3,3.37,3.76,20.99,7,68843.16,Y,url
+naturalebio,Matcha Premium,2026-03-28,2026-13,matcha,SuperSelf,B08YK2RPBZ,SuperSelf Organic Matcha,uk,6,0,0,0,3,5.11,3.87,9.9,5,68843.16,N,url
+naturalebio,Matcha Premium,2026-03-28,2026-13,matcha,Heapwell Superfoods,B06XTYYYJ8,Heapwell Matcha,uk,10,0,0,0,0,2.59,2.39,9.99,8,68843.16,N,url
+naturalebio,Matcha Premium,2026-04-18,2026-16,matcha,,B08YRXQ2JH,Double Dragon Organic Match,uk,4,0,0,0,0,7.36,3.99,6.94,3,96583.91,N,url
+naturalebio,Matcha Premium,2026-04-11,2026-15,matcha,NaturaleBio,B079VQ52MK,NaturaleBio Japanese Organic Matcha,uk,8,0,0,0,7,2.94,4.09,20.99,7,53297.44,Y,url`;
+
+        // Procesamiento del CSV a Array de Objetos
+        function parseCSV(csvText) {
+            const lines = csvText.trim().split('\n');
+            const headers = lines[0].split(',');
+            const data = [];
+            
+            for(let i=1; i<lines.length; i++) {
+                const values = lines[i].split(',');
+                const row = {};
+                headers.forEach((h, idx) => {
+                    row[h] = values[idx];
+                });
+
+                // Regla Crítica 2.1 y 2.2: Marca Real
+                let brand = row.competitor_brand;
+                if (!brand || brand === '') {
+                    const title = row.product_title.toLowerCase();
+                    if (title.includes('pureverra')) brand = 'PureVerra';
+                    else if (title.includes('double dragon')) brand = 'Double Dragon';
+                    else brand = 'Unknown Brand';
+                }
+                
+                data.push({
+                    week: row.week_date,
+                    asin: row.asin,
+                    is_yaba: row.is_yaba_asin,
+                    brand: brand,
+                    rank: parseFloat(row.average_organic_rank),
+                    deals: parseInt(row.weekly_number_of_days_with_deal),
+                    coupons: parseInt(row.weekly_number_of_days_with_coupon),
+                    click_share: parseFloat(row.click_share),
+                    price: parseFloat(row.price),
+                    volume: parseFloat(row.weekly_search_volume)
+                });
+            }
+            return data;
+        }
+
+        const marketData = parseCSV(rawCSV);
+
+        // Agrupadores Globales
+        const weeks = [...new Set(marketData.map(d => d.week))].sort();
+        const ourBrands = [...new Set(marketData.filter(d => d.is_yaba === 'Y').map(d => d.brand))];
+
+        // INICIALIZACIÓN GOOGLE CHARTS
+        google.charts.load('current', {'packages':['corechart', 'bar']});
+        google.charts.setOnLoadCallback(drawAllCharts);
+
+        function drawAllCharts() {
+            drawTrendChart();
+            drawCompetitivenessChart();
+            drawLeversChart();
+            drawEfficiencyChart();
+            updateComparator(); // Inicializa Pestaña 2
+        }
+
+        // 1. CHART: Tendencia Global
+        function drawTrendChart() {
+            const data = new google.visualization.DataTable();
+            data.addColumn('string', 'Semana');
+            data.addColumn('number', 'Vol. Búsquedas (Miles)');
+            data.addColumn('number', 'Click Share Nosotros (%)');
+            data.addColumn('number', 'Click Share Competencia (%)');
+
+            weeks.forEach(w => {
+                const weekData = marketData.filter(d => d.week === w);
+                const volume = weekData[0].volume / 1000;
+                const ourShare = weekData.filter(d => d.is_yaba === 'Y').reduce((sum, d) => sum + d.click_share, 0);
+                const compShare = weekData.filter(d => d.is_yaba === 'N').reduce((sum, d) => sum + d.click_share, 0);
+                data.addRow([w, volume, ourShare, compShare]);
+            });
+
+            const options = {
+                seriesType: 'bars',
+                series: {
+                    0: { targetAxisIndex: 1, color: '#e0e0e0' }, // Volume bars
+                    1: { type: 'line', targetAxisIndex: 0, color: '#4285F4', lineWidth: 3 }, // Us
+                    2: { type: 'line', targetAxisIndex: 0, color: '#EA4335', lineWidth: 2 }  // Comp
+                },
+                vAxes: {
+                    0: { title: 'Click Share (%)' },
+                    1: { title: 'Search Volume (K)' }
+                },
+                legend: { position: 'top' },
+                chartArea: { width: '80%', height: '70%' },
+                fontName: 'Roboto'
+            };
+
+            const chart = new google.visualization.ComboChart(document.getElementById('chart_trend'));
+            chart.draw(data, options);
+        }
+
+        // 2. CHART: Competitividad
+        function drawCompetitivenessChart() {
+            const data = new google.visualization.DataTable();
+            data.addColumn('string', 'Semana');
+            data.addColumn('number', 'Nosotros (NaturaleBio+PureChimp)');
+            data.addColumn('number', 'Perfect Ted');
+            data.addColumn('number', 'Double Dragon');
+            data.addColumn('number', 'SuperSelf');
+
+            weeks.forEach(w => {
+                const wd = marketData.filter(d => d.week === w);
+                
+                const us = wd.filter(d => d.is_yaba === 'Y').reduce((s, d) => s + d.click_share, 0);
+                const pt = wd.filter(d => d.brand === 'Perfect Ted').reduce((s, d) => s + d.click_share, 0);
+                const dd = wd.filter(d => d.brand === 'Double Dragon').reduce((s, d) => s + d.click_share, 0);
+                const ss = wd.filter(d => d.brand === 'SuperSelf').reduce((s, d) => s + d.click_share, 0);
+                
+                data.addRow([w, us, pt, dd, ss]);
+            });
+
+            const options = {
+                curveType: 'function',
+                legend: { position: 'top' },
+                colors: ['#4285F4', '#FBBC05', '#EA4335', '#34A853'],
+                lineWidth: 3,
+                chartArea: { width: '85%', height: '70%' },
+                fontName: 'Roboto',
+                vAxis: { title: 'Click Share (%)' }
+            };
+
+            const chart = new google.visualization.LineChart(document.getElementById('chart_competitiveness'));
+            chart.draw(data, options);
+        }
+
+        // 3. CHART: Palancas
+        function drawLeversChart() {
+            const data = new google.visualization.DataTable();
+            data.addColumn('string', 'Condición');
+            data.addColumn('number', 'Click Share Promedio por ASIN (%)');
+            data.addColumn({type: 'string', role: 'style'});
+
+            // Analizamos solo W16 para las palancas actuales
+            const w16 = marketData.filter(d => d.week === '2026-16');
+            
+            const withDeals = w16.filter(d => d.deals > 0);
+            const withoutDeals = w16.filter(d => d.deals === 0);
+            
+            const avgDeals = withDeals.reduce((s, d) => s + d.click_share, 0) / (withDeals.length || 1);
+            const avgNoDeals = withoutDeals.reduce((s, d) => s + d.click_share, 0) / (withoutDeals.length || 1);
+
+            data.addRow(['ASINs con Deal', avgDeals, 'color: #34A853']);
+            data.addRow(['ASINs sin Deal', avgNoDeals, 'color: #dadce0']);
+
+            const options = {
+                legend: 'none',
+                hAxis: { title: 'Promedio Click Share (%)' },
+                chartArea: { width: '60%', height: '70%' },
+                fontName: 'Roboto'
+            };
+
+            const chart = new google.visualization.BarChart(document.getElementById('chart_levers'));
+            chart.draw(data, options);
+        }
+
+        // 4. CHART: Eficiencia (Scatter)
+        function drawEfficiencyChart() {
+            const data = new google.visualization.DataTable();
+            data.addColumn('number', 'Organic Rank');
+            data.addColumn('number', 'Nuestros ASINs');
+            data.addColumn('number', 'Competidores');
+            data.addColumn({type: 'string', role: 'tooltip'});
+
+            // Últimas 2 semanas para densidad
+            const recent = marketData.filter(d => d.week === '2026-16' || d.week === '2026-15');
+
+            recent.forEach(d => {
+                const tooltip = `${d.brand} (Rank: ${d.rank}, Share: ${d.click_share.toFixed(1)}%, Precio: £${d.price})`;
+                if (d.is_yaba === 'Y') {
+                    data.addRow([d.rank, d.click_share, null, tooltip]);
+                } else {
+                    data.addRow([d.rank, null, d.click_share, tooltip]);
+                }
+            });
+
+            const options = {
+                hAxis: { title: 'Organic Rank (Más bajo es mejor)', direction: -1 },
+                vAxis: { title: 'Click Share (%)' },
+                colors: ['#4285F4', '#EA4335'],
+                legend: { position: 'top' },
+                chartArea: { width: '80%', height: '70%' },
+                fontName: 'Roboto'
+            };
+
+            const chart = new google.visualization.ScatterChart(document.getElementById('chart_efficiency'));
+            chart.draw(data, options);
+        }
+
+        // Pestaña 2: COMPARADOR INTERACTIVO
+        function updateComparator() {
+            const week = document.getElementById('select_week').value;
+            const compName = document.getElementById('select_competitor').value;
+            
+            const wd = marketData.filter(d => d.week === week);
+            const usData = wd.filter(d => d.is_yaba === 'Y');
+            const compData = wd.filter(d => d.brand === compName);
+
+            // Cálculos US
+            const usShare = usData.reduce((s, d) => s + d.click_share, 0);
+            const usAvgPrice = usData.reduce((s, d) => s + d.price, 0) / (usData.length || 1);
+            const usBestRank = Math.min(...usData.map(d => d.rank));
+
+            // Cálculos COMP
+            const compShare = compData.reduce((s, d) => s + d.click_share, 0);
+            const compAvgPrice = compData.length > 0 ? compData.reduce((s, d) => s + d.price, 0) / compData.length : 0;
+            const compBestRank = compData.length > 0 ? Math.min(...compData.map(d => d.rank)) : 0;
+
+            // Update DOM Texts
+            document.getElementById('vs_us_share').innerText = usShare.toFixed(1) + '%';
+            document.getElementById('vs_us_price').innerText = '£' + usAvgPrice.toFixed(2);
+            document.getElementById('vs_us_rank').innerText = '#' + usBestRank;
+
+            document.getElementById('vs_comp_name').innerText = compName;
+            document.getElementById('vs_comp_share').innerText = compData.length ? compShare.toFixed(1) + '%' : 'N/A';
+            document.getElementById('vs_comp_price').innerText = compData.length ? '£' + compAvgPrice.toFixed(2) : 'N/A';
+            document.getElementById('vs_comp_rank').innerText = compData.length ? '#' + compBestRank : 'N/A';
+
+            // Draw Bar Chart
+            const data = new google.visualization.DataTable();
+            data.addColumn('string', 'Marca');
+            data.addColumn('number', 'Share');
+            data.addColumn({type: 'string', role: 'style'});
+
+            data.addRow(['Nosotros', usShare, 'color: #4285F4']);
+            if (compData.length > 0) {
+                data.addRow([compName, compShare, 'color: #EA4335']);
+            }
+
+            const options = {
+                legend: 'none',
+                vAxis: { minValue: 0 },
+                chartArea: { width: '80%', height: '80%' },
+                fontName: 'Roboto'
+            };
+
+            const chart = new google.visualization.ColumnChart(document.getElementById('chart_interactive_share'));
+            chart.draw(data, options);
+        }
+
+        // UI Tabs Logic
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            
+            if (tabId === 'static') {
+                document.getElementById('static-tab').classList.add('active');
+                document.querySelectorAll('.tab-btn')[0].classList.add('active');
+                drawAllCharts(); // Redraw para arreglar anchos
+            } else {
+                document.getElementById('interactive-tab').classList.add('active');
+                document.querySelectorAll('.tab-btn')[1].classList.add('active');
+                updateComparator();
+            }
+        }
+
+        // Redraw en resize
+        window.onresize = drawAllCharts;
+    </script>
+</body>
+</html>
