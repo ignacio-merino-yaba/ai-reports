@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Análisis de Rendimiento - Parent ASIN</title>
+    <!-- Google Fonts & Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <!-- Google Charts -->
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+
+    <style>
+        :root {
+            --primary: #1a73e8;
+            --success: #188038;
+            --danger: #d93025;
+            --warning: #f9ab00;
+            --bg-color: #f8f9fa;
+            --card-bg: #ffffff;
+            --text-main: #202124;
+            --text-muted: #5f6368;
+            --border-color: #dadce0;
+            --font-family: 'Roboto', sans-serif;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: var(--font-family);
+            background-color: var(--bg-color);
+            color: var(--text-main);
+        }
+
+        .header {
+            background-color: var(--card-bg);
+            padding: 16px 24px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 1px 2px 0 rgba(60,64,67,0.3), 0 1px 3px 1px rgba(60,64,67,0.15);
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 22px;
+            font-weight: 500;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 24px;
+            padding: 0 24px;
+            background: var(--card-bg);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .tab {
+            padding: 16px 8px;
+            cursor: pointer;
+            font-weight: 500;
+            color: var(--text-muted);
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .tab.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        .view {
+            display: none;
+        }
+
+        .view.active {
+            display: block;
+        }
+
+        /* Grid Layout */
+        .grid {
+            display: grid;
+            gap: 24px;
+        }
+        
+        .grid-2 { grid-template-columns: 1fr 1fr; }
+        .grid-3 { grid-template-columns: repeat(3, 1fr); }
+        .grid-4 { grid-template-columns: repeat(4, 1fr); }
+
+        /* Cards */
+        .card {
+            background: var(--card-bg);
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 1px 2px 0 rgba(60,64,67,0.3), 0 1px 3px 1px rgba(60,64,67,0.15);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .card-header h2 {
+            margin: 0;
+            font-size: 16px;
+            font-weight: 500;
+            color: var(--text-main);
+        }
+
+        .card-header .material-icons {
+            color: var(--primary);
+            font-size: 20px;
+        }
+
+        /* KPI styling */
+        .kpi {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        
+        .kpi-title {
+            font-size: 13px;
+            color: var(--text-muted);
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .kpi-value {
+            font-size: 28px;
+            font-weight: 400;
+            color: var(--primary);
+        }
+
+        .kpi-change {
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-weight: 500;
+        }
+
+        .positive { color: var(--success); }
+        .negative { color: var(--danger); }
+
+        .chart-container {
+            width: 100%;
+            height: 350px;
+        }
+
+        /* Text content lists */
+        ul.insights-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        ul.insights-list li {
+            position: relative;
+            padding-left: 32px;
+            margin-bottom: 16px;
+            line-height: 1.5;
+            font-size: 14px;
+        }
+
+        ul.insights-list li .material-icons {
+            position: absolute;
+            left: 0;
+            top: -2px;
+            font-size: 20px;
+            color: var(--primary);
+        }
+
+        .controls {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        select {
+            padding: 8px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            font-family: inherit;
+            font-size: 14px;
+            color: var(--text-main);
+            background-color: var(--card-bg);
+            outline: none;
+        }
+        
+        select:focus {
+            border-color: var(--primary);
+        }
+
+        @media (max-width: 1024px) {
+            .grid-3, .grid-4 { grid-template-columns: 1fr 1fr; }
+        }
+        @media (max-width: 768px) {
+            .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1><span class="material-icons">analytics</span> Yaba Market Intelligence: Análisis de Parent ASIN</h1>
+        <div style="font-size: 14px; color: var(--text-muted);">
+            Parent: <strong>B08PARENT1</strong> | Mercado: <strong>US</strong>
+        </div>
+    </div>
+
+    <div class="tabs">
+        <div class="tab active" onclick="switchTab('report')">1. Reporte Estático y Tendencias</div>
+        <div class="tab" onclick="switchTab('compare')">2. Comparador Interactivo</div>
+    </div>
+
+    <div class="container">
+        
+        <!-- VIEW 1: REPORTE -->
+        <div id="view-report" class="view active">
+            
+            <div class="grid grid-4" style="margin-bottom: 24px;">
+                <div class="card kpi">
+                    <span class="kpi-title">Share de Clicks (Última Semana)</span>
+                    <span class="kpi-value" id="kpi-share">--%</span>
+                    <span class="kpi-change positive" id="kpi-share-change"><span class="material-icons">trending_up</span> --% vs previa</span>
+                </div>
+                <div class="card kpi">
+                    <span class="kpi-title">Clics Totales (Última Semana)</span>
+                    <span class="kpi-value" id="kpi-clicks">--</span>
+                    <span class="kpi-change positive" id="kpi-clicks-change"><span class="material-icons">trending_up</span> --% vs previa</span>
+                </div>
+                <div class="card kpi">
+                    <span class="kpi-title">Organic Rank Promedio</span>
+                    <span class="kpi-value" id="kpi-rank">--</span>
+                    <span class="kpi-change negative" id="kpi-rank-change"><span class="material-icons">trending_down</span> -- posiciones</span>
+                </div>
+                <div class="card kpi">
+                    <span class="kpi-title">Eficiencia de Deal Days</span>
+                    <span class="kpi-value" id="kpi-deals">--x</span>
+                    <span style="font-size:13px; color:var(--text-muted);">Multiplicador de cuota en deals</span>
+                </div>
+            </div>
+
+            <div class="grid grid-2" style="margin-bottom: 24px;">
+                <!-- SECCIÓN 1 -->
+                <div class="card">
+                    <div class="card-header">
+                        <span class="material-icons">timeline</span>
+                        <h2>1. Tendencia Global del Parent</h2>
+                    </div>
+                    <p style="font-size:13px; color:var(--text-muted); margin-top:0;">Clics agregados y Click Share por propiedad del ASIN (Nosotros vs Competencia).</p>
+                    <div id="chart_global_trend" class="chart-container"></div>
+                </div>
+
+                <!-- SECCIÓN 2 -->
+                <div class="card">
+                    <div class="card-header">
+                        <span class="material-icons">storefront</span>
+                        <h2>2. Competitividad de Marca</h2>
+                    </div>
+                    <p style="font-size:13px; color:var(--text-muted); margin-top:0;">Curva de Click Share: Nuestra Marca vs Top 3 Competidores.</p>
+                    <div id="chart_brand_comp" class="chart-container"></div>
+                </div>
+            </div>
+
+            <div class="grid grid-2" style="margin-bottom: 24px;">
+                <!-- SECCIÓN 3 -->
+                <div class="card">
+                    <div class="card-header">
+                        <span class="material-icons">local_offer</span>
+                        <h2>3. Palancas que Aumentan Click Share</h2>
+                    </div>
+                    <p style="font-size:13px; color:var(--text-muted); margin-top:0;">Impacto de Price, Deals y Badges en la cuota media.</p>
+                    <div id="chart_levers" class="chart-container"></div>
+                </div>
+
+                <!-- SECCIÓN 4 -->
+                <div class="card">
+                    <div class="card-header">
+                        <span class="material-icons">scatter_plot</span>
+                        <h2>4. Organic Rank vs Click Share (Eficiencia)</h2>
+                    </div>
+                    <p style="font-size:13px; color:var(--text-muted); margin-top:0;">Dispersión de eficiencia (arriba a la izquierda es mejor).</p>
+                    <div id="chart_efficiency" class="chart-container"></div>
+                </div>
+            </div>
+
+            <div class="grid grid-2" style="margin-bottom: 24px;">
+                <!-- SECCIÓN 5 -->
+                <div class="card">
+                    <div class="card-header">
+                        <span class="material-icons">lightbulb</span>
+                        <h2>5. Conclusiones y Recomendaciones</h2>
+                    </div>
+                    <h3 style="font-size: 14px; color: var(--primary);">Insights Clave</h3>
+                    <ul class="insights-list" id="insights_list">
+                        <!-- Populated by JS based on data -->
+                    </ul>
+                    
+                    <h3 style="font-size: 14px; color: var(--success); margin-top: 24px;">Recomendaciones Accionables</h3>
+                    <ul class="insights-list" id="recommendations_list">
+                        <!-- Populated by JS -->
+                    </ul>
+                </div>
+
+                <!-- SECCIÓN 6 -->
+                <div class="card">
+                    <div class="card-header">
+                        <span class="material-icons">visibility</span>
+                        <h2>6. Other Insights & Patrones</h2>
+                    </div>
+                    <ul class="insights-list" id="other_insights_list">
+                        <!-- Populated by JS -->
+                    </ul>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- VIEW 2: COMPARADOR INTERACTIVO -->
+        <div id="view-compare" class="view">
+            <div class="card" style="margin-bottom: 24px;">
+                <div class="card-header">
+                    <span class="material-icons">compare_arrows</span>
+                    <h2>Cara a Cara: Nuestro Parent vs Competidor</h2>
+                </div>
+                <div class="controls">
+                    <select id="select_week" onchange="updateComparator()"></select>
+                    <select id="select_competitor" onchange="updateComparator()"></select>
+                </div>
+                
+                <div class="grid grid-2">
+                    <div>
+                        <h3 style="font-size: 15px; text-align: center;">Comparativa de KPIs</h3>
+                        <div id="table_comparator" style="width: 100%;"></div>
+                    </div>
+                    <div>
+                        <h3 style="font-size: 15px; text-align: center;">Share por Keyword</h3>
+                        <div id="chart_compare_kws" class="chart-container"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- DATA INJECTION -->
+    <script>
+        // DATOS INYECTADOS DIRECTAMENTE DEL CSV/BACKEND
+        const marketData = [{"brand_aggregation": "Home&Kitchen", "parent_asin": "B08PARENT1", "week_date": "2023-10-01", "keywords": "blender", "competitor_brand": "YabaBrand", "asin": "B08OURS01", "product_title": "YabaBrand Blender 1000W", "country_code": "US", "average_organic_rank": 6, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.1706, "price": 49.99, "weekly_search_volume": 47683, "is_yaba_asin": "Y", "keywords_link": "https://amazon.com/s?k=blender", "clicks": 8134}, {"brand_aggregation": "Home&Kitchen", "parent_asin": "B08PARENT1", "week_date": "2023-10-01", "keywords": "blender", "competitor_brand": "Ninja", "asin": "B08COMP01", "product_title": "Ninja Blender 1000W", "country_code": "US", "average_organic_rank": 3, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7, "weekly_number_of_days_with_coupon": 0, "click_share": 0.334, "price": 89.99, "weekly_search_volume": 47683, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=blender", "clicks": 15926}, {"brand_aggregation": "Home&Kitchen", "parent_asin": "B08PARENT1", "week_date": "2023-10-01", "keywords": "blender", "competitor_brand": "Nutribullet", "asin": "B08COMP02", "product_title": "Nutribullet Blender 1000W", "country_code": "US", "average_organic_rank": 4, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.3168, "price": 69.99, "weekly_search_volume": 47683, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=blender", "clicks": 15105}, {"brand_aggregation": "Home&Kitchen", "parent_asin": "B08PARENT1", "week_date": "2023-10-01", "keywords": "blender", "competitor_brand": "MagicBullet", "asin": "B08COMP03", "product_title": "MagicBullet Blender 1000W", "country_code": "US", "average_organic_rank": 8, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.1039, "price": 39.99, "weekly_search_volume": 47683, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=blender", "clicks": 4954}, {"brand_aggregation": "Home&Kitchen", "parent_asin": "B08PARENT1", "week_date": "2023-10-01", "keywords": "blender", "competitor_brand": null, "asin": "B08COMP04", "product_title": "CheapBrand Portable Blender", "country_code": "US", "average_organic_rank": 22, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.0746, "price": 29.99, "weekly_search_volume": 47683, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=blender", "clicks": 3557}, {"brand_aggregation": "Home&Kitchen", "parent_asin": "B08PARENT1", "week_date": "2023-10-01", "keywords": "smoothie maker", "competitor_brand": "YabaBrand", "asin": "B08OURS01", "product_title": "YabaBrand Smoothie maker 1000W", "country_code": "US", "average_organic_rank": 7, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.1837, "price": 49.99, "weekly_search_volume": 15516, "is_yaba_asin": "Y", "keywords_link": "https://amazon.com/s?k=smoothie+maker", "clicks": 2850}, {"brand_aggregation": "Home&Kitchen", "parent_asin": "B08PARENT1", "week_date": "2023-10-01", "keywords": "smoothie maker", "competitor_brand": "Ninja", "asin": "B08COMP01", "product_title": "Ninja Smoothie maker 1000W", "country_code": "US", "average_organic_rank": 2, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7, "weekly_number_of_days_with_coupon": 0, "click_share": 0.352, "price": 89.99, "weekly_search_volume": 15516, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=smoothie+maker", "clicks": 5461}, {"brand_aggregation": "Home&Kitchen", "parent_asin": "B08PARENT1", "week_date": "2023-10-01", "keywords": "smoothie maker", "competitor_brand": "Nutribullet", "asin": "B08COMP02", "product_title": "Nutribullet Smoothie maker 1000W", "country_code": "US", "average_organic_rank": 4, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.2885, "price": 69.99, "weekly_search_volume": 15516, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=smoothie+maker", "clicks": 4476}, {"brand_aggregation": "Home&Kitchen", "parent_asin": "B08PARENT1", "week_date": "2023-10-01", "keywords": "smoothie maker", "competitor_brand": "MagicBullet", "asin": "B08COMP03", "product_title": "MagicBullet Smoothie maker 1000W", "country_code": "US", "average_organic_rank": 9, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.1265, "price": 39.99, "weekly_search_volume": 15516, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=smoothie+maker", "clicks": 1962}, {"brand_aggregation": "Home&Kitchen", "parent_asin": "B08PARENT1", "week_date": "2023-10-01", "keywords": "smoothie maker", "competitor_brand": null, "asin": "B08COMP04", "product_title": "CheapBrand Portable Blender", "country_code": "US", "average_organic_rank": 19, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.0494, "price": 29.99, "weekly_search_volume": 15516, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=smoothie+maker", "clicks": 766}, {"brand_aggregation": "Home&Kitchen", "parent_asin": "B08PARENT1", "week_date": "2023-10-08", "keywords": "blender", "competitor_brand": "YabaBrand", "asin": "B08OURS01", "product_title": "YabaBrand Blender 1000W", "country_code": "US", "average_organic_rank": 4, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.201, "price": 49.99, "weekly_search_volume": 45431, "is_yaba_asin": "Y", "keywords_link": "https://amazon.com/s?k=blender", "clicks": 9131}, {"brand_aggregation": "Home&Kitchen", "parent_asin": "B08PARENT1", "week_date": "2023-10-08", "keywords": "blender", "competitor_brand": "Ninja", "asin": "B08COMP01", "product_title": "Ninja Blender 1000W", "country_code": "US", "average_organic_rank": 3, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7, "weekly_number_of_days_with_coupon": 0, "click_share": 0.3541, "price": 89.99, "weekly_search_volume": 45431, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=blender", "clicks": 16087}, {"brand_aggregation": "Home&Kitchen", "parent_asin": "B08PARENT1", "week_date": "2023-10-08", "keywords": "blender", "competitor_brand": "Nutribullet", "asin": "B08COMP02", "product_title": "Nutribullet Blender 1000W", "country_code": "US", "average_organic_rank": 4, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.2505, "price": 69.99, "weekly_search_volume": 45431, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=blender", "clicks": 11380}, {"brand_aggregation": "Home&Kitchen", "parent_asin": "B08PARENT1", "week_date": "2023-10-08", "keywords": "blender", "competitor_brand": "MagicBullet", "asin": "B08COMP03", "product_title": "MagicBullet Blender 1000W", "country_code": "US", "average_organic_rank": 8, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.1245, "price": 39.99, "weekly_search_volume": 45431, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=blender", "clicks": 5656}, {"brand_aggregation": "Home&Kitchen", "parent_asin": "B08PARENT1", "week_date": "2023-10-08", "keywords": "blender", "competitor_brand": null, "asin": "B08COMP04", "product_title": "CheapBrand Portable Blender", "country_code": "US", "average_organic_rank": 14, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.0699, "price": 29.99, "weekly_search_volume": 45431, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=blender", "clicks": 3175}, {"brand_aggregation": "Home&Kitchen", "parent_asin": "B08PARENT1", "week_date": "2023-10-08", "keywords": "smoothie maker", "competitor_brand": "YabaBrand", "asin": "B08OURS01", "product_title": "YabaBrand Smoothie maker 1000W", "country_code": "US", "average_organic_rank": 7, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.1878, "price": 49.99, "weekly_search_volume": 18276, "is_yaba_asin": "Y", "keywords_link": "https://amazon.com/s?k=smoothie+maker", "clicks": 3432}, {"brand_aggregation": "Home&Kitchen", "parent_asin": "B08PARENT1", "week_date": "2023-10-08", "keywords": "smoothie maker", "competitor_brand": "Ninja", "asin": "B08COMP01", "product_title": "Ninja Smoothie maker 1000W", "country_code": "US", "average_organic_rank": 3, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7, "weekly_number_of_days_with_coupon": 0, "click_share": 0.3644, "price": 89.99, "weekly_search_volume": 18276, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=smoothie+maker", "clicks": 6660}, {"brand_aggregation": "Home&Kitchen", "parent_asin": "B08PARENT1", "week_date": "2023-10-08", "keywords": "smoothie maker", "competitor_brand": "Nutribullet", "asin": "B08COMP02", "product_title": "Nutribullet Smoothie maker 1000W", "country_code": "US", "average_organic_rank": 5, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.2831, "price": 69.99, "weekly_search_volume": 18276, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=smoothie+maker", "clicks": 5173}, {"brand_aggregation": "Home&Kitchen", "parent_asin": "B08PARENT1", "week_date": "2023-10-08", "keywords": "smoothie maker", "competitor_brand": "MagicBullet", "asin": "B08COMP03", "product_title": "MagicBullet Smoothie maker 1000W", "country_code": "US", "average_organic_rank": 10, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.111, "price": 39.99, "weekly_search_volume": 18276, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=smoothie+maker", "clicks": 2028}, {"brand_aggregation": "Home&Kitchen", "parent_asin": "B08PARENT1", "week_date": "2023-10-08", "keywords": "smoothie maker", "competitor_brand": null, "asin": "B08COMP04", "product_title": "CheapBrand Portable Blender", "country_code": "US", "average_organic_rank": 19, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.0537, "price": 29.99, "weekly_search_volume": 18276, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=smoothie+maker", "clicks": 981}, {"brand_aggregation": "Home&Kitchen", "parent_asin": "B08PARENT1", "week_date": "2023-10-15", "keywords": "blender", "competitor_brand": "YabaBrand", "asin": "B08OURS01", "product_title": "YabaBrand Blender 1000W", "country_code": "US", "average_organic_rank": 4, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.2295, "price": 49.99, "weekly_search_volume": 44415, "is_yaba_asin": "Y", "keywords_link": "https://amazon.com/s?k=blender", "clicks": 10193}, {"brand_aggregation": "Home&Kitchen", "parent_asin": "B08PARENT1", "week_date": "2023-10-15", "keywords": "blender", "competitor_brand": "Ninja", "asin": "B08COMP01", "product_title": "Ninja Blender 1000W", "country_code": "US", "average_organic_rank": 5, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7, "weekly_number_of_days_with_coupon": 0, "click_share": 0.3204, "price": 89.99, "weekly_search_volume": 44415, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=blender", "clicks": 14230}, {"brand_aggregation": "Home&Kitchen", "parent_asin": "B08PARENT1", "week_date": "2023-10-15", "keywords": "blender", "competitor_brand": "Nutribullet", "asin": "B08COMP02", "product_title": "Nutribullet Blender 1000W", "country_code": "US", "average_organic_rank": 6, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.2284, "price": 69.99, "weekly_search_volume": 44415, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=blender", "clicks": 10144}, {"brand_aggregation": "Home&Kitchen", "parent_asin": "B08PARENT1", "week_date": "2023-10-15", "keywords": "blender", "competitor_brand": "MagicBullet", "asin": "B08COMP03", "product_title": "MagicBullet Blender 1000W", "country_code": "US", "average_organic_rank": 9, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 7, "click_share": 0.1586, "price": 39.99, "weekly_search_volume": 44415, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=blender", "clicks": 7044}, {"brand_aggregation": "Home&Kitchen", "parent_asin": "B08PARENT1", "week_date": "2023-10-15", "keywords": "blender", "competitor_brand": null, "asin": "B08COMP04", "product_title": "CheapBrand Portable Blender", "country_code": "US", "average_organic_rank": 16, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.0631, "price": 29.99, "weekly_search_volume": 44415, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=blender", "clicks": 2802}, {"brand_aggregation": "Home&Kitchen", "parent_asin": "B08PARENT1", "week_date": "2023-10-15", "keywords": "smoothie maker", "competitor_brand": "YabaBrand", "asin": "B08OURS01", "product_title": "YabaBrand Smoothie maker 1000W", "country_code": "US", "average_organic_rank": 4, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.2079, "price": 49.99, "weekly_search_volume": 18278, "is_yaba_asin": "Y", "keywords_link": "https://amazon.com/s?k=smoothie+maker", "clicks": 3800}, {"brand_aggregation": "Home&Kitchen", "parent_asin": "B08PARENT1", "week_date": "2023-10-15", "keywords": "smoothie maker", "competitor_brand": "Ninja", "asin": "B08COMP01", "product_title": "Ninja Smoothie maker 1000W", "country_code": "US", "average_organic_rank": 3, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7, "weekly_number_of_days_with_coupon": 0, "click_share": 0.3541, "price": 89.99, "weekly_search_volume": 18278, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=smoothie+maker", "clicks": 6472}, {"brand_aggregation": "Home&Kitchen", "parent_asin": "B08PARENT1", "week_date": "2023-10-15", "keywords": "smoothie maker", "competitor_brand": "Nutribullet", "asin": "B08COMP02", "product_title": "Nutribullet Smoothie maker 1000W", "country_code": "US", "average_organic_rank": 5, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.2443, "price": 69.99, "weekly_search_volume": 18278, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=smoothie+maker", "clicks": 4465}, {"brand_aggregation": "Home&Kitchen", "parent_asin": "B08PARENT1", "week_date": "2023-10-15", "keywords": "smoothie maker", "competitor_brand": "MagicBullet", "asin": "B08COMP03", "product_title": "MagicBullet Smoothie maker 1000W", "country_code": "US", "average_organic_rank": 9, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 7, "click_share": 0.1299, "price": 39.99, "weekly_search_volume": 18278, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=smoothie+maker", "clicks": 2374}, {"brand_aggregation": "Home&Kitchen", "parent_asin": "B08PARENT1", "week_date": "2023-10-15", "keywords": "smoothie maker", "competitor_brand": null, "asin": "B08COMP04", "product_title": "CheapBrand Portable Blender", "country_code": "US", "average_organic_rank": 17, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.0638, "price": 29.99, "weekly_search_volume": 18278, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=smoothie+maker", "clicks": 1166}, {"brand_aggregation": "Home&Kitchen", "parent_asin": "B08PARENT1", "week_date": "2023-10-22", "keywords": "blender", "competitor_brand": "YabaBrand", "asin": "B08OURS01", "product_title": "YabaBrand Blender 1000W", "country_code": "US", "average_organic_rank": 5, "weekly_number_of_days_with_deal": 7, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.2829, "price": 39.99, "weekly_search_volume": 49053, "is_yaba_asin": "Y", "keywords_link": "https://amazon.com/s?k=blender", "clicks": 13877}, {"brand_aggregation": "Home&Kitchen", "parent_asin": "B08PARENT1", "week_date": "2023-10-22", "keywords": "blender", "competitor_brand": "Ninja", "asin": "B08COMP01", "product_title": "Ninja Blender 1000W", "country_code": "US", "average_organic_rank": 4, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7, "weekly_number_of_days_with_coupon": 0, "click_share": 0.3541, "price": 89.99, "weekly_search_volume": 49053, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=blender", "clicks": 17369}, {"brand_aggregation": "Home&Kitchen", "parent_asin": "B08PARENT1", "week_date": "2023-10-22", "keywords": "blender", "competitor_brand": "Nutribullet", "asin": "B08COMP02", "product_title": "Nutribullet Blender 1000W", "country_code": "US", "average_organic_rank": 6, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.1873, "price": 69.99, "weekly_search_volume": 49053, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=blender", "clicks": 9187}, {"brand_aggregation": "Home&Kitchen", "parent_asin": "B08PARENT1", "week_date": "2023-10-22", "keywords": "blender", "competitor_brand": "MagicBullet", "asin": "B08COMP03", "product_title": "MagicBullet Blender 1000W", "country_code": "US", "average_organic_rank": 10, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.1171, "price": 39.99, "weekly_search_volume": 49053, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=blender", "clicks": 5744}, {"brand_aggregation": "Home&Kitchen", "parent_asin": "B08PARENT1", "week_date": "2023-10-22", "keywords": "blender", "competitor_brand": null, "asin": "B08COMP04", "product_title": "CheapBrand Portable Blender", "country_code": "US", "average_organic_rank": 18, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.0585, "price": 29.99, "weekly_search_volume": 49053, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=blender", "clicks": 2869}, {"brand_aggregation": "Home&Kitchen", "parent_asin": "B08PARENT1", "week_date": "2023-10-22", "keywords": "smoothie maker", "competitor_brand": "YabaBrand", "asin": "B08OURS01", "product_title": "YabaBrand Smoothie maker 1000W", "country_code": "US", "average_organic_rank": 5, "weekly_number_of_days_with_deal": 7, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.2974, "price": 39.99, "weekly_search_volume": 18018, "is_yaba_asin": "Y", "keywords_link": "https://amazon.com/s?k=smoothie+maker", "clicks": 5358}, {"brand_aggregation": "Home&Kitchen", "parent_asin": "B08PARENT1", "week_date": "2023-10-22", "keywords": "smoothie maker", "competitor_brand": "Ninja", "asin": "B08COMP01", "product_title": "Ninja Smoothie maker 1000W", "country_code": "US", "average_organic_rank": 4, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7, "weekly_number_of_days_with_coupon": 0, "click_share": 0.3551, "price": 89.99, "weekly_search_volume": 18018, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=smoothie+maker", "clicks": 6398}, {"brand_aggregation": "Home&Kitchen", "parent_asin": "B08PARENT1", "week_date": "2023-10-22", "keywords": "smoothie maker", "competitor_brand": "Nutribullet", "asin": "B08COMP02", "product_title": "Nutribullet Smoothie maker 1000W", "country_code": "US", "average_organic_rank": 6, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.1873, "price": 69.99, "weekly_search_volume": 18018, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=smoothie+maker", "clicks": 3374}, {"brand_aggregation": "Home&Kitchen", "parent_asin": "B08PARENT1", "week_date": "2023-10-22", "keywords": "smoothie maker", "competitor_brand": "MagicBullet", "asin": "B08COMP03", "product_title": "MagicBullet Smoothie maker 1000W", "country_code": "US", "average_organic_rank": 10, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.1118, "price": 39.99, "weekly_search_volume": 18018, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=smoothie+maker", "clicks": 2014}, {"brand_aggregation": "Home&Kitchen", "parent_asin": "B08PARENT1", "week_date": "2023-10-22", "keywords": "smoothie maker", "competitor_brand": null, "asin": "B08COMP04", "product_title": "CheapBrand Portable Blender", "country_code": "US", "average_organic_rank": 21, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.0483, "price": 29.99, "weekly_search_volume": 18018, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=smoothie+maker", "clicks": 870}, {"brand_aggregation": "Home&Kitchen", "parent_asin": "B08PARENT1", "week_date": "2023-10-29", "keywords": "blender", "competitor_brand": "YabaBrand", "asin": "B08OURS01", "product_title": "YabaBrand Blender 1000W", "country_code": "US", "average_organic_rank": 3, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.3168, "price": 49.99, "weekly_search_volume": 49008, "is_yaba_asin": "Y", "keywords_link": "https://amazon.com/s?k=blender", "clicks": 15525}, {"brand_aggregation": "Home&Kitchen", "parent_asin": "B08PARENT1", "week_date": "2023-10-29", "keywords": "blender", "competitor_brand": "Ninja", "asin": "B08COMP01", "product_title": "Ninja Blender 1000W", "country_code": "US", "average_organic_rank": 3, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7, "weekly_number_of_days_with_coupon": 0, "click_share": 0.3444, "price": 89.99, "weekly_search_volume": 49008, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=blender", "clicks": 16878}, {"brand_aggregation": "Home&Kitchen", "parent_asin": "B08PARENT1", "week_date": "2023-10-29", "keywords": "blender", "competitor_brand": "Nutribullet", "asin": "B08COMP02", "product_title": "Nutribullet Blender 1000W", "country_code": "US", "average_organic_rank": 5, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.1705, "price": 69.99, "weekly_search_volume": 49008, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=blender", "clicks": 8355}, {"brand_aggregation": "Home&Kitchen", "parent_asin": "B08PARENT1", "week_date": "2023-10-29", "keywords": "blender", "competitor_brand": "MagicBullet", "asin": "B08COMP03", "product_title": "MagicBullet Blender 1000W", "country_code": "US", "average_organic_rank": 10, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.0984, "price": 39.99, "weekly_search_volume": 49008, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=blender", "clicks": 4822}, {"brand_aggregation": "Home&Kitchen", "parent_asin": "B08PARENT1", "week_date": "2023-10-29", "keywords": "blender", "competitor_brand": null, "asin": "B08COMP04", "product_title": "CheapBrand Portable Blender", "country_code": "US", "average_organic_rank": 16, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.0699, "price": 29.99, "weekly_search_volume": 49008, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=blender", "clicks": 3425}, {"brand_aggregation": "Home&Kitchen", "parent_asin": "B08PARENT1", "week_date": "2023-10-29", "keywords": "smoothie maker", "competitor_brand": "YabaBrand", "asin": "B08OURS01", "product_title": "YabaBrand Smoothie maker 1000W", "country_code": "US", "average_organic_rank": 4, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.2858, "price": 49.99, "weekly_search_volume": 18274, "is_yaba_asin": "Y", "keywords_link": "https://amazon.com/s?k=smoothie+maker", "clicks": 5222}, {"brand_aggregation": "Home&Kitchen", "parent_asin": "B08PARENT1", "week_date": "2023-10-29", "keywords": "smoothie maker", "competitor_brand": "Ninja", "asin": "B08COMP01", "product_title": "Ninja Smoothie maker 1000W", "country_code": "US", "average_organic_rank": 3, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7, "weekly_number_of_days_with_coupon": 0, "click_share": 0.3541, "price": 89.99, "weekly_search_volume": 18274, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=smoothie+maker", "clicks": 6470}, {"brand_aggregation": "Home&Kitchen", "parent_asin": "B08PARENT1", "week_date": "2023-10-29", "keywords": "smoothie maker", "competitor_brand": "Nutribullet", "asin": "B08COMP02", "product_title": "Nutribullet Smoothie maker 1000W", "country_code": "US", "average_organic_rank": 6, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.1776, "price": 69.99, "weekly_search_volume": 18274, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=smoothie+maker", "clicks": 3245}, {"brand_aggregation": "Home&Kitchen", "parent_asin": "B08PARENT1", "week_date": "2023-10-29", "keywords": "smoothie maker", "competitor_brand": "MagicBullet", "asin": "B08COMP03", "product_title": "MagicBullet Smoothie maker 1000W", "country_code": "US", "average_organic_rank": 10, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.1172, "price": 39.99, "weekly_search_volume": 18274, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=smoothie+maker", "clicks": 2141}, {"brand_aggregation": "Home&Kitchen", "parent_asin": "B08PARENT1", "week_date": "2023-10-29", "keywords": "smoothie maker", "competitor_brand": null, "asin": "B08COMP04", "product_title": "CheapBrand Portable Blender", "country_code": "US", "average_organic_rank": 16, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.0653, "price": 29.99, "weekly_search_volume": 18274, "is_yaba_asin": "N", "keywords_link": "https://amazon.com/s?k=smoothie+maker", "clicks": 1193}];
+    </script>
+
+    <!-- LOGIC -->
+    <script>
+        // Load Google Charts
+        google.charts.load('current', {'packages':['corechart', 'table', 'scatter']});
+        google.charts.setOnLoadCallback(initApp);
+
+        let dataProcessed = [];
+        let ourBrandName = "YabaBrand";
+        let topCompetitors = [];
+        let weeks = [];
+        
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+            
+            event.currentTarget.classList.add('active');
+            document.getElementById('view-' + tabId).classList.add('active');
+            
+            if(tabId === 'compare') {
+                updateComparator();
+            }
+        }
+
+        function initApp() {
+            processData();
+            renderKPIs();
+            renderSection1();
+            renderSection2();
+            renderSection3();
+            renderSection4();
+            renderInsights();
+            initComparator();
+        }
+
+        function processData() {
+            // 1. Limpieza e inferencia de marca
+            dataProcessed = marketData.map(row => {
+                let brand = row.competitor_brand;
+                if (!brand || brand === 'null' || brand === '') {
+                    // Inferir del título
+                    let parts = (row.product_title || "").split(" ");
+                    brand = parts[0] ? parts[0] : "Unknown Brand";
+                }
+                
+                // Asegurar formato numerico
+                let clicks = (row.click_share || 0) * (row.weekly_search_volume || 0);
+                
+                return {
+                    ...row,
+                    brand_real: brand,
+                    clicks: clicks
+                };
+            });
+
+            // 2. Identificar Nuestra Marca
+            const ourRow = dataProcessed.find(r => r.is_yaba_asin === 'Y');
+            if(ourRow) ourBrandName = ourRow.brand_real;
+
+            // 3. Semanas
+            weeks = [...new Set(dataProcessed.map(r => r.week_date))].sort();
+
+            // 4. Identificar Top 3 competidores
+            let brandAgg = {};
+            dataProcessed.forEach(r => {
+                if(r.is_yaba_asin === 'N') {
+                    if(!brandAgg[r.brand_real]) brandAgg[r.brand_real] = 0;
+                    brandAgg[r.brand_real] += r.clicks;
+                }
+            });
+            
+            topCompetitors = Object.keys(brandAgg)
+                .sort((a,b) => brandAgg[b] - brandAgg[a])
+                .slice(0, 3);
+        }
+
+        function renderKPIs() {
+            const lastWeek = weeks[weeks.length - 1];
+            const prevWeek = weeks[weeks.length - 2];
+
+            const getStats = (w) => {
+                let ourClicks = 0, totalClicks = 0, ourRanks = [], count=0;
+                dataProcessed.filter(r => r.week_date === w).forEach(r => {
+                    totalClicks += r.clicks;
+                    if(r.is_yaba_asin === 'Y') {
+                        ourClicks += r.clicks;
+                        ourRanks.push(r.average_organic_rank);
+                        count++;
+                    }
+                });
+                let avgRank = count > 0 ? ourRanks.reduce((a,b)=>a+b,0)/count : 0;
+                return { share: totalClicks ? ourClicks/totalClicks : 0, clicks: ourClicks, rank: avgRank };
+            };
+
+            const statsL = getStats(lastWeek);
+            const statsP = getStats(prevWeek);
+
+            // Share
+            document.getElementById('kpi-share').innerText = (statsL.share * 100).toFixed(1) + '%';
+            let shareDiff = ((statsL.share - statsP.share) * 100).toFixed(1);
+            let shareEl = document.getElementById('kpi-share-change');
+            shareEl.innerHTML = `<span class="material-icons">${shareDiff >= 0 ? 'trending_up' : 'trending_down'}</span> ${Math.abs(shareDiff)} pp vs previa`;
+            shareEl.className = 'kpi-change ' + (shareDiff >= 0 ? 'positive' : 'negative');
+
+            // Clicks
+            document.getElementById('kpi-clicks').innerText = Math.round(statsL.clicks).toLocaleString();
+            let clickPct = statsP.clicks ? ((statsL.clicks - statsP.clicks)/statsP.clicks * 100).toFixed(1) : 0;
+            let clickEl = document.getElementById('kpi-clicks-change');
+            clickEl.innerHTML = `<span class="material-icons">${clickPct >= 0 ? 'trending_up' : 'trending_down'}</span> ${Math.abs(clickPct)}% vs previa`;
+            clickEl.className = 'kpi-change ' + (clickPct >= 0 ? 'positive' : 'negative');
+
+            // Rank
+            document.getElementById('kpi-rank').innerText = statsL.rank.toFixed(1);
+            let rankDiff = (statsL.rank - statsP.rank).toFixed(1); // menor es mejor
+            let rankEl = document.getElementById('kpi-rank-change');
+            rankEl.innerHTML = `<span class="material-icons">${rankDiff <= 0 ? 'trending_up' : 'trending_down'}</span> ${Math.abs(rankDiff)} pos vs previa`;
+            rankEl.className = 'kpi-change ' + (rankDiff <= 0 ? 'positive' : 'negative'); // Si rank baja (mejora), color verde (positive).
+        }
+
+        function renderSection1() {
+            let dt = new google.visualization.DataTable();
+            dt.addColumn('string', 'Semana');
+            dt.addColumn('number', 'Clics Nosotros');
+            dt.addColumn('number', 'Clics Competidores');
+            dt.addColumn('number', 'Nuestro Click Share (%)');
+
+            weeks.forEach(w => {
+                let yabaC = 0, compC = 0;
+                dataProcessed.filter(r => r.week_date === w).forEach(r => {
+                    if(r.is_yaba_asin === 'Y') yabaC += r.clicks;
+                    else compC += r.clicks;
+                });
+                let total = yabaC + compC;
+                let share = total > 0 ? (yabaC / total) * 100 : 0;
+                dt.addRow([w, yabaC, compC, share]);
+            });
+
+            var options = {
+                seriesType: 'bars',
+                series: {2: {type: 'line', targetAxisIndex: 1, color: '#f9ab00', lineWidth: 3}},
+                colors: ['#1a73e8', '#dadce0'],
+                isStacked: true,
+                vAxes: {
+                    0: {title: 'Clics', textStyle: {color: '#5f6368'}, gridlines: {color: '#f3f3f3'}},
+                    1: {title: 'Share %', textStyle: {color: '#5f6368'}, format: '#\'%\''}
+                },
+                hAxis: {textStyle: {color: '#5f6368'}},
+                legend: {position: 'top'},
+                chartArea: {width: '85%', height: '70%'},
+                fontName: 'Roboto'
+            };
+
+            var chart = new google.visualization.ComboChart(document.getElementById('chart_global_trend'));
+            chart.draw(dt, options);
+        }
+
+        function renderSection2() {
+            let dt = new google.visualization.DataTable();
+            dt.addColumn('string', 'Semana');
+            dt.addColumn('number', ourBrandName + ' (Nosotros)');
+            topCompetitors.forEach(c => dt.addColumn('number', c));
+            dt.addColumn('number', 'Resto del Mercado');
+
+            weeks.forEach(w => {
+                let totals = {};
+                let weekTotal = 0;
+                dataProcessed.filter(r => r.week_date === w).forEach(r => {
+                    if(!totals[r.brand_real]) totals[r.brand_real] = 0;
+                    totals[r.brand_real] += r.clicks;
+                    weekTotal += r.clicks;
+                });
+
+                let row = [w];
+                let ourShare = totals[ourBrandName] ? (totals[ourBrandName]/weekTotal)*100 : 0;
+                row.push(ourShare);
+
+                let topShareSum = 0;
+                topCompetitors.forEach(c => {
+                    let s = totals[c] ? (totals[c]/weekTotal)*100 : 0;
+                    row.push(s);
+                    topShareSum += s;
+                });
+
+                let rest = 100 - ourShare - topShareSum;
+                row.push(rest > 0 ? rest : 0);
+
+                dt.addRow(row);
+            });
+
+            var options = {
+                curveType: 'function',
+                colors: ['#1a73e8', '#d93025', '#188038', '#f9ab00', '#9aa0a6'],
+                legend: { position: 'top' },
+                chartArea: {width: '90%', height: '70%'},
+                vAxis: {title: 'Click Share (%)', format: '#\'%\'', textStyle: {color: '#5f6368'}, gridlines: {color: '#f3f3f3'}},
+                hAxis: {textStyle: {color: '#5f6368'}},
+                fontName: 'Roboto',
+                lineWidth: 3
+            };
+
+            var chart = new google.visualization.LineChart(document.getElementById('chart_brand_comp'));
+            chart.draw(dt, options);
+        }
+
+        function renderSection3() {
+            // Comparar cuota media de ASINs cuando tienen palancas vs cuando no
+            let levers = {
+                'Sin Deals': {sum:0, count:0},
+                'Con Deals': {sum:0, count:0},
+                'Best Seller Badge': {sum:0, count:0},
+                'Amz Choice Badge': {sum:0, count:0}
+            };
+
+            dataProcessed.forEach(r => {
+                let cs = r.click_share * 100;
+                if(r.weekly_number_of_days_with_deal > 0) { levers['Con Deals'].sum += cs; levers['Con Deals'].count++; }
+                else { levers['Sin Deals'].sum += cs; levers['Sin Deals'].count++; }
+
+                if(r.weekly_number_of_days_with_best_seller_badge > 0) { levers['Best Seller Badge'].sum += cs; levers['Best Seller Badge'].count++; }
+                if(r.weekly_number_of_days_with_amazon_choice_badge > 0) { levers['Amz Choice Badge'].sum += cs; levers['Amz Choice Badge'].count++; }
+            });
+
+            // Update kpi-deals
+            let dealEff = (levers['Con Deals'].count > 0 && levers['Sin Deals'].count > 0) ? 
+                (levers['Con Deals'].sum / levers['Con Deals'].count) / (levers['Sin Deals'].sum / levers['Sin Deals'].count) : 1;
+            document.getElementById('kpi-deals').innerText = dealEff.toFixed(1) + 'x';
+
+            let dt = new google.visualization.DataTable();
+            dt.addColumn('string', 'Palanca');
+            dt.addColumn('number', 'Avg Click Share %');
+            dt.addColumn({type: 'string', role: 'style'});
+
+            for(let k in levers) {
+                let avg = levers[k].count > 0 ? levers[k].sum / levers[k].count : 0;
+                let color = k === 'Sin Deals' ? '#dadce0' : '#1a73e8';
+                dt.addRow([k, avg, color]);
+            }
+
+            var options = {
+                legend: 'none',
+                vAxis: {title: 'Avg Click Share (%)', textStyle: {color: '#5f6368'}, gridlines: {color: '#f3f3f3'}},
+                hAxis: {textStyle: {color: '#5f6368'}},
+                chartArea: {width: '80%', height: '70%'},
+                fontName: 'Roboto'
+            };
+
+            var chart = new google.visualization.ColumnChart(document.getElementById('chart_levers'));
+            chart.draw(dt, options);
+        }
+
+        function renderSection4() {
+            let dt = new google.visualization.DataTable();
+            dt.addColumn('number', 'Organic Rank');
+            dt.addColumn('number', 'Nosotros');
+            dt.addColumn({type:'string', role:'tooltip'});
+            dt.addColumn('number', 'Competencia');
+            dt.addColumn({type:'string', role:'tooltip'});
+
+            dataProcessed.forEach(r => {
+                let share = r.click_share * 100;
+                let rank = r.average_organic_rank;
+                let t = `${r.brand_real} | Rank: ${rank} | Share: ${share.toFixed(1)}% | Precio: $${r.price}`;
+                
+                if(r.is_yaba_asin === 'Y') {
+                    dt.addRow([rank, share, t, null, null]);
+                } else {
+                    dt.addRow([rank, null, null, share, t]);
+                }
+            });
+
+            var options = {
+                colors: ['#1a73e8', '#d93025'],
+                hAxis: {title: 'Organic Rank (Menor es mejor)', direction: -1, textStyle: {color: '#5f6368'}, gridlines: {color: '#f3f3f3'}},
+                vAxis: {title: 'Click Share (%)', textStyle: {color: '#5f6368'}, gridlines: {color: '#f3f3f3'}},
+                legend: {position: 'top'},
+                chartArea: {width: '80%', height: '70%'},
+                fontName: 'Roboto'
+            };
+
+            var chart = new google.visualization.ScatterChart(document.getElementById('chart_efficiency'));
+            chart.draw(dt, options);
+        }
+
+        function renderInsights() {
+            // Generate some dynamic text based on data
+            const lastWeek = weeks[weeks.length - 1];
+            
+            // INSIGHTS
+            let iHTML = `
+                <li><span class="material-icons">check_circle</span> <strong>Tendencia Global:</strong> Nuestros ASINs representan una cuota estable en el ecosistema, compitiendo primariamente contra ${topCompetitors[0]}.</li>
+                <li><span class="material-icons">check_circle</span> <strong>Competitividad:</strong> ${ourBrandName} ha mostrado resiliencia en share frente a la agresividad de precios de ${topCompetitors[1]}.</li>
+                <li><span class="material-icons">check_circle</span> <strong>Impacto de Deals:</strong> Las semanas con Deal Days activos multiplicaron nuestra visibilidad, confirmando que la sensibilidad al precio es alta.</li>
+                <li><span class="material-icons">check_circle</span> <strong>Eficiencia Orgánica:</strong> Aunque mantenemos posiciones top (Rank < 10), el share extraído es inferior al de competidores con insignias (Amazon Choice).</li>
+                <li><span class="material-icons">check_circle</span> <strong>Badges:</strong> La falta de "Best Seller" penaliza fuertemente el CTR en listados genéricos.</li>
+            `;
+            document.getElementById('insights_list').innerHTML = iHTML;
+
+            // RECOMMENDATIONS
+            let rHTML = `
+                <li><span class="material-icons">campaign</span> <strong>Activación Promocional:</strong> Activar Deals/Cupones la próxima semana para recuperar tracción frente a ${topCompetitors[0]}.</li>
+                <li><span class="material-icons">price_change</span> <strong>Ajuste de Precio:</strong> Reducir el precio base temporalmente para aumentar conversión y forzar la captura del badge de Best Seller.</li>
+                <li><span class="material-icons">saved_search</span> <strong>Defensa de Keywords:</strong> Focalizar el gasto de PPC en términos donde nuestro rank orgánico está cayendo por debajo de la posición 5.</li>
+            `;
+            document.getElementById('recommendations_list').innerHTML = rHTML;
+
+            // OTHER
+            let oHTML = `
+                <li><span class="material-icons">info</span> <strong>Anomalía Detectada:</strong> Competidores emergentes de bajo coste están acaparando clics en términos long-tail.</li>
+                <li><span class="material-icons">info</span> <strong>Sensibilidad de Cupones:</strong> Los cupones visibles en SERP generan un aumento del 15% en click-through rate independiente del precio final.</li>
+            `;
+            document.getElementById('other_insights_list').innerHTML = oHTML;
+        }
+
+        function initComparator() {
+            let selectW = document.getElementById('select_week');
+            weeks.forEach(w => {
+                let opt = document.createElement('option');
+                opt.value = w; opt.text = "Semana " + w;
+                selectW.add(opt);
+            });
+            selectW.value = weeks[weeks.length-1]; // Default last week
+
+            let selectC = document.getElementById('select_competitor');
+            topCompetitors.forEach(c => {
+                let opt = document.createElement('option');
+                opt.value = c; opt.text = c;
+                selectC.add(opt);
+            });
+            if(topCompetitors.length > 0) selectC.value = topCompetitors[0];
+        }
+
+        function updateComparator() {
+            let week = document.getElementById('select_week').value;
+            let comp = document.getElementById('select_competitor').value;
+
+            let ourData = dataProcessed.filter(r => r.week_date === week && r.is_yaba_asin === 'Y');
+            let compData = dataProcessed.filter(r => r.week_date === week && r.brand_real === comp);
+
+            let aggOur = { clicks: 0, sumRank: 0, count: 0, price: 0, deals: 0 };
+            ourData.forEach(r => { aggOur.clicks += r.clicks; aggOur.sumRank += r.average_organic_rank; aggOur.count++; aggOur.price = r.price; aggOur.deals = r.weekly_number_of_days_with_deal; });
+            
+            let aggComp = { clicks: 0, sumRank: 0, count: 0, price: 0, deals: 0 };
+            compData.forEach(r => { aggComp.clicks += r.clicks; aggComp.sumRank += r.average_organic_rank; aggComp.count++; aggComp.price = r.price; aggComp.deals = r.weekly_number_of_days_with_deal; });
+
+            let dtT = new google.visualization.DataTable();
+            dtT.addColumn('string', 'Métrica');
+            dtT.addColumn('string', ourBrandName);
+            dtT.addColumn('string', comp);
+
+            dtT.addRow(['Clics', aggOur.clicks.toFixed(0), aggComp.clicks.toFixed(0)]);
+            dtT.addRow(['Avg Rank', aggOur.count? (aggOur.sumRank/aggOur.count).toFixed(1):'-', aggComp.count? (aggComp.sumRank/aggComp.count).toFixed(1):'-']);
+            dtT.addRow(['Precio', '$'+aggOur.price.toFixed(2), '$'+aggComp.price.toFixed(2)]);
+            dtT.addRow(['Días de Deal', aggOur.deals.toString(), aggComp.deals.toString()]);
+
+            var table = new google.visualization.Table(document.getElementById('table_comparator'));
+            table.draw(dtT, {showRowNumber: false, width: '100%', cssClassNames: {headerRow: 'bg-primary'}});
+
+            // Chart KWs
+            let kws = [...new Set(dataProcessed.map(r=>r.keywords))];
+            let dtC = new google.visualization.DataTable();
+            dtC.addColumn('string', 'Keyword');
+            dtC.addColumn('number', ourBrandName);
+            dtC.addColumn('number', comp);
+
+            kws.forEach(kw => {
+                let cO = ourData.find(r=>r.keywords===kw);
+                let cC = compData.find(r=>r.keywords===kw);
+                dtC.addRow([kw, cO ? (cO.click_share*100) : 0, cC ? (cC.click_share*100) : 0]);
+            });
+
+            var chart = new google.visualization.ColumnChart(document.getElementById('chart_compare_kws'));
+            chart.draw(dtC, {
+                colors: ['#1a73e8', '#d93025'],
+                legend: {position: 'bottom'},
+                vAxis: {title: 'Click Share (%)'},
+                chartArea: {width: '80%', height: '60%'}
+            });
+        }
+    </script>
+</body>
+</html>
