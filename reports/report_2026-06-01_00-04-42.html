@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Análisis de Parent ASIN - Market Intelligence</title>
+    
+    <!-- Google Charts -->
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    
+    <!-- Google Material Icons -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    
+    <style>
+        /* Estilos Apple-like / Google Material combinados en CSS Estándar (Vanilla) */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+        
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background-color: #f5f5f7; 
+            margin: 0; 
+            padding: 24px; 
+            color: #1d1d1f; 
+        }
+        
+        .header { 
+            background-color: #ffffff; 
+            padding: 24px; 
+            border-radius: 16px; 
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); 
+            margin-bottom: 24px; 
+        }
+        
+        .header h1 { 
+            margin: 0; 
+            font-size: 24px; 
+            font-weight: 600; 
+            color: #1d1d1f; 
+            display: flex; 
+            align-items: center; 
+            gap: 12px; 
+        }
+        
+        .header h1 .material-icons { 
+            color: #4285f4; 
+            font-size: 28px;
+        }
+        
+        .tabs { 
+            display: flex; 
+            gap: 16px; 
+            margin-bottom: 24px; 
+        }
+        
+        .tab { 
+            padding: 12px 24px; 
+            cursor: pointer; 
+            color: #515154; 
+            font-weight: 500; 
+            border-radius: 20px; 
+            background: #e8e8ed; 
+            transition: all 0.3s ease; 
+        }
+        
+        .tab:hover { background: #d2d2d7; }
+        .tab.active { background: #4285f4; color: #ffffff; }
+        
+        .tab-content { display: none; }
+        .tab-content.active { display: block; animation: fadeIn 0.4s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .card { 
+            background: #ffffff; 
+            padding: 24px; 
+            border-radius: 16px; 
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); 
+            margin-bottom: 24px; 
+        }
+        
+        .card h2 { 
+            font-size: 18px; 
+            font-weight: 600; 
+            margin-top: 0; 
+            margin-bottom: 20px; 
+            color: #1d1d1f; 
+            display: flex; 
+            align-items: center; 
+            gap: 8px; 
+            border-bottom: 1px solid #e8e8ed; 
+            padding-bottom: 12px; 
+        }
+        
+        .card h2 .material-icons { color: #4285f4; }
+        .chart-container { width: 100%; height: 400px; }
+        
+        .kpi-container { display: flex; gap: 24px; margin-bottom: 24px; flex-wrap: wrap; }
+        .kpi { 
+            flex: 1; 
+            min-width: 250px;
+            background: #ffffff; 
+            padding: 24px; 
+            border-radius: 16px; 
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); 
+            text-align: center; 
+        }
+        
+        .kpi h3 { margin: 0; font-size: 14px; font-weight: 500; color: #515154; }
+        .kpi p { margin: 12px 0 0 0; font-size: 32px; font-weight: 600; color: #4285f4; }
+
+        .insights-list h3 { color: #1d1d1f; font-size: 16px; font-weight: 600; margin-top: 24px; }
+        .insights-list ul { padding-left: 20px; color: #515154; }
+        .insights-list li { margin-bottom: 12px; line-height: 1.6; }
+        .insights-list strong { color: #1d1d1f; font-weight: 600; }
+
+        .control-panel { 
+            display: flex; 
+            gap: 16px; 
+            margin-bottom: 24px; 
+            background: #f5f5f7; 
+            padding: 16px; 
+            border-radius: 12px; 
+        }
+        
+        .control-panel select { 
+            padding: 10px 16px; 
+            border-radius: 8px; 
+            border: 1px solid #d2d2d7; 
+            font-size: 14px; 
+            outline: none; 
+            background: #ffffff; 
+            color: #1d1d1f; 
+            font-family: 'Inter', sans-serif; 
+            cursor: pointer; 
+            min-width: 200px;
+        }
+        .control-panel select:focus { border-color: #4285f4; }
+        
+        .empty-state { 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            height: 100%; 
+            color: #86868b; 
+            font-weight: 500; 
+            flex-direction: column; 
+            gap: 12px; 
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1><span class="material-icons">analytics</span> Análisis de Rendimiento: Parent ASIN</h1>
+    </div>
+
+    <!-- Pestañas de Navegación -->
+    <div class="tabs">
+        <div class="tab active" onclick="switchTab('reporte')">Reporte Estático</div>
+        <div class="tab" onclick="switchTab('comparador')">Comparador Interactivo</div>
+    </div>
+
+    <!-- PESTAÑA 1: REPORTE ESTÁTICO -->
+    <div id="reporte" class="tab-content active">
+        <!-- KPIs Globales -->
+        <div class="kpi-container" id="kpi-container">
+            <div class="kpi"><h3>Clicks Totales (Últ. Sem)</h3><p id="kpi-clicks">0</p></div>
+            <div class="kpi"><h3>Share de Nuestra Marca</h3><p id="kpi-share">0.00%</p></div>
+            <div class="kpi"><h3>Top Competidor</h3><p id="kpi-comp">-</p></div>
+        </div>
+
+        <!-- Sección 1: Tendencia Global -->
+        <div class="card">
+            <h2><span class="material-icons">timeline</span> 1. Tendencia Global del Parent (Clicks & Click Share)</h2>
+            <div id="chart_tendencia" class="chart-container"></div>
+        </div>
+
+        <!-- Sección 2: Competitividad de Marca -->
+        <div class="card">
+            <h2><span class="material-icons">stacked_line_chart</span> 2. Competitividad de Marca (Nuestra Marca vs Top 3)</h2>
+            <div id="chart_competitividad" class="chart-container"></div>
+        </div>
+
+        <!-- Sección 3: Palancas -->
+        <div class="card">
+            <h2><span class="material-icons">price_change</span> 3. Palancas que Aumentan el Click Share</h2>
+            <div id="chart_palancas" class="chart-container"></div>
+        </div>
+
+        <!-- Sección 4: Eficiencia -->
+        <div class="card">
+            <h2><span class="material-icons">scatter_plot</span> 4. Organic Rank vs Click Share (Eficiencia)</h2>
+            <div id="chart_eficiencia" class="chart-container"></div>
+        </div>
+
+        <!-- Sección 5: Conclusiones Clave y Recomendaciones Accionables -->
+        <div class="card">
+            <h2><span class="material-icons">lightbulb</span> 5. Conclusiones Clave y Recomendaciones Accionables</h2>
+            <div class="insights-list">
+                <h3>Insights Críticos (Basados en la captura de datos):</h3>
+                <ul>
+                    <li><strong>1. Tendencia global del parent:</strong> El dataset analizado carece de registros para las últimas semanas (0 registros), imposibilitando calcular los volúmenes de clicks y determinar si el parent gana o pierde tracción en el mercado actual.</li>
+                    <li><strong>2. Competitividad de marca:</strong> Dada la ausencia de ASINs competidores identificados (<em>competitor_brand</em> nulos y sin registros en la base), la cuota de mercado de YABA frente al Top 3 de la categoría es estadísticamente incalculable para este periodo.</li>
+                    <li><strong>3. Palancas de crecimiento:</strong> No se han registrado activaciones promocionales (<em>Deal Days = 0</em>, <em>Coupon Days = 0</em>) ni insignias de visibilidad (<em>Best Seller</em>, <em>Amazon Choice</em>), por lo que el efecto multiplicador sobre el click share está inactivo.</li>
+                    <li><strong>4. Eficiencia Rank → Clicks:</strong> Al no contar con un volumen orgánico rastreado (<em>organic_rank</em> vacío), no se identifican <em>overperformers</em> ni <em>underperformers</em> entre nuestras variantes ni las de la competencia.</li>
+                    <li><strong>5. Drivers Explicativos (Pricing & Atributos):</strong> Los atributos de ficha como <em>grams</em>, <em>container</em> y el histórico de precio no arrojan correlación medible al no existir métricas de conversión o cuota contra las que cruzar el desempeño.</li>
+                </ul>
+                <h3>Recomendaciones Estratégicas:</h3>
+                <ul>
+                    <li><strong>1. Auditoría del Tracking de Mercado:</strong> Es prioritario revisar la integración o la consulta del dataset de este Parent ASIN. La ausencia absoluta de datos sugiere un fallo en el rastreo de keywords o la desindexación total del producto en Amazon.</li>
+                    <li><strong>2. Restablecimiento de Alertas Competitivas:</strong> Una vez restaurados los datos, se debe activar un monitoreo intensivo sobre las fluctuaciones de precio del Top 3 de competidores para proteger el <em>Click Share</em>.</li>
+                    <li><strong>3. Activación Proactiva de Palancas:</strong> Si el producto sigue activo y con inventario, se recomienda lanzar cupones o aplicar a <em>Deals</em> de 7 días para forzar un repunte en el CTR y recuperar histórico orgánico post-incidencia de datos.</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Sección 6: Other Insights -->
+        <div class="card">
+            <h2><span class="material-icons">travel_explore</span> 6. Other Insights (Anomalías y Oportunidades)</h2>
+            <p style="color: #515154; line-height: 1.6;">
+                <strong>Anomalía Crítica:</strong> Se ha detectado un vacío estadístico severo (Dataset vacío) en la ventana temporal requerida. Esto representa una oportunidad oculta si se debe a que nuevos competidores emergentes están copando las keywords sin que la herramienta actual los logre catalogar. Se sugiere ampliar el <em>brand_aggregation</em> y auditar manualmente en la SERP los términos clave principales para verificar si nuestras variantes mantienen su indexación.
+            </p>
+        </div>
+    </div>
+
+    <!-- PESTAÑA 2: COMPARADOR INTERACTIVO -->
+    <div id="comparador" class="tab-content">
+        <div class="card">
+            <h2><span class="material-icons">compare_arrows</span> Cara a Cara: Nosotros vs Competencia</h2>
+            <div class="control-panel">
+                <select id="select-week" onchange="updateComparison()">
+                    <option value="">Seleccionar Semana</option>
+                </select>
+                <select id="select-comp" onchange="updateComparison()">
+                    <option value="">Seleccionar Competidor</option>
+                </select>
+            </div>
+            <div id="chart_comparador" class="chart-container"></div>
+        </div>
+    </div>
+
+    <script type="text/javascript">
+        // ==========================================
+        // 1. INYECCIÓN DEL DATASET (Vacío según input)
+        // ==========================================
+        const marketData = [];
+
+        // ==========================================
+        // 2. LÓGICA DE INTERFAZ DE USUARIO (TABS)
+        // ==========================================
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+            
+            document.getElementById(tabId).classList.add('active');
+            event.currentTarget.classList.add('active');
+            
+            // Redibujar gráficos de la pestaña correspondiente
+            if (tabId === 'comparador') {
+                updateComparison();
+            }
+        }
+
+        // ==========================================
+        // 3. INICIALIZACIÓN DE GOOGLE CHARTS
+        // ==========================================
+        google.charts.load('current', {'packages':['corechart', 'table', 'scatter', 'bar']});
+        google.charts.setOnLoadCallback(initializeDashboard);
+
+        let comparadorDataTable = null;
+
+        function initializeDashboard() {
+            // Mostrar estados vacíos si no hay datos
+            if (!marketData || marketData.length === 0) {
+                renderEmptyStates();
+                return;
+            }
+
+            // Procesamiento de datos en Vanilla JS (Map, Filter, Reduce)
+            preprocessData();
+            
+            // Dibujar Secciones
+            drawTendenciaGlobal();
+            drawCompetitividadMarca();
+            drawPalancasShare();
+            drawEficienciaRank();
+            
+            // Preparar y llenar filtros interactivos
+            buildComparadorData();
+            populateFilters();
+            updateKPIs();
+        }
+
+        // ==========================================
+        // 4. FUNCIONES DE PROCESAMIENTO (Vanilla JS)
+        // ==========================================
+        function preprocessData() {
+            marketData.forEach(row => {
+                // Inferir marca si es nula
+                if (!row.competitor_brand || row.competitor_brand.trim() === '') {
+                    row.competitor_brand = (row.product_title && row.product_title.split(' ').length > 0) 
+                        ? row.product_title.split(' ')[0] 
+                        : 'Unknown Brand';
+                }
+                
+                // Calcular Clicks
+                row.clicks = (row.click_share || 0) * (row.weekly_search_volume || 0);
+            });
+        }
+
+        function getOurBrand() {
+            const yabaRow = marketData.find(d => d.is_yaba_asin === 'Y');
+            return yabaRow ? yabaRow.competitor_brand : 'Nuestra Marca';
+        }
+
+        function getTopCompetitors() {
+            const brandShares = {};
+            marketData.forEach(d => {
+                if (d.is_yaba_asin === 'N') {
+                    brandShares[d.competitor_brand] = (brandShares[d.competitor_brand] || 0) + (d.click_share || 0);
+                }
+            });
+            return Object.entries(brandShares)
+                .sort((a,b) => b[1] - a[1])
+                .slice(0, 3)
+                .map(x => x[0]);
+        }
+
+        // ==========================================
+        // 5. FUNCIONES DE DIBUJO DE GRÁFICOS (GOOGLE)
+        // ==========================================
+        function renderEmptyStates() {
+            const emptyHTML = `
+                <div class="empty-state">
+                    <span class="material-icons" style="font-size:48px; color:#d2d2d7;">cloud_off</span>
+                    <span>No hay datos en el archivo origen para procesar visualizaciones.</span>
+                </div>`;
+            
+            ['chart_tendencia', 'chart_competitividad', 'chart_palancas', 'chart_eficiencia', 'chart_comparador']
+                .forEach(id => {
+                    const el = document.getElementById(id);
+                    if(el) el.innerHTML = emptyHTML;
+                });
+        }
+
+        function drawTendenciaGlobal() {
+            const weeks = [...new Set(marketData.map(d => d.week_date))].sort();
+            const dataArr = [['Semana', 'Clicks Nosotros (Barras)', 'Clicks Competencia (Barras)', 'Click Share YABA (Línea)']];
+            
+            weeks.forEach(w => {
+                const weekData = marketData.filter(d => d.week_date === w);
+                const yabaClicks = weekData.filter(d => d.is_yaba_asin === 'Y').reduce((sum, d) => sum + d.clicks, 0);
+                const compClicks = weekData.filter(d => d.is_yaba_asin === 'N').reduce((sum, d) => sum + d.clicks, 0);
+                const total = yabaClicks + compClicks;
+                const share = total > 0 ? yabaClicks / total : 0;
+                
+                dataArr.push([w, yabaClicks, compClicks, share]);
+            });
+
+            const dt = google.visualization.arrayToDataTable(dataArr);
+            const options = {
+                title: 'Evolución de Volumen y Cuota de Mercado',
+                seriesType: 'bars',
+                series: { 2: { type: 'line', targetAxisIndex: 1, color: '#fbbc04', lineWidth: 3 } },
+                vAxes: { 0: { title: 'Volumen de Clicks' }, 1: { title: 'Share (%)', format: 'percent' } },
+                colors: ['#4285f4', '#ea4335'],
+                legend: { position: 'bottom' },
+                chartArea: { width: '85%', height: '70%' },
+                backgroundColor: 'transparent'
+            };
+            
+            new google.visualization.ComboChart(document.getElementById('chart_tendencia')).draw(dt, options);
+        }
+
+        function drawCompetitividadMarca() {
+            const weeks = [...new Set(marketData.map(d => d.week_date))].sort();
+            const ourBrand = getOurBrand();
+            const topComps = getTopCompetitors();
+            
+            const dataArr = [['Semana', ourBrand, ...topComps, 'Resto del Mercado']];
+            
+            weeks.forEach(w => {
+                const weekData = marketData.filter(d => d.week_date === w);
+                let yS = 0, restS = 0;
+                let cS = new Array(topComps.length).fill(0);
+                
+                weekData.forEach(d => {
+                    const share = d.click_share || 0;
+                    if (d.is_yaba_asin === 'Y') {
+                        yS += share;
+                    } else {
+                        const idx = topComps.indexOf(d.competitor_brand);
+                        if (idx !== -1) cS[idx] += share;
+                        else restS += share;
+                    }
+                });
+                dataArr.push([w, yS, ...cS, restS]);
+            });
+
+            const dt = google.visualization.arrayToDataTable(dataArr);
+            const options = {
+                title: 'Curva de Competitividad (Share Semana a Semana)',
+                curveType: 'function',
+                legend: { position: 'bottom' },
+                vAxis: { title: 'Click Share', format: 'percent' },
+                colors: ['#4285f4', '#ea4335', '#fbbc04', '#34a853', '#9aa0a6'],
+                lineWidth: 3,
+                chartArea: { width: '85%', height: '70%' },
+                backgroundColor: 'transparent'
+            };
+            
+            new google.visualization.LineChart(document.getElementById('chart_competitividad')).draw(dt, options);
+        }
+
+        function drawPalancasShare() {
+            // Relación Precio vs Share agrupado por ASIN
+            const dt = new google.visualization.DataTable();
+            dt.addColumn('string', 'ASIN');
+            dt.addColumn('number', 'Precio Promedio');
+            dt.addColumn('number', 'Click Share Promedio');
+            
+            const asinStats = {};
+            marketData.forEach(d => {
+                if (!asinStats[d.asin]) asinStats[d.asin] = { p:0, c:0, count:0 };
+                asinStats[d.asin].p += parseFloat(d.price || 0);
+                asinStats[d.asin].c += parseFloat(d.click_share || 0);
+                asinStats[d.asin].count++;
+            });
+            
+            for (let asin in asinStats) {
+                const avgP = asinStats[asin].p / asinStats[asin].count;
+                const avgC = asinStats[asin].c / asinStats[asin].count;
+                dt.addRow([asin, avgP, avgC]);
+            }
+            
+            const options = {
+                title: 'Impacto del Precio en el Click Share',
+                hAxis: { title: 'Precio Promedio ($)' },
+                vAxis: { title: 'Click Share Promedio', format: 'percent' },
+                legend: 'none',
+                colors: ['#34a853'],
+                backgroundColor: 'transparent'
+            };
+            
+            new google.visualization.ScatterChart(document.getElementById('chart_palancas')).draw(dt, options);
+        }
+
+        function drawEficienciaRank() {
+            const dt = new google.visualization.DataTable();
+            dt.addColumn('number', 'Organic Rank');
+            dt.addColumn('number', 'Nosotros (YABA)');
+            dt.addColumn('number', 'Competidores');
+
+            marketData.forEach(d => {
+                const rank = d.average_organic_rank || 0;
+                const share = d.click_share || 0;
+                if (d.is_yaba_asin === 'Y') dt.addRow([rank, share, null]);
+                else dt.addRow([rank, null, share]);
+            });
+
+            const options = {
+                title: 'Eficiencia: Rank Orgánico vs Click Share',
+                hAxis: { title: 'Organic Rank (Menor es mejor)', direction: -1 },
+                vAxis: { title: 'Click Share Capturado', format: 'percent' },
+                colors: ['#4285f4', '#ea4335'],
+                legend: { position: 'top' },
+                backgroundColor: 'transparent'
+            };
+            
+            new google.visualization.ScatterChart(document.getElementById('chart_eficiencia')).draw(dt, options);
+        }
+
+        // ==========================================
+        // 6. SISTEMA INTERACTIVO (DATAVIEW NATIVO)
+        // ==========================================
+        function populateFilters() {
+            if (marketData.length === 0) return;
+            
+            const weeks = [...new Set(marketData.map(d => d.week_date))].sort().reverse();
+            const competitors = getTopCompetitors();
+            
+            const weekSelect = document.getElementById('select-week');
+            weeks.forEach(w => {
+                const opt = document.createElement('option');
+                opt.value = w; opt.textContent = `Semana: ${w}`;
+                weekSelect.appendChild(opt);
+            });
+            
+            const compSelect = document.getElementById('select-comp');
+            competitors.forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c; opt.textContent = `Competidor: ${c}`;
+                compSelect.appendChild(opt);
+            });
+        }
+
+        function buildComparadorData() {
+            comparadorDataTable = new google.visualization.DataTable();
+            comparadorDataTable.addColumn('string', 'Semana');
+            comparadorDataTable.addColumn('string', 'Competidor');
+            comparadorDataTable.addColumn('string', 'Metrica');
+            comparadorDataTable.addColumn('number', 'Nosotros');
+            comparadorDataTable.addColumn('number', 'Ellos');
+
+            const weeks = [...new Set(marketData.map(d => d.week_date))];
+            const competitors = getTopCompetitors();
+
+            weeks.forEach(w => {
+                const weekData = marketData.filter(d => d.week_date === w);
+                const yData = weekData.filter(d => d.is_yaba_asin === 'Y');
+                
+                const yP = yData.length ? yData.reduce((s,d)=>s+(parseFloat(d.price)||0),0)/yData.length : 0;
+                const yS = yData.reduce((s,d)=>s+(parseFloat(d.click_share)||0),0);
+                const yR = yData.length ? yData.reduce((s,d)=>s+(parseFloat(d.average_organic_rank)||0),0)/yData.length : 0;
+
+                competitors.forEach(c => {
+                    const cData = weekData.filter(d => d.competitor_brand === c);
+                    const cP = cData.length ? cData.reduce((s,d)=>s+(parseFloat(d.price)||0),0)/cData.length : 0;
+                    const cS = cData.reduce((s,d)=>s+(parseFloat(d.click_share)||0),0);
+                    const cR = cData.length ? cData.reduce((s,d)=>s+(parseFloat(d.average_organic_rank)||0),0)/cData.length : 0;
+
+                    comparadorDataTable.addRow([w, c, 'Precio Prom.', yP, cP]);
+                    comparadorDataTable.addRow([w, c, 'Share (%)', yS * 100, cS * 100]);
+                    comparadorDataTable.addRow([w, c, 'Rank Orgánico', yR, cR]);
+                });
+            });
+        }
+
+        function updateComparison() {
+            if (!comparadorDataTable || marketData.length === 0) return;
+            
+            const week = document.getElementById('select-week').value;
+            const comp = document.getElementById('select-comp').value;
+            
+            if (!week || !comp) {
+                document.getElementById('chart_comparador').innerHTML = `
+                    <div class="empty-state">
+                        <span class="material-icons" style="font-size:32px; margin-bottom:8px;">touch_app</span>
+                        Seleccione una semana y un competidor en los filtros superiores.
+                    </div>`;
+                return;
+            }
+            
+            // Uso estricto de DataView para manipular los datos mapeados
+            const view = new google.visualization.DataView(comparadorDataTable);
+            view.setRows(view.getFilteredRows([{column: 0, value: week}, {column: 1, value: comp}]));
+            
+            // Pivotar DataView a Formato BarChart
+            const plotData = new google.visualization.DataTable();
+            plotData.addColumn('string', 'Métrica');
+            plotData.addColumn('number', 'Nosotros');
+            plotData.addColumn('number', comp);
+            
+            for(let i=0; i<view.getNumberOfRows(); i++) {
+                plotData.addRow([
+                    view.getValue(i, 2), // Métrica
+                    view.getValue(i, 3), // Nosotros
+                    view.getValue(i, 4)  // Ellos
+                ]);
+            }
+
+            const options = {
+                title: `Comparativa Directa: Semana ${week}`,
+                bars: 'horizontal',
+                colors: ['#4285f4', '#ea4335'],
+                legend: { position: 'top' },
+                chartArea: { width: '60%', height: '70%' },
+                backgroundColor: 'transparent'
+            };
+            
+            const chart = new google.visualization.BarChart(document.getElementById('chart_comparador'));
+            chart.draw(plotData, options);
+        }
+
+        // ==========================================
+        // 7. ACTUALIZACIÓN DE KPIs GLOBALES
+        // ==========================================
+        function updateKPIs() {
+            if (marketData.length === 0) return;
+            
+            const weeks = [...new Set(marketData.map(d => d.week_date))].sort();
+            const lastWeek = weeks[weeks.length - 1];
+            const lastWeekData = marketData.filter(d => d.week_date === lastWeek);
+            
+            const clicksKpi = lastWeekData.reduce((s, d) => s + d.clicks, 0);
+            const yabaKpi = lastWeekData.filter(d => d.is_yaba_asin === 'Y').reduce((s, d) => s + (d.click_share || 0), 0);
+            const topComps = getTopCompetitors();
+
+            document.getElementById('kpi-clicks').textContent = Math.round(clicksKpi).toLocaleString();
+            document.getElementById('kpi-share').textContent = (yabaKpi * 100).toFixed(2) + '%';
+            document.getElementById('kpi-comp').textContent = topComps[0] || 'Ninguno';
+        }
+    </script>
+</body>
+</html>
