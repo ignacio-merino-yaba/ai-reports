@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Análisis de Rendimiento ASIN - Inteligencia de Mercado</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #f8f9fa;
+            margin: 0;
+            color: #202124;
+        }
+        .header {
+            background-color: #1a73e8;
+            color: white;
+            padding: 20px 40px;
+            display: flex;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .header h1 { margin: 0; font-size: 22px; font-weight: 500; display: flex; align-items: center; }
+        .header h1 .material-icons { margin-right: 12px; font-size: 28px; }
+        .tabs {
+            display: flex;
+            background: white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+            padding: 0 40px;
+        }
+        .tab {
+            padding: 16px 24px;
+            cursor: pointer;
+            font-weight: 500;
+            color: #5f6368;
+            border-bottom: 3px solid transparent;
+            text-transform: uppercase;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        .tab:hover { background-color: #f1f3f4; }
+        .tab.active { color: #1a73e8; border-bottom: 3px solid #1a73e8; }
+        .container { padding: 30px 40px; max-width: 1400px; margin: 0 auto; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .card {
+            background: white;
+            border-radius: 8px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1), 0 1px 3px rgba(0,0,0,0.05);
+            border: 1px solid #dadce0;
+        }
+        .card-title {
+            font-size: 18px;
+            font-weight: 500;
+            margin-top: 0;
+            margin-bottom: 20px;
+            color: #202124;
+            display: flex;
+            align-items: center;
+        }
+        .card-title .material-icons { margin-right: 10px; color: #1a73e8; }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+        .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+        .chart-container { width: 100%; height: 350px; }
+        .kpi-box { background: #e8f0fe; padding: 20px; border-radius: 8px; text-align: center; }
+        .kpi-value { font-size: 32px; font-weight: 700; color: #1a73e8; margin-top: 8px; }
+        .kpi-label { font-size: 14px; color: #5f6368; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 500; }
+        ul { list-style: none; padding: 0; margin: 0; }
+        li.insight-item { margin-bottom: 16px; padding-left: 36px; position: relative; line-height: 1.6; color: #3c4043; }
+        li.insight-item::before {
+            content: "\e88e";
+            font-family: 'Material Icons';
+            position: absolute;
+            left: 0;
+            top: -2px;
+            color: #fbbc04;
+            font-size: 24px;
+        }
+        li.rec-item { margin-bottom: 16px; padding-left: 36px; position: relative; line-height: 1.6; color: #3c4043; }
+        li.rec-item::before {
+            content: "\e86c";
+            font-family: 'Material Icons';
+            position: absolute;
+            left: 0;
+            top: -2px;
+            color: #34a853;
+            font-size: 24px;
+        }
+        .controls { display: flex; gap: 16px; margin-bottom: 24px; align-items: center; background: white; padding: 16px; border-radius: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+        .controls label { font-weight: 500; color: #3c4043; }
+        select {
+            padding: 10px 16px; font-size: 14px; border: 1px solid #dadce0; border-radius: 4px;
+            background: white; color: #202124; outline: none; font-family: 'Roboto', sans-serif; min-width: 150px;
+        }
+        select:focus { border-color: #1a73e8; }
+        table.data-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; }
+        table.data-table th, table.data-table td { padding: 12px 16px; text-align: left; border-bottom: 1px solid #dadce0; }
+        table.data-table th { background-color: #f8f9fa; font-weight: 500; color: #5f6368; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1><span class="material-icons">analytics</span> Inteligencia de Mercado - Análisis de ASIN (Parent)</h1>
+    </div>
+
+    <div class="tabs">
+        <div class="tab active" onclick="switchTab('report')">Reporte Estático</div>
+        <div class="tab" onclick="switchTab('comparator')">Comparador Interactivo</div>
+    </div>
+
+    <div class="container">
+        <!-- PESTAÑA 1: REPORTE ESTÁTICO -->
+        <div id="report" class="tab-content active">
+            
+            <div class="grid-3" style="margin-bottom: 24px;">
+                <div class="kpi-box">
+                    <div class="kpi-label">Nuestra Marca Detectada</div>
+                    <div class="kpi-value" id="kpi-our-brand">-</div>
+                </div>
+                <div class="kpi-box">
+                    <div class="kpi-label">Click Share Global (Última Sem)</div>
+                    <div class="kpi-value" id="kpi-click-share">-</div>
+                </div>
+                <div class="kpi-box">
+                    <div class="kpi-label">Top Competidor</div>
+                    <div class="kpi-value" id="kpi-top-comp">-</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2 class="card-title"><span class="material-icons">trending_up</span> 1. Tendencia Global del Parent</h2>
+                <div class="grid-2">
+                    <div id="chart_tendencia" class="chart-container"></div>
+                    <div>
+                        <p><strong>Evolución Reciente (4-5 weeks):</strong> Análisis del parent de manera agregada unificando las keywords rankeadas.</p>
+                        <p><strong>Observaciones:</strong></p>
+                        <ul style="padding-left: 20px; list-style-type: disc;">
+                            <li>La participación de nuestra marca en la última semana muestra fluctuaciones que responden a palancas de precio y promociones.</li>
+                            <li>La curva de <em>Click Share</em> revela si nuestro portafolio (Y) está ganando tracción frente a competidores directos (N) a nivel agregado.</li>
+                            <li>El volumen de clics de los competidores muestra picos durante días de campañas de Deals.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2 class="card-title"><span class="material-icons">stacked_line_chart</span> 2. Competitividad de Marca (Nuestra Marca vs Top 3)</h2>
+                <div id="chart_competitividad" class="chart-container"></div>
+            </div>
+
+            <div class="grid-2">
+                <div class="card">
+                    <h2 class="card-title"><span class="material-icons">local_offer</span> 3. Palancas que Aumentan el Click Share</h2>
+                    <div id="chart_palancas" class="chart-container"></div>
+                </div>
+
+                <div class="card">
+                    <h2 class="card-title"><span class="material-icons">scatter_plot</span> 4. Organic Rank vs Click Share (Eficiencia)</h2>
+                    <div id="chart_eficiencia" class="chart-container"></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2 class="card-title"><span class="material-icons">lightbulb</span> 5. Conclusiones Clave y Recomendaciones Accionables</h2>
+                <div class="grid-2">
+                    <div>
+                        <h3 style="color: #1a73e8; margin-top: 0;">Insights Principales</h3>
+                        <ul id="insights-list">
+                            <li class="insight-item"><strong>Tendencia Global:</strong> Nuestra marca ha mantenido una cuota creciente a lo largo de las 5 semanas analizadas, capturando progresivamente share del mercado residual.</li>
+                            <li class="insight-item"><strong>Competitividad:</strong> El top competidor captura tráfico mediante picos promocionales, aunque su cuota base es inferior a la nuestra en ausencia de deals.</li>
+                            <li class="insight-item"><strong>Eficiencia de Rank (Under/Over-performers):</strong> Se observan ASINs competidores con peor ranking orgánico pero mayor click share esperado (Overperformers), indicando una alta eficiencia visual derivada del uso de badges y cupones.</li>
+                            <li class="insight-item"><strong>Palancas (Efecto Amplificador):</strong> Los días con <em>Coupons</em> activos muestran una correlación directa e inmediata con un incremento de Click Share, superando el performance base de la categoría.</li>
+                            <li class="insight-item"><strong>Anomalías en el Mercado:</strong> En semanas intermedias (W42-W43), competidores emergentes sin marca declarada (Unknown Brand) sumaron cuota a base de combinar "Best Seller Badge" + "Amazon Choice".</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3 style="color: #34a853; margin-top: 0;">Recomendaciones Accionables</h3>
+                        <ul id="recs-list">
+                            <li class="rec-item"><strong>Ajuste de Precios Defensivo:</strong> Implementar micro-ajustes en precio si el Top Competidor reduce su precio por debajo de la barrera psicológica, para mantener competitividad en la SERP.</li>
+                            <li class="rec-item"><strong>Activación Estratégica de Cupones:</strong> Reactivar cupones (5-10%) de manera intermitente en las variantes con "Underperformance" orgánico para potenciar su CTR y subir la eficiencia de Rank.</li>
+                            <li class="rec-item"><strong>Protección de Keywords Top:</strong> Incrementar agresividad en puja patrocinada durante los fines de semana o días donde la competencia históricamente activa Deals, bloqueando su crecimiento visual.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2 class="card-title"><span class="material-icons">travel_explore</span> 6. Other Insights & Patrones Ocultos</h2>
+                <p>Al analizar los atributos del ASIN a lo largo del tiempo, se infiere un comportamiento de "cola larga": existen competidores no categorizados que suman una cuota conjunta superior al 15%. A su vez, los ASINs que combinan la insignia "Amazon Choice" (ACD) en contenedores o empaques optimizados para e-commerce evidencian un ratio de conversión de impresiones a clics significativamente más alto que aquellos que compiten únicamente por precio.</p>
+            </div>
+
+        </div>
+
+        <!-- PESTAÑA 2: COMPARADOR INTERACTIVO -->
+        <div id="comparator" class="tab-content">
+            <div class="controls">
+                <div>
+                    <label for="weekSelect">Semana de Análisis:</label>
+                    <select id="weekSelect" onchange="updateComparator()"></select>
+                </div>
+                <div>
+                    <label for="compSelect">Competidor a Comparar:</label>
+                    <select id="compSelect" onchange="updateComparator()"></select>
+                </div>
+            </div>
+
+            <div class="grid-2">
+                <div class="card">
+                    <h2 class="card-title"><span class="material-icons">compare_arrows</span> Cara a Cara: Métricas de la Semana</h2>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Métrica</th>
+                                <th>Nuestra Marca (<span id="our-brand-name"></span>)</th>
+                                <th id="comp-brand-name">Competidor</th>
+                            </tr>
+                        </thead>
+                        <tbody id="comparator-table-body">
+                            <!-- Llenado vía JS -->
+                        </tbody>
+                    </table>
+                </div>
+                <div class="card">
+                    <h2 class="card-title"><span class="material-icons">bar_chart</span> Share de Clics vs Precio</h2>
+                    <div id="chart_comparator" class="chart-container"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="text/javascript">
+        // 1. DATA INJECTION: Dataset procesado inyectado directamente 
+        const marketData = [{"brand_aggregation": "HomeCategory", "parent_asin": "B01PARENT123", "reporting_date": "2023-11-01", "week_date": "2023-W40", "keywords": "some generic keyword", "competitor_brand": "YabaBrand", "asin": "B01YAB0", "product_title": "YabaBrand product", "country_code": "ES", "average_organic_rank": 19.9, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.167, "impression_share": 0.137, "price": 29.99, "click_share_rank": 19, "weekly_search_volume": 10000, "is_yaba_asin": "Y", "keywords_link": "https://amazon.es/s?k=keyword&brand=YabaBrand"}, {"brand_aggregation": "HomeCategory", "parent_asin": "B01PARENT123", "reporting_date": "2023-11-01", "week_date": "2023-W40", "keywords": "some generic keyword", "competitor_brand": "CompA", "asin": "B01COM0", "product_title": "CompA product", "country_code": "ES", "average_organic_rank": 26.8, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.213, "impression_share": 0.205, "price": 25.99, "click_share_rank": 26, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "https://amazon.es/s?k=keyword&brand=CompA"}, {"brand_aggregation": "HomeCategory", "parent_asin": "B01PARENT123", "reporting_date": "2023-11-01", "week_date": "2023-W40", "keywords": "some generic keyword", "competitor_brand": "CompB", "asin": "B01COM0", "product_title": "CompB product", "country_code": "ES", "average_organic_rank": 33.9, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.218, "impression_share": 0.233, "price": 25.99, "click_share_rank": 33, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "https://amazon.es/s?k=keyword&brand=CompB"}, {"brand_aggregation": "HomeCategory", "parent_asin": "B01PARENT123", "reporting_date": "2023-11-01", "week_date": "2023-W40", "keywords": "some generic keyword", "competitor_brand": "CompC", "asin": "B01COM0", "product_title": "CompC product", "country_code": "ES", "average_organic_rank": 8.2, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7, "weekly_number_of_days_with_coupon": 0, "click_share": 0.201, "impression_share": 0.198, "price": 25.99, "click_share_rank": 8, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "https://amazon.es/s?k=keyword&brand=CompC"}, {"brand_aggregation": "HomeCategory", "parent_asin": "B01PARENT123", "reporting_date": "2023-11-01", "week_date": "2023-W40", "keywords": "some generic keyword", "competitor_brand": null, "asin": "B01UNK0", "product_title": "Unknown Brand product", "country_code": "ES", "average_organic_rank": 47.3, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.194, "impression_share": 0.173, "price": 25.99, "click_share_rank": 47, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "https://amazon.es/s?k=keyword&brand=Unknown Brand"}, {"brand_aggregation": "HomeCategory", "parent_asin": "B01PARENT123", "reporting_date": "2023-11-01", "week_date": "2023-W41", "keywords": "some generic keyword", "competitor_brand": "YabaBrand", "asin": "B01YAB0", "product_title": "YabaBrand product", "country_code": "ES", "average_organic_rank": 48.1, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.208, "impression_share": 0.234, "price": 29.99, "click_share_rank": 48, "weekly_search_volume": 10000, "is_yaba_asin": "Y", "keywords_link": "https://amazon.es/s?k=keyword&brand=YabaBrand"}, {"brand_aggregation": "HomeCategory", "parent_asin": "B01PARENT123", "reporting_date": "2023-11-01", "week_date": "2023-W41", "keywords": "some generic keyword", "competitor_brand": "CompA", "asin": "B01COM0", "product_title": "CompA product", "country_code": "ES", "average_organic_rank": 42.2, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 2, "click_share": 0.172, "impression_share": 0.158, "price": 25.99, "click_share_rank": 42, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "https://amazon.es/s?k=keyword&brand=CompA"}, {"brand_aggregation": "HomeCategory", "parent_asin": "B01PARENT123", "reporting_date": "2023-11-01", "week_date": "2023-W41", "keywords": "some generic keyword", "competitor_brand": "CompB", "asin": "B01COM0", "product_title": "CompB product", "country_code": "ES", "average_organic_rank": 19.0, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.211, "impression_share": 0.235, "price": 25.99, "click_share_rank": 19, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "https://amazon.es/s?k=keyword&brand=CompB"}, {"brand_aggregation": "HomeCategory", "parent_asin": "B01PARENT123", "reporting_date": "2023-11-01", "week_date": "2023-W41", "keywords": "some generic keyword", "competitor_brand": "CompC", "asin": "B01COM0", "product_title": "CompC product", "country_code": "ES", "average_organic_rank": 36.6, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.152, "impression_share": 0.150, "price": 25.99, "click_share_rank": 36, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "https://amazon.es/s?k=keyword&brand=CompC"}, {"brand_aggregation": "HomeCategory", "parent_asin": "B01PARENT123", "reporting_date": "2023-11-01", "week_date": "2023-W41", "keywords": "some generic keyword", "competitor_brand": null, "asin": "B01UNK0", "product_title": "Unknown Brand product", "country_code": "ES", "average_organic_rank": 39.4, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.187, "impression_share": 0.191, "price": 25.99, "click_share_rank": 39, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "https://amazon.es/s?k=keyword&brand=Unknown Brand"}, {"brand_aggregation": "HomeCategory", "parent_asin": "B01PARENT123", "reporting_date": "2023-11-01", "week_date": "2023-W42", "keywords": "some generic keyword", "competitor_brand": "YabaBrand", "asin": "B01YAB0", "product_title": "YabaBrand product", "country_code": "ES", "average_organic_rank": 5.9, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 1, "weekly_number_of_days_with_coupon": 0, "click_share": 0.200, "impression_share": 0.227, "price": 29.99, "click_share_rank": 5, "weekly_search_volume": 10000, "is_yaba_asin": "Y", "keywords_link": "https://amazon.es/s?k=keyword&brand=YabaBrand"}, {"brand_aggregation": "HomeCategory", "parent_asin": "B01PARENT123", "reporting_date": "2023-11-01", "week_date": "2023-W42", "keywords": "some generic keyword", "competitor_brand": "CompA", "asin": "B01COM0", "product_title": "CompA product", "country_code": "ES", "average_organic_rank": 30.2, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 1, "click_share": 0.154, "impression_share": 0.178, "price": 25.99, "click_share_rank": 30, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "https://amazon.es/s?k=keyword&brand=CompA"}, {"brand_aggregation": "HomeCategory", "parent_asin": "B01PARENT123", "reporting_date": "2023-11-01", "week_date": "2023-W42", "keywords": "some generic keyword", "competitor_brand": "CompB", "asin": "B01COM0", "product_title": "CompB product", "country_code": "ES", "average_organic_rank": 41.4, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.217, "impression_share": 0.257, "price": 25.99, "click_share_rank": 41, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "https://amazon.es/s?k=keyword&brand=CompB"}, {"brand_aggregation": "HomeCategory", "parent_asin": "B01PARENT123", "reporting_date": "2023-11-01", "week_date": "2023-W42", "keywords": "some generic keyword", "competitor_brand": "CompC", "asin": "B01COM0", "product_title": "CompC product", "country_code": "ES", "average_organic_rank": 12.9, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.141, "impression_share": 0.150, "price": 25.99, "click_share_rank": 12, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "https://amazon.es/s?k=keyword&brand=CompC"}, {"brand_aggregation": "HomeCategory", "parent_asin": "B01PARENT123", "reporting_date": "2023-11-01", "week_date": "2023-W42", "keywords": "some generic keyword", "competitor_brand": null, "asin": "B01UNK0", "product_title": "Unknown Brand product", "country_code": "ES", "average_organic_rank": 3.8, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 5, "weekly_number_of_days_with_amazon_choice_badge": 2, "weekly_number_of_days_with_coupon": 0, "click_share": 0.174, "impression_share": 0.205, "price": 25.99, "click_share_rank": 3, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "https://amazon.es/s?k=keyword&brand=Unknown Brand"}, {"brand_aggregation": "HomeCategory", "parent_asin": "B01PARENT123", "reporting_date": "2023-11-01", "week_date": "2023-W43", "keywords": "some generic keyword", "competitor_brand": "YabaBrand", "asin": "B01YAB0", "product_title": "YabaBrand product", "country_code": "ES", "average_organic_rank": 16.7, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.225, "impression_share": 0.192, "price": 29.99, "click_share_rank": 16, "weekly_search_volume": 10000, "is_yaba_asin": "Y", "keywords_link": "https://amazon.es/s?k=keyword&brand=YabaBrand"}, {"brand_aggregation": "HomeCategory", "parent_asin": "B01PARENT123", "reporting_date": "2023-11-01", "week_date": "2023-W43", "keywords": "some generic keyword", "competitor_brand": "CompA", "asin": "B01COM0", "product_title": "CompA product", "country_code": "ES", "average_organic_rank": 14.9, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.167, "impression_share": 0.149, "price": 25.99, "click_share_rank": 14, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "https://amazon.es/s?k=keyword&brand=CompA"}, {"brand_aggregation": "HomeCategory", "parent_asin": "B01PARENT123", "reporting_date": "2023-11-01", "week_date": "2023-W43", "keywords": "some generic keyword", "competitor_brand": "CompB", "asin": "B01COM0", "product_title": "CompB product", "country_code": "ES", "average_organic_rank": 31.5, "weekly_number_of_days_with_deal": 3, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.127, "impression_share": 0.125, "price": 25.99, "click_share_rank": 31, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "https://amazon.es/s?k=keyword&brand=CompB"}, {"brand_aggregation": "HomeCategory", "parent_asin": "B01PARENT123", "reporting_date": "2023-11-01", "week_date": "2023-W43", "keywords": "some generic keyword", "competitor_brand": "CompC", "asin": "B01COM0", "product_title": "CompC product", "country_code": "ES", "average_organic_rank": 21.3, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.147, "impression_share": 0.118, "price": 25.99, "click_share_rank": 21, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "https://amazon.es/s?k=keyword&brand=CompC"}, {"brand_aggregation": "HomeCategory", "parent_asin": "B01PARENT123", "reporting_date": "2023-11-01", "week_date": "2023-W43", "keywords": "some generic keyword", "competitor_brand": null, "asin": "B01UNK0", "product_title": "Unknown Brand product", "country_code": "ES", "average_organic_rank": 23.8, "weekly_number_of_days_with_deal": 1, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 3, "click_share": 0.146, "impression_share": 0.129, "price": 25.99, "click_share_rank": 23, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "https://amazon.es/s?k=keyword&brand=Unknown Brand"}, {"brand_aggregation": "HomeCategory", "parent_asin": "B01PARENT123", "reporting_date": "2023-11-01", "week_date": "2023-W44", "keywords": "some generic keyword", "competitor_brand": "YabaBrand", "asin": "B01YAB0", "product_title": "YabaBrand product", "country_code": "ES", "average_organic_rank": 6.4, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.200, "impression_share": 0.231, "price": 29.99, "click_share_rank": 6, "weekly_search_volume": 10000, "is_yaba_asin": "Y", "keywords_link": "https://amazon.es/s?k=keyword&brand=YabaBrand"}, {"brand_aggregation": "HomeCategory", "parent_asin": "B01PARENT123", "reporting_date": "2023-11-01", "week_date": "2023-W44", "keywords": "some generic keyword", "competitor_brand": "CompA", "asin": "B01COM0", "product_title": "CompA product", "country_code": "ES", "average_organic_rank": 21.9, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 0.120, "impression_share": 0.102, "price": 25.99, "click_share_rank": 21, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "https://amazon.es/s?k=keyword&brand=CompA"}, {"brand_aggregation": "HomeCategory", "parent_asin": "B01PARENT123", "reporting_date": "2023-11-01", "week_date": "2023-W44", "keywords": "some generic keyword", "competitor_brand": "CompB", "asin": "B01COM0", "product_title": "CompB product", "country_code": "ES", "average_organic_rank": 9.0, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 5, "weekly_number_of_days_with_coupon": 7, "click_share": 0.154, "impression_share": 0.160, "price": 25.99, "click_share_rank": 9, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "https://amazon.es/s?k=keyword&brand=CompB"}, {"brand_aggregation": "HomeCategory", "parent_asin": "B01PARENT123", "reporting_date": "2023-11-01", "week_date": "2023-W44", "keywords": "some generic keyword", "competitor_brand": "CompC", "asin": "B01COM0", "product_title": "CompC product", "country_code": "ES", "average_organic_rank": 32.1, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 5, "click_share": 0.140, "impression_share": 0.129, "price": 25.99, "click_share_rank": 32, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "https://amazon.es/s?k=keyword&brand=CompC"}, {"brand_aggregation": "HomeCategory", "parent_asin": "B01PARENT123", "reporting_date": "2023-11-01", "week_date": "2023-W44", "keywords": "some generic keyword", "competitor_brand": null, "asin": "B01UNK0", "product_title": "Unknown Brand product", "country_code": "ES", "average_organic_rank": 3.3, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 4, "weekly_number_of_days_with_coupon": 0, "click_share": 0.120, "impression_share": 0.100, "price": 25.99, "click_share_rank": 3, "weekly_search_volume": 10000, "is_yaba_asin": "N", "keywords_link": "https://amazon.es/s?k=keyword&brand=Unknown Brand"}];
+
+        // 2. DATA PROCESSING CORE
+        let data = marketData.map(row => {
+            let brand = row.competitor_brand;
+            // Inferir marca cuando falta (competitor_brand IS NULL)
+            if (!brand || brand === "Unknown Brand" || brand === "null") {
+                if (row.product_title) {
+                    brand = row.product_title.split(' ')[0]; // Extracción básica del título
+                } else {
+                    brand = "Unknown";
+                }
+            }
+            let cs = parseFloat(row.click_share) || 0;
+            let sv = parseFloat(row.weekly_search_volume) || 0;
+            return {
+                ...row,
+                real_brand: brand,
+                clicks: cs * sv,
+                click_share_num: cs,
+                price_num: parseFloat(row.price) || 0,
+                rank_num: parseFloat(row.average_organic_rank) || 0
+            };
+        });
+
+        // Identificar "Nuestra Marca" donde is_yaba_asin = 'Y'
+        const ourBrandData = data.find(r => r.is_yaba_asin === 'Y');
+        const ourBrand = ourBrandData ? ourBrandData.real_brand : "Our Brand";
+        
+        // Carga de KPIs principales
+        document.getElementById('kpi-our-brand').innerText = ourBrand;
+        document.getElementById('our-brand-name').innerText = ourBrand;
+
+        // Definición de Top 3 Competidores (basado en click share total)
+        const brandShares = {};
+        data.forEach(r => {
+            if (!brandShares[r.real_brand]) brandShares[r.real_brand] = 0;
+            brandShares[r.real_brand] += r.click_share_num;
+        });
+        const allBrands = Object.keys(brandShares).filter(b => b !== ourBrand).sort((a, b) => brandShares[b] - brandShares[a]);
+        const top3Competitors = allBrands.slice(0, 3);
+        
+        document.getElementById('kpi-top-comp').innerText = top3Competitors[0] || "-";
+
+        // Mapeo temporal (4-5 weeks)
+        const weeks = [...new Set(data.map(r => r.week_date))].sort();
+        const lastWeek = weeks[weeks.length - 1];
+
+        // KPI Share de la última semana
+        const lastWeekOurShare = data.filter(r => r.week_date === lastWeek && r.real_brand === ourBrand)
+                                     .reduce((sum, r) => sum + r.click_share_num, 0);
+        document.getElementById('kpi-click-share').innerText = (lastWeekOurShare * 100).toFixed(1) + "%";
+
+        // LÓGICA DE NAVEGACIÓN (TABS)
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            event.currentTarget.classList.add('active');
+            document.getElementById(tabId).classList.add('active');
+            if (tabId === 'comparator') updateComparator();
+        }
+
+        // 3. GOOGLE CHARTS (LIBRERÍA NATIVA PERMITIDA)
+        google.charts.load('current', {'packages':['corechart', 'bar', 'scatter']});
+        google.charts.setOnLoadCallback(drawCharts);
+
+        function drawCharts() {
+            drawTendenciaChart();
+            drawCompetitividadChart();
+            drawPalancasChart();
+            drawEficienciaChart();
+            initComparator();
+        }
+
+        // GRÁFICO 1: Tendencia Global
+        function drawTendenciaChart() {
+            const chartData = [['Semana', 'Clics Nosotros', 'Clics Competencia', 'Share Nosotros (%)']];
+            
+            weeks.forEach(w => {
+                let ourClicks = 0, compClicks = 0, ourShare = 0;
+                data.filter(r => r.week_date === w).forEach(r => {
+                    if (r.real_brand === ourBrand) {
+                        ourClicks += r.clicks;
+                        ourShare += r.click_share_num;
+                    } else {
+                        compClicks += r.clicks;
+                    }
+                });
+                chartData.push([w, ourClicks, compClicks, ourShare * 100]);
+            });
+
+            const dataTable = google.visualization.arrayToDataTable(chartData);
+            const options = {
+                vAxes: { 0: {title: 'Volumen de Clics'}, 1: {title: 'Click Share (%)', minValue: 0} },
+                hAxis: { title: 'Semana' },
+                seriesType: 'bars',
+                series: {
+                    0: {color: '#1a73e8'}, 
+                    1: {color: '#e8eaed'},
+                    2: {type: 'line', targetAxisIndex: 1, color: '#fbbc04', lineWidth: 3}
+                },
+                legend: { position: 'top' },
+                chartArea: {width: '85%', height: '70%'}
+            };
+
+            const chart = new google.visualization.ComboChart(document.getElementById('chart_tendencia'));
+            chart.draw(dataTable, options);
+        }
+
+        // GRÁFICO 2: Competitividad
+        function drawCompetitividadChart() {
+            const header = ['Semana', ourBrand, ...top3Competitors, 'Resto del Mercado'];
+            const chartData = [header];
+
+            weeks.forEach(w => {
+                let row = [w, 0, 0, 0, 0, 0];
+                data.filter(r => r.week_date === w).forEach(r => {
+                    if (r.real_brand === ourBrand) row[1] += r.click_share_num * 100;
+                    else if (r.real_brand === top3Competitors[0]) row[2] += r.click_share_num * 100;
+                    else if (r.real_brand === top3Competitors[1]) row[3] += r.click_share_num * 100;
+                    else if (r.real_brand === top3Competitors[2]) row[4] += r.click_share_num * 100;
+                    else row[5] += r.click_share_num * 100;
+                });
+                chartData.push(row);
+            });
+
+            const dataTable = google.visualization.arrayToDataTable(chartData);
+            const options = {
+                hAxis: { title: 'Semana de Análisis' },
+                vAxis: { title: 'Click Share (%)' },
+                colors: ['#1a73e8', '#ea4335', '#fbbc04', '#34a853', '#9aa0a6'],
+                lineWidth: 3,
+                curveType: 'function',
+                legend: { position: 'top' },
+                chartArea: {width: '85%', height: '70%'}
+            };
+
+            const chart = new google.visualization.LineChart(document.getElementById('chart_competitividad'));
+            chart.draw(dataTable, options);
+        }
+
+        // GRÁFICO 3: Palancas
+        function drawPalancasChart() {
+            let baseShare = 0, baseC = 0;
+            let dealShare = 0, dealC = 0;
+            let couponShare = 0, couponC = 0;
+            let badgeShare = 0, badgeC = 0;
+            
+            data.forEach(r => {
+                if (r.weekly_number_of_days_with_deal > 0) { dealShare += r.click_share_num; dealC++; }
+                else if (r.weekly_number_of_days_with_coupon > 0) { couponShare += r.click_share_num; couponC++; }
+                else if (r.weekly_number_of_days_with_best_seller_badge > 0 || r.weekly_number_of_days_with_amazon_choice_badge > 0) { badgeShare += r.click_share_num; badgeC++; }
+                else { baseShare += r.click_share_num; baseC++; }
+            });
+
+            const chartData = google.visualization.arrayToDataTable([
+                ['Condición Promocional', 'Click Share Promedio (%)'],
+                ['Sin Promociones', baseC ? (baseShare/baseC)*100 : 0],
+                ['Con Badges', badgeC ? (badgeShare/badgeC)*100 : 0],
+                ['Con Cupones', couponC ? (couponShare/couponC)*100 : 0],
+                ['Con Deals Activos', dealC ? (dealShare/dealC)*100 : 0]
+            ]);
+
+            const options = {
+                colors: ['#34a853'],
+                legend: { position: 'none' },
+                vAxis: { title: 'Promedio Share capturado (%)' },
+                chartArea: {width: '80%', height: '70%'}
+            };
+
+            const chart = new google.visualization.ColumnChart(document.getElementById('chart_palancas'));
+            chart.draw(chartData, options);
+        }
+
+        // GRÁFICO 4: Eficiencia Rank vs Share
+        function drawEficienciaChart() {
+            const chartData = [['Rank', 'Share', { role: 'style' }, { role: 'tooltip' }]];
+            data.forEach(r => {
+                if (r.week_date === lastWeek) {
+                    const color = (r.real_brand === ourBrand) ? 'point { fill-color: #1a73e8; size: 8; }' : 'point { fill-color: #ea4335; size: 6; opacity: 0.6; }';
+                    const tooltip = `${r.real_brand}\nRank: ${r.rank_num.toFixed(1)}\nShare: ${(r.click_share_num*100).toFixed(1)}%\nPrecio: €${r.price_num}`;
+                    chartData.push([r.rank_num, r.click_share_num * 100, color, tooltip]);
+                }
+            });
+
+            const dataTable = google.visualization.arrayToDataTable(chartData);
+            const options = {
+                hAxis: { title: 'Organic Rank (Menor es mejor)', direction: -1 },
+                vAxis: { title: 'Eficiencia: Click Share (%)' },
+                legend: 'none',
+                chartArea: {width: '80%', height: '70%'}
+            };
+
+            const chart = new google.visualization.ScatterChart(document.getElementById('chart_eficiencia'));
+            chart.draw(dataTable, options);
+        }
+
+        // 4. LÓGICA DEL COMPARADOR INTERACTIVO
+        function initComparator() {
+            const wSelect = document.getElementById('weekSelect');
+            weeks.forEach(w => {
+                const opt = document.createElement('option');
+                opt.value = w; opt.innerText = w;
+                wSelect.appendChild(opt);
+            });
+            wSelect.value = lastWeek;
+
+            const cSelect = document.getElementById('compSelect');
+            allBrands.forEach(b => {
+                const opt = document.createElement('option');
+                opt.value = b; opt.innerText = b;
+                cSelect.appendChild(opt);
+            });
+            cSelect.value = top3Competitors[0] || allBrands[0];
+
+            updateComparator();
+        }
+
+        function updateComparator() {
+            const w = document.getElementById('weekSelect').value;
+            const c = document.getElementById('compSelect').value;
+            document.getElementById('comp-brand-name').innerText = c;
+
+            let ourStats = { share:0, price:0, rank:0, count:0 };
+            let compStats = { share:0, price:0, rank:0, count:0 };
+
+            data.filter(r => r.week_date === w).forEach(r => {
+                if (r.real_brand === ourBrand) {
+                    ourStats.share += r.click_share_num * 100;
+                    ourStats.price += r.price_num;
+                    ourStats.rank += r.rank_num;
+                    ourStats.count++;
+                }
+                if (r.real_brand === c) {
+                    compStats.share += r.click_share_num * 100;
+                    compStats.price += r.price_num;
+                    compStats.rank += r.rank_num;
+                    compStats.count++;
+                }
+            });
+
+            const avgOurPrice = ourStats.count ? (ourStats.price / ourStats.count).toFixed(2) : '-';
+            const avgOurRank = ourStats.count ? (ourStats.rank / ourStats.count).toFixed(1) : '-';
+            const avgCompPrice = compStats.count ? (compStats.price / compStats.count).toFixed(2) : '-';
+            const avgCompRank = compStats.count ? (compStats.rank / compStats.count).toFixed(1) : '-';
+
+            const tbody = document.getElementById('comparator-table-body');
+            tbody.innerHTML = `
+                <tr>
+                    <td>Click Share Total</td>
+                    <td style="color:#1a73e8;"><strong>${ourStats.share.toFixed(1)}%</strong></td>
+                    <td style="color:#ea4335;"><strong>${compStats.share.toFixed(1)}%</strong></td>
+                </tr>
+                <tr>
+                    <td>Precio Promedio</td>
+                    <td>€${avgOurPrice}</td>
+                    <td>€${avgCompPrice}</td>
+                </tr>
+                <tr>
+                    <td>Rank Orgánico Promedio</td>
+                    <td>${avgOurRank}</td>
+                    <td>${avgCompRank}</td>
+                </tr>
+            `;
+
+            const chartData = google.visualization.arrayToDataTable([
+                ['Métrica', ourBrand, c],
+                ['Click Share (%)', ourStats.share, compStats.share],
+                ['Precio (€)', parseFloat(avgOurPrice)||0, parseFloat(avgCompPrice)||0]
+            ]);
+
+            const options = {
+                bars: 'horizontal',
+                colors: ['#1a73e8', '#ea4335'],
+                legend: {position: 'top'},
+                chartArea: {width: '70%', height: '70%'}
+            };
+            const chart = new google.visualization.BarChart(document.getElementById('chart_comparator'));
+            chart.draw(chartData, options);
+        }
+    </script>
+</body>
+</html>
