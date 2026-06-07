@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Análisis de Rendimiento - Matcha Premium</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+  <style>
+    body {
+      font-family: 'Roboto', sans-serif;
+      background-color: #f8f9fa;
+      color: #202124;
+      margin: 0;
+      padding: 0;
+    }
+    .header {
+      background-color: #fff;
+      padding: 16px 24px;
+      border-bottom: 1px solid #dadce0;
+      display: flex;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      box-shadow: 0 1px 2px 0 rgba(60,64,67,0.3);
+    }
+    .header .material-icons {
+      color: #1a73e8;
+      margin-right: 12px;
+      font-size: 28px;
+    }
+    .header h1 {
+      font-size: 22px;
+      font-weight: 500;
+      margin: 0;
+    }
+    .tabs {
+      display: flex;
+      gap: 24px;
+      padding: 0 24px;
+      background: #fff;
+      border-bottom: 1px solid #dadce0;
+    }
+    .tab {
+      padding: 14px 0;
+      font-size: 14px;
+      font-weight: 500;
+      color: #5f6368;
+      cursor: pointer;
+      border-bottom: 3px solid transparent;
+      text-transform: uppercase;
+      letter-spacing: 0.25px;
+    }
+    .tab.active {
+      color: #1a73e8;
+      border-bottom-color: #1a73e8;
+    }
+    .container {
+      padding: 24px;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+    .card {
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 1px 2px 0 rgba(60,64,67,0.3), 0 1px 3px 1px rgba(60,64,67,0.15);
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+    .card-title {
+      font-size: 18px;
+      font-weight: 500;
+      margin-top: 0;
+      margin-bottom: 16px;
+      color: #202124;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .card-title .material-icons {
+      color: #1a73e8;
+    }
+    .chart-container {
+      width: 100%;
+      height: 400px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 24px;
+    }
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .metric-card {
+      background: #e8f0fe;
+      padding: 16px;
+      border-radius: 8px;
+      text-align: center;
+      border: 1px solid #d2e3fc;
+    }
+    .metric-value {
+      font-size: 32px;
+      font-weight: 500;
+      color: #1a73e8;
+      margin: 8px 0;
+    }
+    .metric-label {
+      font-size: 13px;
+      color: #5f6368;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .insight-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    .insight-item {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 16px;
+      background: #f8f9fa;
+      padding: 16px;
+      border-radius: 8px;
+      border-left: 4px solid #1a73e8;
+    }
+    .insight-item.recommendation {
+      border-left-color: #34a853;
+      background: #e6f4ea;
+    }
+    .insight-item.warning {
+      border-left-color: #ea4335;
+      background: #fce8e6;
+    }
+    .insight-icon {
+      color: #1a73e8;
+    }
+    .rec-icon {
+      color: #34a853;
+    }
+    .warn-icon {
+      color: #ea4335;
+    }
+    .text-content {
+      line-height: 1.5;
+      font-size: 14px;
+    }
+    .text-content strong {
+      color: #202124;
+    }
+    /* Tab contents */
+    #tab2-content { display: none; }
+    
+    .controls {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 24px;
+      background: #fff;
+      padding: 16px;
+      border-radius: 8px;
+      box-shadow: 0 1px 2px 0 rgba(60,64,67,0.3);
+      align-items: center;
+    }
+    select {
+      padding: 10px 14px;
+      border-radius: 4px;
+      border: 1px solid #dadce0;
+      font-size: 14px;
+      font-family: inherit;
+      background: #fff;
+      color: #202124;
+      outline: none;
+      min-width: 200px;
+    }
+    select:focus {
+      border-color: #1a73e8;
+    }
+    .vs-container {
+      display: flex;
+      align-items: stretch;
+      justify-content: center;
+      gap: 24px;
+    }
+    .vs-card {
+      flex: 1;
+      background: #fff;
+      border: 1px solid #dadce0;
+      border-radius: 8px;
+      padding: 24px;
+      text-align: center;
+      box-shadow: 0 1px 2px 0 rgba(60,64,67,0.3);
+      position: relative;
+    }
+    .vs-card.us {
+      border-top: 4px solid #1a73e8;
+    }
+    .vs-card.them {
+      border-top: 4px solid #ea4335;
+    }
+    .vs-badge {
+      background: #f1f3f4;
+      padding: 6px 12px;
+      border-radius: 16px;
+      font-size: 12px;
+      font-weight: 500;
+      color: #5f6368;
+      margin-bottom: 24px;
+      display: inline-block;
+    }
+    .vs-table {
+      width: 100%;
+      text-align: left;
+      border-collapse: collapse;
+      margin-top: 16px;
+    }
+    .vs-table th, .vs-table td {
+      padding: 16px;
+      border-bottom: 1px solid #dadce0;
+      font-size: 14px;
+    }
+    .vs-table th {
+      color: #5f6368;
+      font-weight: 500;
+      width: 40%;
+    }
+    .vs-table td {
+      color: #202124;
+      font-weight: 700;
+      text-align: right;
+    }
+    .vs-table tr:last-child th, .vs-table tr:last-child td {
+      border-bottom: none;
+    }
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 8px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+    .chip.up { background: #e6f4ea; color: #137333; }
+    .chip.down { background: #fce8e6; color: #c5221f; }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <span class="material-icons">analytics</span>
+    <h1>Reporte de Inteligencia de Mercado: Matcha Premium (Parent ASIN)</h1>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab(1)" id="tab1">Dashboard & Insights</div>
+    <div class="tab" onclick="switchTab(2)" id="tab2">Comparador Interactivo</div>
+  </div>
+
+  <div class="container">
+    <!-- PESTAÑA 1 -->
+    <div id="tab1-content">
+      
+      <!-- KPIs W22 -->
+      <div class="metrics-grid">
+        <div class="metric-card">
+          <div class="metric-label">Click Share (W22)</div>
+          <div class="metric-value">26.18%</div>
+          <div class="chip down"><span class="material-icons" style="font-size:14px">arrow_downward</span> -10.6 pts (vs W20)</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Avg. Organic Rank (W22)</div>
+          <div class="metric-value">4.67</div>
+          <div class="chip down"><span class="material-icons" style="font-size:14px">arrow_downward</span> Caída de pos. 3.0</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Días de Deal (W22)</div>
+          <div class="metric-value">0</div>
+          <div class="chip down"><span class="material-icons" style="font-size:14px">warning</span> Apagados (eran 7)</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Precio Promedio (W22)</div>
+          <div class="metric-value">22.99€</div>
+          <div class="chip up"><span class="material-icons" style="font-size:14px">arrow_upward</span> +3.3€ (vs W20)</div>
+        </div>
+      </div>
+
+      <div class="grid">
+        <div class="card">
+          <h2 class="card-title"><span class="material-icons">timeline</span> 1. Tendencia Global del Parent (Volumen & Share)</h2>
+          <div id="chart_tendencia" class="chart-container"></div>
+        </div>
+        <div class="card">
+          <h2 class="card-title"><span class="material-icons">stacked_line_chart</span> 2. Competitividad de Marca (Click Share)</h2>
+          <div id="chart_competitividad" class="chart-container"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2 class="card-title"><span class="material-icons">scatter_plot</span> 4. Eficiencia: Organic Rank vs Click Share (Última Semana - W22)</h2>
+        <div id="chart_eficiencia" class="chart-container"></div>
+      </div>
+
+      <div class="grid">
+        <div class="card">
+          <h2 class="card-title"><span class="material-icons">lightbulb</span> 3. & 5. Insights y Palancas Clave</h2>
+          <ul class="insight-list">
+            <li class="insight-item">
+              <span class="material-icons insight-icon">trending_down</span>
+              <div class="text-content">
+                <strong>Caída Crítica por Apagado de Deals (Efecto Palanca):</strong> NaturaleBio dominaba W19 y W20 con un share de ~31-36% apalancado en 6-7 días de Deals. Al reducir a cero estas ofertas en W21 y W22, la visibilidad se desplomó drásticamente afectando nuestras ventas.
+              </div>
+            </li>
+            <li class="insight-item warning">
+              <span class="material-icons warn-icon">warning</span>
+              <div class="text-content">
+                <strong>Resiliencia de NORITUAL LAB:</strong> A pesar de mantener un precio premium elevado (~23.90€ - 24€) y no activar Deals a lo largo del mes, este competidor sostiene un robusto 24.3% de Click Share y logró mejorar su Organic Rank promedio a la posición 3.
+              </div>
+            </li>
+            <li class="insight-item">
+              <span class="material-icons insight-icon">price_change</span>
+              <div class="text-content">
+                <strong>Sensibilidad al Precio:</strong> En W22 subimos nuestro precio promedio a 22.99€ en ausencia de deals. Este diferencial favoreció a competidores budget (<i>Special Leaves</i> 9.95€ y <i>Alpi Nature</i> 9.99€), quienes crecieron rápidamente al capturar clics de baja fricción de compra.
+              </div>
+            </li>
+            <li class="insight-item">
+              <span class="material-icons insight-icon">search</span>
+              <div class="text-content">
+                <strong>Tráfico General Estable:</strong> El volumen general de búsquedas del keyword ("matcha pulver") se incrementó de 76,994 a 79,788. La caída en nuestra visibilidad obedece exclusivamente a una pérdida de tracción en la subasta y en la SERP, no a estacionalidad o contracción del mercado.
+              </div>
+            </li>
+            <li class="insight-item">
+              <span class="material-icons insight-icon">speed</span>
+              <div class="text-content">
+                <strong>Deterioro del "Flywheel" Orgánico:</strong> Al retirar el estímulo de promociones en W21, la rotación de producto cayó, lo cual penalizó nuestro posicionamiento orgánico. Hemos pasado de un Rank promedio de 3.0 en W19 a la posición 4.67 en W22.
+              </div>
+            </li>
+          </ul>
+        </div>
+
+        <div class="card">
+          <h2 class="card-title"><span class="material-icons">check_circle</span> 6. Recomendaciones Accionables & Other Insights</h2>
+          <ul class="insight-list">
+            <li class="insight-item recommendation">
+              <span class="material-icons rec-icon">play_circle</span>
+              <div class="text-content">
+                <strong>Reactivar Deals Intermitentes:</strong> Es vital programar al menos 2-3 días de ofertas relámpago a la semana para reactivar la velocidad de ventas y empujar al algoritmo. Con apoyo de deals, superamos históricamente el 35% de share de clics.
+              </div>
+            </li>
+            <li class="insight-item recommendation">
+              <span class="material-icons rec-icon">price_check</span>
+              <div class="text-content">
+                <strong>Estrategia de Precios Defensiva:</strong> Si no es posible financiar deals, realizar una reducción táctica en el PVP a un entorno de 20.50€ para frenar la migración de usuarios hacia las opciones entry-level como Alpi Nature, manteniéndonos competitivos en la conversión.
+              </div>
+            </li>
+            <li class="insight-item recommendation">
+              <span class="material-icons rec-icon">manage_search</span>
+              <div class="text-content">
+                <strong>Auditoría a fondo de NORITUAL LAB:</strong> Debemos evaluar profundamente su listing (A+ Content, Title, Ratings). Tienen una conversión y CTR orgánicos hiper-eficientes, rankeando en Top 3 de manera natural frente a nuestra alta dependencia de badges/descuentos.
+              </div>
+            </li>
+            <li class="insight-item">
+              <span class="material-icons insight-icon">visibility</span>
+              <div class="text-content">
+                <strong>Other Insight - Agresividad de Special Leaves:</strong> Su ofensiva basada en mantener cupones activos los 7 días de la semana y precios ultra-bajos (alrededor de 10€) los elevó desde la posición 9 hasta un share del 7.6% en W21. Son la mayor amenaza a corto plazo en volumen genérico.
+              </div>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- PESTAÑA 2 -->
+    <div id="tab2-content">
+      <div class="controls">
+        <span class="material-icons" style="color: #5f6368;">filter_list</span>
+        <select id="weekSelector" onchange="updateComparison()">
+          <option value="2026-19">Semana 19 (Deals Activos)</option>
+          <option value="2026-20">Semana 20 (Deals Activos)</option>
+          <option value="2026-21">Semana 21 (Deals Pausados)</option>
+          <option value="2026-22" selected>Semana 22 (Deals Pausados)</option>
+        </select>
+        <span style="font-weight: 500; margin-left: 12px; margin-right: 12px; color: #5f6368;">VS</span>
+        <select id="compSelector" onchange="updateComparison()">
+          <option value="NORITUAL LAB" selected>NORITUAL LAB</option>
+          <option value="Alpi Nature">Alpi Nature</option>
+          <option value="Special Leaves">Special Leaves</option>
+          <option value="TEA Uniqō">TEA Uniqō</option>
+        </select>
+      </div>
+
+      <div class="vs-container">
+        <!-- NaturaleBio -->
+        <div class="vs-card us">
+          <div class="vs-badge">Nuestra Marca</div>
+          <h2 style="margin: 0 0 16px 0; color: #1a73e8;">NaturaleBio</h2>
+          <table class="vs-table">
+            <tr>
+              <th><span class="material-icons" style="font-size:16px; vertical-align:middle; margin-right: 4px;">pie_chart</span> Click Share</th>
+              <td id="us-share">-</td>
+            </tr>
+            <tr>
+              <th><span class="material-icons" style="font-size:16px; vertical-align:middle; margin-right: 4px;">format_list_numbered</span> Avg. Organic Rank</th>
+              <td id="us-rank">-</td>
+            </tr>
+            <tr>
+              <th><span class="material-icons" style="font-size:16px; vertical-align:middle; margin-right: 4px;">euro</span> Precio Medio</th>
+              <td id="us-price">-</td>
+            </tr>
+            <tr>
+              <th><span class="material-icons" style="font-size:16px; vertical-align:middle; margin-right: 4px;">local_offer</span> Promedio Días de Deal</th>
+              <td id="us-deals">-</td>
+            </tr>
+            <tr>
+              <th><span class="material-icons" style="font-size:16px; vertical-align:middle; margin-right: 4px;">confirmation_number</span> Promedio Días Cupón</th>
+              <td id="us-coupons">-</td>
+            </tr>
+          </table>
+        </div>
+
+        <!-- Competitor -->
+        <div class="vs-card them">
+          <div class="vs-badge">Competidor Referencia</div>
+          <h2 style="margin: 0 0 16px 0; color: #ea4335;" id="them-name">NORITUAL LAB</h2>
+          <table class="vs-table">
+            <tr>
+              <th><span class="material-icons" style="font-size:16px; vertical-align:middle; margin-right: 4px;">pie_chart</span> Click Share</th>
+              <td id="them-share">-</td>
+            </tr>
+            <tr>
+              <th><span class="material-icons" style="font-size:16px; vertical-align:middle; margin-right: 4px;">format_list_numbered</span> Avg. Organic Rank</th>
+              <td id="them-rank">-</td>
+            </tr>
+            <tr>
+              <th><span class="material-icons" style="font-size:16px; vertical-align:middle; margin-right: 4px;">euro</span> Precio Medio</th>
+              <td id="them-price">-</td>
+            </tr>
+            <tr>
+              <th><span class="material-icons" style="font-size:16px; vertical-align:middle; margin-right: 4px;">local_offer</span> Promedio Días de Deal</th>
+              <td id="them-deals">-</td>
+            </tr>
+            <tr>
+              <th><span class="material-icons" style="font-size:16px; vertical-align:middle; margin-right: 4px;">confirmation_number</span> Promedio Días Cupón</th>
+              <td id="them-coupons">-</td>
+            </tr>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="text/javascript">
+    // --- 1. DATASET INYECTADO (VANILLA JS) ---
+    // Limpieza de datos (marcas mapeadas, backfill de nulos con ASINs reales)
+    const marketData = [{"brand_aggregation": "naturalebio", "parent_asin": "Matcha Premium", "reporting_date": "2026-05-09", "week_date": "2026-19", "keywords": "matcha pulver", "competitor_brand": null, "asin": "B0DRP6Y6XC", "product_title": "Matcha Pulver - 90g - 100% Nat\u00fcrlich & Fein Gemahl...", "country_code": "de", "average_organic_rank": 9, "weekly_number_of_days_with_deal": 1, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 7, "click_share": 4.72, "impression_share": 6.28, "price": 11.185714286, "click_share_rank": 5, "weekly_search_volume": 76994.61, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.de/s?k=matcha+pulver", "real_brand": "Special Leaves", "clicks": 3634.145592}, {"brand_aggregation": "naturalebio", "parent_asin": "Matcha Premium", "reporting_date": "2026-05-09", "week_date": "2026-19", "keywords": "matcha pulver", "competitor_brand": "TEA Uniq\u014d", "asin": "B089HX96H3", "product_title": "Tea Uniqo \u2013 Reinstes Matcha Pulver aus erster Ernt...", "country_code": "de", "average_organic_rank": 12, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 2.73, "impression_share": 4.65, "price": 10.005714286, "click_share_rank": 9, "weekly_search_volume": 76994.61, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.de/s?k=matcha+pulver", "real_brand": "TEA Uniq\u014d", "clicks": 2101.9528530000002}, {"brand_aggregation": "naturalebio", "parent_asin": "Matcha Premium", "reporting_date": "2026-05-09", "week_date": "2026-19", "keywords": "matcha pulver", "competitor_brand": null, "asin": "B0GK8VHT3X", "product_title": "Ceremonial Matcha Kyu - Reines Gr\u00fcntee-Pulver aus ...", "country_code": "de", "average_organic_rank": 6, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 12.01, "impression_share": 5.2, "price": 25.742857143, "click_share_rank": 3, "weekly_search_volume": 76994.61, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.de/s?k=matcha+pulver", "real_brand": "NORITUAL LAB", "clicks": 9247.052661}, {"brand_aggregation": "naturalebio", "parent_asin": "Matcha Premium", "reporting_date": "2026-05-09", "week_date": "2026-19", "keywords": "matcha pulver", "competitor_brand": "NaturaleBio", "asin": "B079VQ52MK", "product_title": "NaturaleBio Matcha Tee Pulver Bio - Premium-Qualit...", "country_code": "de", "average_organic_rank": 3, "weekly_number_of_days_with_deal": 6, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 7, "click_share": 3.79, "impression_share": 3.65, "price": 24.505714286, "click_share_rank": 7, "weekly_search_volume": 76994.61, "is_yaba_asin": "Y", "keywords_link": "https://www.amazon.de/s?k=matcha+pulver", "real_brand": "NaturaleBio", "clicks": 2918.0957190000004}, {"brand_aggregation": "naturalebio", "parent_asin": "Matcha Premium", "reporting_date": "2026-05-09", "week_date": "2026-19", "keywords": "matcha pulver", "competitor_brand": "NaturaleBio", "asin": "B07SZFD3P9", "product_title": "NaturaleBio Matcha Ceremonial Grade 100g. Original...", "country_code": "de", "average_organic_rank": 5, "weekly_number_of_days_with_deal": 6, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 6, "click_share": 5.51, "impression_share": 3.89, "price": 26.948571429, "click_share_rank": 4, "weekly_search_volume": 76994.61, "is_yaba_asin": "Y", "keywords_link": "https://www.amazon.de/s?k=matcha+pulver", "real_brand": "NaturaleBio", "clicks": 4242.403010999999}, {"brand_aggregation": "naturalebio", "parent_asin": "Matcha Premium", "reporting_date": "2026-05-09", "week_date": "2026-19", "keywords": "matcha pulver", "competitor_brand": "NORITUAL LAB", "asin": "B0CNRX8G5S", "product_title": "Ceremonial Matcha - Reines Matcha Pulver aus Japan...", "country_code": "de", "average_organic_rank": 2, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7, "weekly_number_of_days_with_coupon": 0, "click_share": 12.7, "impression_share": 3.64, "price": 27.992857143, "click_share_rank": 2, "weekly_search_volume": 76994.61, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.de/s?k=matcha+pulver", "real_brand": "NORITUAL LAB", "clicks": 9778.31547}, {"brand_aggregation": "naturalebio", "parent_asin": "Matcha Premium", "reporting_date": "2026-05-09", "week_date": "2026-19", "keywords": "matcha pulver", "competitor_brand": "NaturaleBio", "asin": "B06XQ5DCYJ", "product_title": "NaturaleBio Matcha Tee Pulver Bio - Premium-Qualit...", "country_code": "de", "average_organic_rank": 1, "weekly_number_of_days_with_deal": 6, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 7, "click_share": 22.36, "impression_share": 5.5, "price": 13.885714286, "click_share_rank": 1, "weekly_search_volume": 76994.61, "is_yaba_asin": "Y", "keywords_link": "https://www.amazon.de/s?k=matcha+pulver", "real_brand": "NaturaleBio", "clicks": 17215.994796}, {"brand_aggregation": "naturalebio", "parent_asin": "Matcha Premium", "reporting_date": "2026-05-09", "week_date": "2026-19", "keywords": "matcha pulver", "competitor_brand": "NORITUAL LAB", "asin": "B0FSL3C3Z8", "product_title": "Ceremonial Matcha Ryoku - Reines Gr\u00fcntee-Pulver au...", "country_code": "de", "average_organic_rank": 7, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 3.79, "impression_share": 3.6, "price": 16.75, "click_share_rank": 7, "weekly_search_volume": 76994.61, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.de/s?k=matcha+pulver", "real_brand": "NORITUAL LAB", "clicks": 2918.0957190000004}, {"brand_aggregation": "naturalebio", "parent_asin": "Matcha Premium", "reporting_date": "2026-05-09", "week_date": "2026-19", "keywords": "matcha pulver", "competitor_brand": "Alpi Nature", "asin": "B08G594RJ7", "product_title": "Alpi Nature Matcha Pulver BIO 200g, Gr\u00fcner Tee Pre...", "country_code": "de", "average_organic_rank": 5, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 4.47, "impression_share": 3.96, "price": 11.231428571, "click_share_rank": 6, "weekly_search_volume": 76994.61, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.de/s?k=matcha+pulver", "real_brand": "Alpi Nature", "clicks": 3441.6590669999996}, {"brand_aggregation": "naturalebio", "parent_asin": "Matcha Premium", "reporting_date": "2026-05-09", "week_date": "2026-19", "keywords": "matcha pulver", "competitor_brand": null, "asin": "B0G1T7N675", "product_title": "Ceremonial Matcha Pulver BIO-Qualit\u00e4t 50g ideal zu...", "country_code": "de", "average_organic_rank": 9, "weekly_number_of_days_with_deal": 7, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 1.6, "impression_share": 3.04, "price": 8.981428571, "click_share_rank": 10, "weekly_search_volume": 76994.61, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.de/s?k=matcha+pulver", "real_brand": "Unknown Brand", "clicks": 1231.9137600000001}, {"brand_aggregation": "naturalebio", "parent_asin": "Matcha Premium", "reporting_date": "2026-05-16", "week_date": "2026-20", "keywords": "matcha pulver", "competitor_brand": "Matcha & CO", "asin": "B08836HC41", "product_title": "Original Matcha Tee. Matcha in Zeremonienqualit\u00e4t ...", "country_code": "de", "average_organic_rank": 24, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 2.18, "impression_share": 4.34, "price": 18.407142857, "click_share_rank": 8, "weekly_search_volume": 63483.87, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.de/s?k=matcha+pulver", "real_brand": "Matcha & CO", "clicks": 1383.948366}, {"brand_aggregation": "naturalebio", "parent_asin": "Matcha Premium", "reporting_date": "2026-05-16", "week_date": "2026-20", "keywords": "matcha pulver", "competitor_brand": null, "asin": "B0DRP6Y6XC", "product_title": "Matcha Pulver - 90g - 100% Nat\u00fcrlich & Fein Gemahl...", "country_code": "de", "average_organic_rank": 9, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 7, "click_share": 4.73, "impression_share": 6.31, "price": 10.204285714, "click_share_rank": 6, "weekly_search_volume": 63483.87, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.de/s?k=matcha+pulver", "real_brand": "Special Leaves", "clicks": 3002.7870510000002}, {"brand_aggregation": "naturalebio", "parent_asin": "Matcha Premium", "reporting_date": "2026-05-16", "week_date": "2026-20", "keywords": "matcha pulver", "competitor_brand": "NaturaleBio", "asin": "B07SZFD3P9", "product_title": "NaturaleBio Matcha Ceremonial Grade 100g. Original...", "country_code": "de", "average_organic_rank": 5, "weekly_number_of_days_with_deal": 7, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 7, "click_share": 5.88, "impression_share": 3.76, "price": 25.114285714, "click_share_rank": 4, "weekly_search_volume": 63483.87, "is_yaba_asin": "Y", "keywords_link": "https://www.amazon.de/s?k=matcha+pulver", "real_brand": "NaturaleBio", "clicks": 3732.851556}, {"brand_aggregation": "naturalebio", "parent_asin": "Matcha Premium", "reporting_date": "2026-05-16", "week_date": "2026-20", "keywords": "matcha pulver", "competitor_brand": "NaturaleBio", "asin": "B06XQ5DCYJ", "product_title": "NaturaleBio Matcha Tee Pulver Bio - Premium-Qualit...", "country_code": "de", "average_organic_rank": 1, "weekly_number_of_days_with_deal": 7, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 7, "click_share": 26.3, "impression_share": 5.76, "price": 12.192857143, "click_share_rank": 1, "weekly_search_volume": 63483.87, "is_yaba_asin": "Y", "keywords_link": "https://www.amazon.de/s?k=matcha+pulver", "real_brand": "NaturaleBio", "clicks": 16696.257810000003}, {"brand_aggregation": "naturalebio", "parent_asin": "Matcha Premium", "reporting_date": "2026-05-16", "week_date": "2026-20", "keywords": "matcha pulver", "competitor_brand": null, "asin": "B0GK8VHT3X", "product_title": "Ceremonial Matcha Kyu - Reines Gr\u00fcntee-Pulver aus ...", "country_code": "de", "average_organic_rank": 6, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 7.44, "impression_share": 3.42, "price": 22.9, "click_share_rank": 3, "weekly_search_volume": 63483.87, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.de/s?k=matcha+pulver", "real_brand": "NORITUAL LAB", "clicks": 4723.199928000001}, {"brand_aggregation": "naturalebio", "parent_asin": "Matcha Premium", "reporting_date": "2026-05-16", "week_date": "2026-20", "keywords": "matcha pulver", "competitor_brand": null, "asin": "B0G1T7N675", "product_title": "Ceremonial Matcha Pulver BIO-Qualit\u00e4t 50g ideal zu...", "country_code": "de", "average_organic_rank": 10, "weekly_number_of_days_with_deal": 3, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 1.79, "impression_share": 3.6, "price": 9.337142857, "click_share_rank": 10, "weekly_search_volume": 63483.87, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.de/s?k=matcha+pulver", "real_brand": "Unknown Brand", "clicks": 1136.361273}, {"brand_aggregation": "naturalebio", "parent_asin": "Matcha Premium", "reporting_date": "2026-05-16", "week_date": "2026-20", "keywords": "matcha pulver", "competitor_brand": "NaturaleBio", "asin": "B079VQ52MK", "product_title": "NaturaleBio Matcha Tee Pulver Bio - Premium-Qualit...", "country_code": "de", "average_organic_rank": 3, "weekly_number_of_days_with_deal": 7, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 7, "click_share": 4.68, "impression_share": 3.67, "price": 21.781428571, "click_share_rank": 7, "weekly_search_volume": 63483.87, "is_yaba_asin": "Y", "keywords_link": "https://www.amazon.de/s?k=matcha+pulver", "real_brand": "NaturaleBio", "clicks": 2971.045116}, {"brand_aggregation": "naturalebio", "parent_asin": "Matcha Premium", "reporting_date": "2026-05-16", "week_date": "2026-20", "keywords": "matcha pulver", "competitor_brand": "Alpi Nature", "asin": "B08G594RJ7", "product_title": "Alpi Nature Matcha Pulver BIO 200g, Gr\u00fcner Tee Pre...", "country_code": "de", "average_organic_rank": 4, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 5.81, "impression_share": 4.16, "price": 10.244285714, "click_share_rank": 5, "weekly_search_volume": 63483.87, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.de/s?k=matcha+pulver", "real_brand": "Alpi Nature", "clicks": 3688.412847}, {"brand_aggregation": "naturalebio", "parent_asin": "Matcha Premium", "reporting_date": "2026-05-16", "week_date": "2026-20", "keywords": "matcha pulver", "competitor_brand": "TEA Uniq\u014d", "asin": "B089HX96H3", "product_title": "Tea Uniqo \u2013 Reinstes Matcha Pulver aus erster Ernt...", "country_code": "de", "average_organic_rank": 13, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 2.13, "impression_share": 4.14, "price": 9.127142857, "click_share_rank": 9, "weekly_search_volume": 63483.87, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.de/s?k=matcha+pulver", "real_brand": "TEA Uniq\u014d", "clicks": 1352.206431}, {"brand_aggregation": "naturalebio", "parent_asin": "Matcha Premium", "reporting_date": "2026-05-16", "week_date": "2026-20", "keywords": "matcha pulver", "competitor_brand": "NORITUAL LAB", "asin": "B0CNRX8G5S", "product_title": "Ceremonial Matcha - Reines Matcha Pulver aus Japan...", "country_code": "de", "average_organic_rank": 2, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7, "weekly_number_of_days_with_coupon": 0, "click_share": 13.11, "impression_share": 3.66, "price": 25.535714286, "click_share_rank": 2, "weekly_search_volume": 63483.87, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.de/s?k=matcha+pulver", "real_brand": "NORITUAL LAB", "clicks": 8322.735357}, {"brand_aggregation": "naturalebio", "parent_asin": "Matcha Premium", "reporting_date": "2026-05-23", "week_date": "2026-21", "keywords": "matcha pulver", "competitor_brand": null, "asin": "B0DRP6Y6XC", "product_title": "Matcha Pulver - 90g - 100% Nat\u00fcrlich & Fein Gemahl...", "country_code": "de", "average_organic_rank": 8, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 7, "click_share": 7.69, "impression_share": 6.47, "price": 8.842857143, "click_share_rank": 3, "weekly_search_volume": 75466.8, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.de/s?k=matcha+pulver", "real_brand": "Special Leaves", "clicks": 5803.396920000001}, {"brand_aggregation": "naturalebio", "parent_asin": "Matcha Premium", "reporting_date": "2026-05-23", "week_date": "2026-21", "keywords": "matcha pulver", "competitor_brand": null, "asin": "B0FSDLB9N4", "product_title": "VAHDAM Premium Matcha Pulver 50g aus Shizuoka, Jap...", "country_code": "de", "average_organic_rank": 29, "weekly_number_of_days_with_deal": 3, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 1, "click_share": 2.36, "impression_share": 2.3, "price": 8.755714286, "click_share_rank": 10, "weekly_search_volume": 75466.8, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.de/s?k=matcha+pulver", "real_brand": "VAHDAM", "clicks": 1781.01648}, {"brand_aggregation": "naturalebio", "parent_asin": "Matcha Premium", "reporting_date": "2026-05-23", "week_date": "2026-21", "keywords": "matcha pulver", "competitor_brand": null, "asin": "B0G1T7N675", "product_title": "Ceremonial Matcha Pulver BIO-Qualit\u00e4t 50g ideal zu...", "country_code": "de", "average_organic_rank": 12, "weekly_number_of_days_with_deal": 4, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 2.43, "impression_share": 3.63, "price": 8.847142857, "click_share_rank": 9, "weekly_search_volume": 75466.8, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.de/s?k=matcha+pulver", "real_brand": "Unknown Brand", "clicks": 1833.8432400000002}, {"brand_aggregation": "naturalebio", "parent_asin": "Matcha Premium", "reporting_date": "2026-05-23", "week_date": "2026-21", "keywords": "matcha pulver", "competitor_brand": "NORITUAL LAB", "asin": "B0CNRX8G5S", "product_title": "Ceremonial Matcha - Reines Matcha Pulver aus Japan...", "country_code": "de", "average_organic_rank": 1, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7, "weekly_number_of_days_with_coupon": 0, "click_share": 15.71, "impression_share": 3.53, "price": 24.9, "click_share_rank": 2, "weekly_search_volume": 75466.8, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.de/s?k=matcha+pulver", "real_brand": "NORITUAL LAB", "clicks": 11855.834280000001}, {"brand_aggregation": "naturalebio", "parent_asin": "Matcha Premium", "reporting_date": "2026-05-23", "week_date": "2026-21", "keywords": "matcha pulver", "competitor_brand": null, "asin": "B0GK8VHT3X", "product_title": "Ceremonial Matcha Kyu - Reines Gr\u00fcntee-Pulver aus ...", "country_code": "de", "average_organic_rank": 7, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 6.73, "impression_share": 4.31, "price": 22.9, "click_share_rank": 4, "weekly_search_volume": 75466.8, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.de/s?k=matcha+pulver", "real_brand": "NORITUAL LAB", "clicks": 5078.91564}, {"brand_aggregation": "naturalebio", "parent_asin": "Matcha Premium", "reporting_date": "2026-05-23", "week_date": "2026-21", "keywords": "matcha pulver", "competitor_brand": "NaturaleBio", "asin": "B06XQ5DCYJ", "product_title": "NaturaleBio Matcha Tee Pulver Bio - Premium-Qualit...", "country_code": "de", "average_organic_rank": 2, "weekly_number_of_days_with_deal": 1, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 7, "click_share": 19.03, "impression_share": 5.22, "price": 14.547142857, "click_share_rank": 1, "weekly_search_volume": 75466.8, "is_yaba_asin": "Y", "keywords_link": "https://www.amazon.de/s?k=matcha+pulver", "real_brand": "NaturaleBio", "clicks": 14361.332040000003}, {"brand_aggregation": "naturalebio", "parent_asin": "Matcha Premium", "reporting_date": "2026-05-23", "week_date": "2026-21", "keywords": "matcha pulver", "competitor_brand": "Alpi Nature", "asin": "B08G594RJ7", "product_title": "Alpi Nature Matcha Pulver BIO 200g, Gr\u00fcner Tee Pre...", "country_code": "de", "average_organic_rank": 5, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 6.71, "impression_share": 4.5, "price": 9.99, "click_share_rank": 5, "weekly_search_volume": 75466.8, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.de/s?k=matcha+pulver", "real_brand": "Alpi Nature", "clicks": 5063.822279999999}, {"brand_aggregation": "naturalebio", "parent_asin": "Matcha Premium", "reporting_date": "2026-05-23", "week_date": "2026-21", "keywords": "matcha pulver", "competitor_brand": "TEA Uniq\u014d", "asin": "B089HX96H3", "product_title": "Tea Uniqo \u2013 Reinstes Matcha Pulver aus erster Ernt...", "country_code": "de", "average_organic_rank": 12, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 2.46, "impression_share": 4.35, "price": 8.9, "click_share_rank": 8, "weekly_search_volume": 75466.8, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.de/s?k=matcha+pulver", "real_brand": "TEA Uniq\u014d", "clicks": 1856.4832800000001}, {"brand_aggregation": "naturalebio", "parent_asin": "Matcha Premium", "reporting_date": "2026-05-23", "week_date": "2026-21", "keywords": "matcha pulver", "competitor_brand": "NaturaleBio", "asin": "B079VQ52MK", "product_title": "NaturaleBio Matcha Tee Pulver Bio - Premium-Qualit...", "country_code": "de", "average_organic_rank": 4, "weekly_number_of_days_with_deal": 1, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 7, "click_share": 3.74, "impression_share": 3.53, "price": 24.454285714, "click_share_rank": 7, "weekly_search_volume": 75466.8, "is_yaba_asin": "Y", "keywords_link": "https://www.amazon.de/s?k=matcha+pulver", "real_brand": "NaturaleBio", "clicks": 2822.45832}, {"brand_aggregation": "naturalebio", "parent_asin": "Matcha Premium", "reporting_date": "2026-05-23", "week_date": "2026-21", "keywords": "matcha pulver", "competitor_brand": "NaturaleBio", "asin": "B07SZFD3P9", "product_title": "NaturaleBio Matcha Ceremonial Grade 100g. Original...", "country_code": "de", "average_organic_rank": 8, "weekly_number_of_days_with_deal": 1, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 7, "click_share": 4.57, "impression_share": 3.96, "price": 28.347142857, "click_share_rank": 6, "weekly_search_volume": 75466.8, "is_yaba_asin": "Y", "keywords_link": "https://www.amazon.de/s?k=matcha+pulver", "real_brand": "NaturaleBio", "clicks": 3448.8327600000007}, {"brand_aggregation": "naturalebio", "parent_asin": "Matcha Premium", "reporting_date": "2026-05-30", "week_date": "2026-22", "keywords": "matcha pulver", "competitor_brand": "NaturaleBio", "asin": "B07SZFD3P9", "product_title": "NaturaleBio Matcha Ceremonial Grade 100g. Original...", "country_code": "de", "average_organic_rank": 8, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 7, "click_share": 3.28, "impression_share": 4.53, "price": 28.99, "click_share_rank": 8, "weekly_search_volume": 79788.0, "is_yaba_asin": "Y", "keywords_link": "https://www.amazon.de/s?k=matcha+pulver", "real_brand": "NaturaleBio", "clicks": 2617.0463999999997}, {"brand_aggregation": "naturalebio", "parent_asin": "Matcha Premium", "reporting_date": "2026-05-30", "week_date": "2026-22", "keywords": "matcha pulver", "competitor_brand": "Alpi Nature", "asin": "B08G594RJ7", "product_title": "Alpi Nature Matcha Pulver BIO 200g, Gr\u00fcner Tee Pre...", "country_code": "de", "average_organic_rank": 6, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 4.95, "impression_share": 4.12, "price": 9.99, "click_share_rank": 5, "weekly_search_volume": 79788.0, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.de/s?k=matcha+pulver", "real_brand": "Alpi Nature", "clicks": 3949.5060000000003}, {"brand_aggregation": "naturalebio", "parent_asin": "Matcha Premium", "reporting_date": "2026-05-30", "week_date": "2026-22", "keywords": "matcha pulver", "competitor_brand": "NORITUAL LAB", "asin": "B0CNRX8G5S", "product_title": "Ceremonial Matcha - Reines Matcha Pulver aus Japan...", "country_code": "de", "average_organic_rank": 1, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7, "weekly_number_of_days_with_coupon": 0, "click_share": 17.01, "impression_share": 3.6, "price": 24.9, "click_share_rank": 2, "weekly_search_volume": 79788.0, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.de/s?k=matcha+pulver", "real_brand": "NORITUAL LAB", "clicks": 13571.938800000002}, {"brand_aggregation": "naturalebio", "parent_asin": "Matcha Premium", "reporting_date": "2026-05-30", "week_date": "2026-22", "keywords": "matcha pulver", "competitor_brand": "Matcha & CO", "asin": "B08836HC41", "product_title": "Original Matcha Tee. Matcha in Zeremonienqualit\u00e4t ...", "country_code": "de", "average_organic_rank": 37, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 2.17, "impression_share": 3.5, "price": 17.95, "click_share_rank": 9, "weekly_search_volume": 79788.0, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.de/s?k=matcha+pulver", "real_brand": "Matcha & CO", "clicks": 1731.3996}, {"brand_aggregation": "naturalebio", "parent_asin": "Matcha Premium", "reporting_date": "2026-05-30", "week_date": "2026-22", "keywords": "matcha pulver", "competitor_brand": null, "asin": "B0G1T7N675", "product_title": "Ceremonial Matcha Pulver BIO-Qualit\u00e4t 50g ideal zu...", "country_code": "de", "average_organic_rank": 7, "weekly_number_of_days_with_deal": 7, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 4.64, "impression_share": 4.44, "price": 7.99, "click_share_rank": 6, "weekly_search_volume": 79788.0, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.de/s?k=matcha+pulver", "real_brand": "Unknown Brand", "clicks": 3702.1632}, {"brand_aggregation": "naturalebio", "parent_asin": "Matcha Premium", "reporting_date": "2026-05-30", "week_date": "2026-22", "keywords": "matcha pulver", "competitor_brand": null, "asin": "B0DRP6Y6XC", "product_title": "Matcha Pulver - 90g - 100% Nat\u00fcrlich & Fein Gemahl...", "country_code": "de", "average_organic_rank": 9, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 7, "click_share": 5.67, "impression_share": 6.1, "price": 9.95, "click_share_rank": 4, "weekly_search_volume": 79788.0, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.de/s?k=matcha+pulver", "real_brand": "Special Leaves", "clicks": 4523.9796}, {"brand_aggregation": "naturalebio", "parent_asin": "Matcha Premium", "reporting_date": "2026-05-30", "week_date": "2026-22", "keywords": "matcha pulver", "competitor_brand": "NaturaleBio", "asin": "B079VQ52MK", "product_title": "NaturaleBio Matcha Tee Pulver Bio - Premium-Qualit...", "country_code": "de", "average_organic_rank": 4, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 7, "click_share": 3.45, "impression_share": 3.6, "price": 24.99, "click_share_rank": 7, "weekly_search_volume": 79788.0, "is_yaba_asin": "Y", "keywords_link": "https://www.amazon.de/s?k=matcha+pulver", "real_brand": "NaturaleBio", "clicks": 2752.686}, {"brand_aggregation": "naturalebio", "parent_asin": "Matcha Premium", "reporting_date": "2026-05-30", "week_date": "2026-22", "keywords": "matcha pulver", "competitor_brand": "NaturaleBio", "asin": "B06XQ5DCYJ", "product_title": "NaturaleBio Matcha Tee Pulver Bio - Premium-Qualit...", "country_code": "de", "average_organic_rank": 2, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 7, "click_share": 19.45, "impression_share": 5.85, "price": 14.99, "click_share_rank": 1, "weekly_search_volume": 79788.0, "is_yaba_asin": "Y", "keywords_link": "https://www.amazon.de/s?k=matcha+pulver", "real_brand": "NaturaleBio", "clicks": 15518.766}, {"brand_aggregation": "naturalebio", "parent_asin": "Matcha Premium", "reporting_date": "2026-05-30", "week_date": "2026-22", "keywords": "matcha pulver", "competitor_brand": null, "asin": "B0GK8VHT3X", "product_title": "Ceremonial Matcha Kyu - Reines Gr\u00fcntee-Pulver aus ...", "country_code": "de", "average_organic_rank": 5, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 7.33, "impression_share": 4.34, "price": 22.9, "click_share_rank": 3, "weekly_search_volume": 79788.0, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.de/s?k=matcha+pulver", "real_brand": "NORITUAL LAB", "clicks": 5848.4604}, {"brand_aggregation": "naturalebio", "parent_asin": "Matcha Premium", "reporting_date": "2026-05-30", "week_date": "2026-22", "keywords": "matcha pulver", "competitor_brand": "TEA Uniq\u014d", "asin": "B089HX96H3", "product_title": "Tea Uniqo \u2013 Reinstes Matcha Pulver aus erster Ernt...", "country_code": "de", "average_organic_rank": 15, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "weekly_number_of_days_with_coupon": 0, "click_share": 2.05, "impression_share": 3.08, "price": 8.9, "click_share_rank": 10, "weekly_search_volume": 79788.0, "is_yaba_asin": "N", "keywords_link": "https://www.amazon.de/s?k=matcha+pulver", "real_brand": "TEA Uniq\u014d", "clicks": 1635.6539999999998}];
+
+    // --- 2. LÓGICA DE TABS ---
+    function switchTab(tabId) {
+      document.getElementById('tab1').classList.remove('active');
+      document.getElementById('tab2').classList.remove('active');
+      document.getElementById('tab1-content').style.display = 'none';
+      document.getElementById('tab2-content').style.display = 'none';
+
+      document.getElementById('tab' + tabId).classList.add('active');
+      document.getElementById('tab' + tabId + '-content').style.display = 'block';
+      
+      if(tabId === 1 && chartLoaded) {
+        drawCharts();
+      } else if(tabId === 2) {
+        updateComparison();
+      }
+    }
+
+    // --- 3. GOOGLE CHARTS (Mapeo estricto a las secciones) ---
+    let chartLoaded = false;
+    google.charts.load('current', {'packages':['corechart']});
+    google.charts.setOnLoadCallback(() => {
+      chartLoaded = true;
+      drawCharts();
+      updateComparison();
+    });
+
+    function drawCharts() {
+      const weeks = [...new Set(marketData.map(d => d.week_date))].sort();
+      
+      // SECCIÓN 1: Tendencia Global del Parent (ComboChart)
+      const chart1Data = [['Semana', 'Clics Competidores (Barras)', 'Clics Nuestra Marca (Barras)', 'Nuestra Cuota de Clics % (Línea)']];
+      weeks.forEach(w => {
+        let ourClicks = 0;
+        let compClicks = 0;
+        let ourShare = 0;
+        marketData.filter(d => d.week_date === w).forEach(d => {
+          if(d.is_yaba_asin === 'Y') {
+            ourClicks += d.clicks;
+            ourShare += d.click_share;
+          } else {
+            compClicks += d.clicks;
+          }
+        });
+        chart1Data.push([w, compClicks, ourClicks, ourShare]);
+      });
+      
+      let data1 = google.visualization.arrayToDataTable(chart1Data);
+      let options1 = {
+        vAxes: {
+          0: {title: 'Volumen de Clics Estimado'},
+          1: {title: 'Click Share (%)', format: '#.#'}
+        },
+        seriesType: 'bars',
+        series: {
+          0: {targetAxisIndex: 0, color: '#fbbc04'},
+          1: {targetAxisIndex: 0, color: '#1a73e8'},
+          2: {type: 'line', targetAxisIndex: 1, color: '#34a853', lineWidth: 4, pointSize: 6}
+        },
+        legend: { position: 'top' },
+        chartArea: {width: '85%', height: '70%'},
+        backgroundColor: 'transparent',
+        fontName: 'Roboto'
+      };
+      let chart1 = new google.visualization.ComboChart(document.getElementById('chart_tendencia'));
+      chart1.draw(data1, options1);
+
+      // SECCIÓN 2: Competitividad de Marca (LineChart)
+      const chart2Data = [['Semana', 'Nuestra Marca (NaturaleBio)', 'NORITUAL LAB', 'Alpi Nature', 'Special Leaves', 'Resto del Mercado']];
+      weeks.forEach(w => {
+        const shares = {'NaturaleBio': 0, 'NORITUAL LAB': 0, 'Alpi Nature': 0, 'Special Leaves': 0, 'Resto': 0};
+        marketData.filter(d => d.week_date === w).forEach(d => {
+          if(shares[d.real_brand] !== undefined) {
+            shares[d.real_brand] += d.click_share;
+          } else {
+            shares['Resto'] += d.click_share;
+          }
+        });
+        chart2Data.push([w, shares['NaturaleBio'], shares['NORITUAL LAB'], shares['Alpi Nature'], shares['Special Leaves'], shares['Resto']]);
+      });
+
+      let data2 = google.visualization.arrayToDataTable(chart2Data);
+      let options2 = {
+        vAxis: {title: 'Click Share (%)'},
+        colors: ['#1a73e8', '#ea4335', '#fbbc04', '#34a853', '#9aa0a6'],
+        lineWidth: 3,
+        pointSize: 6,
+        legend: { position: 'top' },
+        chartArea: {width: '85%', height: '75%'},
+        backgroundColor: 'transparent',
+        fontName: 'Roboto'
+      };
+      let chart2 = new google.visualization.LineChart(document.getElementById('chart_competitividad'));
+      chart2.draw(data2, options2);
+
+      // SECCIÓN 4: Eficiencia - Rank vs Share (ScatterChart)
+      // Visualizando W22 (Última semana)
+      const chart4Data = [['Organic Rank', 'NaturaleBio (Nuestros ASINs)', 'Competidores (Y)']];
+      marketData.filter(d => d.week_date === '2026-22').forEach(d => {
+         if (d.is_yaba_asin === 'Y') {
+             chart4Data.push([d.average_organic_rank, d.click_share, null]);
+         } else {
+             chart4Data.push([d.average_organic_rank, null, d.click_share]);
+         }
+      });
+      let data4 = google.visualization.arrayToDataTable(chart4Data);
+      let options4 = {
+        hAxis: {title: 'Average Organic Rank (Posición en SERP - Menor es mejor)', direction: -1},
+        vAxis: {title: 'Click Share (%)'},
+        colors: ['#1a73e8', '#ea4335'],
+        legend: { position: 'top' },
+        chartArea: {width: '85%', height: '75%'},
+        backgroundColor: 'transparent',
+        fontName: 'Roboto',
+        pointSize: 12
+      };
+      let chart4 = new google.visualization.ScatterChart(document.getElementById('chart_eficiencia'));
+      chart4.draw(data4, options4);
+    }
+
+    // --- 4. COMPARADOR INTERACTIVO ---
+    function updateComparison() {
+      const week = document.getElementById('weekSelector').value;
+      const compBrand = document.getElementById('compSelector').value;
+      
+      const usData = marketData.filter(d => d.week_date === week && d.real_brand === 'NaturaleBio');
+      const themData = marketData.filter(d => d.week_date === week && d.real_brand === compBrand);
+
+      // Agregación de palancas de un ASIN Parent por marca (Promedio o Suma)
+      function aggregate(data) {
+        if(data.length === 0) return null;
+        let sumShare = 0, sumPrice = 0, sumRank = 0, sumDeals = 0, sumCoupons = 0;
+        data.forEach(d => {
+          sumShare += d.click_share;
+          sumPrice += d.price;
+          sumRank += d.average_organic_rank;
+          sumDeals += d.weekly_number_of_days_with_deal;
+          sumCoupons += d.weekly_number_of_days_with_coupon;
+        });
+        return {
+          share: sumShare.toFixed(2) + '%',
+          price: (sumPrice/data.length).toFixed(2) + '€',
+          rank: (sumRank/data.length).toFixed(1),
+          deals: (sumDeals/data.length).toFixed(1) + ' días',
+          coupons: (sumCoupons/data.length).toFixed(1) + ' días'
+        };
+      }
+
+      const usAgg = aggregate(usData) || {share:'N/A', price:'N/A', rank:'N/A', deals:'N/A', coupons:'N/A'};
+      const themAgg = aggregate(themData) || {share:'N/A', price:'N/A', rank:'N/A', deals:'N/A', coupons:'N/A'};
+
+      document.getElementById('us-share').innerText = usAgg.share;
+      document.getElementById('us-rank').innerText = usAgg.rank;
+      document.getElementById('us-price').innerText = usAgg.price;
+      document.getElementById('us-deals').innerText = usAgg.deals;
+      document.getElementById('us-coupons').innerText = usAgg.coupons;
+
+      document.getElementById('them-name').innerText = compBrand;
+      document.getElementById('them-share').innerText = themAgg.share;
+      document.getElementById('them-rank').innerText = themAgg.rank;
+      document.getElementById('them-price').innerText = themAgg.price;
+      document.getElementById('them-deals').innerText = themAgg.deals;
+      document.getElementById('them-coupons').innerText = themAgg.coupons;
+    }
+
+    // Redibujar gráficos si se hace resize de la ventana
+    window.addEventListener('resize', () => {
+      if(chartLoaded && document.getElementById('tab1').classList.contains('active')) {
+        drawCharts();
+      }
+    });
+  </script>
+</body>
+</html>
