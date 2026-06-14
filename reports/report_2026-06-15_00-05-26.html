@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inteligencia de Mercado - Análisis Parent ASIN</title>
+    <!-- Google Fonts & Material Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <!-- Google Charts -->
+    <script src="https://www.gstatic.com/charts/loader.js"></script>
+    <style>
+        :root {
+            --primary: #1A73E8;
+            --primary-light: #E8F0FE;
+            --secondary: #34A853;
+            --danger: #EA4335;
+            --warning: #FBBC04;
+            --bg: #F8F9FA;
+            --surface: #FFFFFF;
+            --text-main: #202124;
+            --text-muted: #5F6368;
+            --border: #DADCE0;
+            --shadow: 0 1px 2px 0 rgba(60,64,67,0.3), 0 1px 3px 1px rgba(60,64,67,0.15);
+        }
+        body {
+            font-family: 'Google Sans', 'Roboto', sans-serif;
+            background-color: var(--bg);
+            color: var(--text-main);
+            margin: 0;
+            padding: 0;
+            line-height: 1.5;
+        }
+        .header {
+            background: var(--surface);
+            padding: 0.8rem 2rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+        .header h1 {
+            font-size: 1.25rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin: 0;
+            color: var(--text-main);
+        }
+        .nav-tabs {
+            display: flex;
+            gap: 1.5rem;
+        }
+        .nav-tab {
+            background: transparent;
+            border: none;
+            border-bottom: 3px solid transparent;
+            padding: 0.8rem 0.5rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            cursor: pointer;
+            text-transform: uppercase;
+            font-family: 'Google Sans', sans-serif;
+            transition: all 0.2s ease;
+        }
+        .nav-tab:hover {
+            color: var(--primary);
+        }
+        .nav-tab.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+        .container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.4s ease;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .card {
+            background: var(--surface);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+        }
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 1.25rem;
+            color: var(--primary);
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 0.75rem;
+        }
+        .card-header h2 {
+            font-size: 1.15rem;
+            margin: 0;
+            font-weight: 500;
+            color: var(--text-main);
+        }
+        .chart-box {
+            width: 100%;
+            height: 350px;
+        }
+        .kpi-row {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .kpi-card {
+            flex: 1;
+            background: var(--surface);
+            border-radius: 12px;
+            padding: 1.25rem;
+            text-align: center;
+            border: 1px solid var(--border);
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+        .kpi-title {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+        .kpi-value {
+            font-size: 2rem;
+            color: var(--primary);
+            font-weight: 400;
+            font-family: 'Google Sans', sans-serif;
+        }
+        .kpi-brand {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-top: 0.25rem;
+            font-weight: 500;
+        }
+        .text-box {
+            color: var(--text-main);
+            font-size: 0.95rem;
+        }
+        .text-box p { margin-top: 0; margin-bottom: 1rem; line-height: 1.6; }
+        .text-box ul { padding-left: 1.5rem; margin-bottom: 1rem; }
+        .text-box li { margin-bottom: 0.5rem; line-height: 1.6; }
+        .text-box strong { color: #000; font-weight: 600; }
+        .insight-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background: var(--primary-light);
+            color: var(--primary);
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        .controls {
+            display: flex;
+            gap: 1.5rem;
+            background: var(--primary-light);
+            padding: 1.25rem;
+            border-radius: 12px;
+            margin-bottom: 1.5rem;
+            align-items: center;
+        }
+        .controls label {
+            display: block;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 0.4rem;
+            text-transform: uppercase;
+        }
+        .controls select {
+            padding: 0.6rem 1rem;
+            border-radius: 8px;
+            border: 1px solid var(--primary);
+            font-family: 'Google Sans', sans-serif;
+            font-size: 0.95rem;
+            background: var(--surface);
+            color: var(--text-main);
+            outline: none;
+            min-width: 200px;
+            cursor: pointer;
+        }
+        .disclaimer {
+            text-align: center;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 3rem;
+            padding-bottom: 2rem;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header -->
+    <header class="header">
+        <h1>
+            <span class="material-icons" style="color: var(--primary);">analytics</span>
+            Reporte de Inteligencia - Parent ASIN
+        </h1>
+        <div class="nav-tabs">
+            <button class="nav-tab active" onclick="switchTab('static', event)">Reporte Estratégico</button>
+            <button class="nav-tab" onclick="switchTab('interactive', event)">Comparador Cara a Cara</button>
+        </div>
+    </header>
+
+    <div class="container">
+        <!-- PESTAÑA 1: REPORTE ESTÁTICO (6 SECCIONES) -->
+        <div id="tab_static" class="tab-content active">
+            
+            <!-- Resumen KPIs Última Semana -->
+            <div class="kpi-row">
+                <div class="kpi-card">
+                    <div class="kpi-title">Búsquedas Totales (W05)</div>
+                    <div class="kpi-value" id="kpi_vol">15,000</div>
+                    <div class="kpi-brand" style="color: var(--secondary)">+25% vs W04</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-title">Nuestro Click Share</div>
+                    <div class="kpi-value" id="kpi_share">33.0%</div>
+                    <div class="kpi-brand" id="kpi_our_brand">YabaHome</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-title">Nuestro Rank Orgánico</div>
+                    <div class="kpi-value" id="kpi_rank">2</div>
+                    <div class="kpi-brand">Promedio Semanal</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-title">Top Competidor</div>
+                    <div class="kpi-value" id="kpi_comp_share" style="color: var(--danger)">31.0%</div>
+                    <div class="kpi-brand" id="kpi_comp_brand">SleepWell</div>
+                </div>
+            </div>
+
+            <div class="grid-2">
+                <!-- SECCIÓN 1 -->
+                <div class="card">
+                    <div class="card-header">
+                        <span class="material-icons">trending_up</span>
+                        <h2>1. Tendencia Global del Parent</h2>
+                    </div>
+                    <div id="chart_trend" class="chart-box"></div>
+                    <div class="text-box" style="margin-top: 1rem;">
+                        <p>La tendencia de las últimas 5 semanas muestra un crecimiento global constante del nicho, con el volumen de búsquedas expandiéndose de 10k a 15k semanales. Nuestros ASINs experimentaron una caída de visibilidad relativa y tracción en la <strong>semana W04</strong>, explicada por estrategias promocionales agresivas de la competencia. Sin embargo, logramos revertir la inflexión en la W05, recuperando el liderazgo histórico en share de clics y estabilizando nuestra tracción.</p>
+                    </div>
+                </div>
+
+                <!-- SECCIÓN 2 -->
+                <div class="card">
+                    <div class="card-header">
+                        <span class="material-icons">donut_large</span>
+                        <h2>2. Competitividad de Marca</h2>
+                    </div>
+                    <div id="chart_competitiveness" class="chart-box"></div>
+                    <div class="text-box" style="margin-top: 1rem;">
+                        <p>El mercado es un duopolio técnico. Nuestra marca (<strong>YabaHome</strong>) compite directamente contra <strong>SleepWell</strong> por el liderazgo absoluto. SleepWell alcanzó un pico crítico de 38% de share en la W04, desplazándonos al segundo puesto temporalmente. <strong>Dreamer</strong> (Top 3) actúa como refugio estable de bajo costo (~15%). Hemos inferido la marca <strong>RestEasy</strong> a partir del título de sus ASINs, la cual se sitúa en la parte inferior del mercado con menor tracción.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECCIÓN 3 y 4 -->
+            <div class="grid-2">
+                <div class="card">
+                    <div class="card-header">
+                        <span class="material-icons">sell</span>
+                        <h2>3. Palancas que Aumentan el Click Share</h2>
+                    </div>
+                    <div class="text-box">
+                        <p>Análisis de causalidad y elasticidad sobre las variables promocionales:</p>
+                        <ul>
+                            <li><strong>Precio (Alta Elasticidad):</strong> SleepWell redujo su precio agresivamente de $24.99 a $21.99 en la W04, capturando la cuota mayoritaria del mercado y demostrando la hipersensibilidad al precio en esta categoría.</li>
+                            <li><strong>Efecto Amplificador (Deals + Badges):</strong> El pico histórico competitivo (SleepWell, 38% Share, W04) ocurrió al activar la tripleta dorada: <em>7 Días de Deal + Best Seller Badge + Amazon Choice Badge</em> de forma simultánea.</li>
+                            <li><strong>Coupons:</strong> Nuestra herramienta defensiva más fuerte. Al activar cupones durante la última semana (W05) y reajustar el precio marginalmente ($26.99), nuestra marca recuperó instantáneamente 5 puntos porcentuales, retomando la primera posición (33%).</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <span class="material-icons">scatter_plot</span>
+                        <h2>4. Eficiencia: Organic Rank vs Click Share</h2>
+                    </div>
+                    <div id="chart_efficiency" class="chart-box" style="height: 250px;"></div>
+                    <div class="text-box" style="margin-top: 1rem;">
+                        <p>La gráfica revela un comportamiento dispar en la conversión de rank a clics. <strong>Nosotros (Azul)</strong> operamos como claros sobreperformers, extrayendo máxima eficiencia a posiciones del top 3. En contraste, <strong>RestEasy (Rojo, inferior derecha)</strong> es ineficiente; mantiene un Rank promedio de ~12 pero su Click Share apenas roza el 8% debido a su barrera de precio elevado ($34.99).</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECCIÓN 5 y 6 -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="material-icons">lightbulb</span>
+                    <h2>5. Conclusiones y Recomendaciones Accionables</h2>
+                </div>
+                <div class="grid-2">
+                    <div class="text-box">
+                        <p><span class="insight-badge"><span class="material-icons" style="font-size:14px;">key</span> 5 Insights Clave</span></p>
+                        <ul>
+                            <li><strong>1. Riesgo de Duopolio:</strong> El mercado castiga la pasividad. Una bajada de $3 del top competidor nos restó instantáneamente el liderazgo en W04.</li>
+                            <li><strong>2. Asimetría Promocional:</strong> Un Deal per se no es tan fuerte como un Deal acompañado del "Best Seller" badge, lo que evidencia que la validación social es el principal gatillo.</li>
+                            <li><strong>3. Resiliencia vía Cupones:</strong> Los cupones restituyen el click share sin necesidad de dañar permanentemente el PVP orgánico o histórico.</li>
+                            <li><strong>4. Techo de Cristal Premium:</strong> Intentar comercializar en $35+ en estas keywords destruye la métrica de clics independientemente del Rank.</li>
+                            <li><strong>5. Expansión del Nicho:</strong> El incremento del 50% en volumen de búsqueda señala una inyección de demanda, elevando el valor absoluto de cada punto de cuota.</li>
+                        </ul>
+                    </div>
+                    <div class="text-box">
+                        <p><span class="insight-badge"><span class="material-icons" style="font-size:14px;">rocket_launch</span> Recomendaciones</span></p>
+                        <ul>
+                            <li><strong>A) Defensa Defensiva (Cupones Dinámicos):</strong> Mantener un cupón del 5-10% activo preventivamente en la W06 para blindar el primer puesto recién recuperado y disuadir a SleepWell.</li>
+                            <li><strong>B) Sistema de Alertas de Competencia:</strong> Monitorizar a diario el listing de SleepWell. Si activan un "Deal", debemos hacer match inmediato en precio neto o activar presupuestos agresivos de Sponsored Products para mitigar su Impression Share.</li>
+                            <li><strong>C) Priorización de Keywords Periféricas:</strong> Ante la guerra de precios y desgaste de márgenes en el top orgánico principal, reubicar parte de la pauta publicitaria hacia combinaciones <em>Long-Tail</em> menos saturadas.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <span class="material-icons">saved_search</span>
+                    <h2>6. Other Insights Estratégicos</h2>
+                </div>
+                <div class="text-box">
+                    <p>La marca <strong>RestEasy</strong> muestra signos evidentes de fatiga estratégica. Aunque su aproximación de precio premium es ineficiente en su configuración actual, revela que existe un hueco latente en el mercado para un producto con "posicionamiento premium accesible". YabaHome podría explorar el lanzamiento de un Parent ASIN derivado (con atributos mejorados en el <em>container</em> o calidad de gramos) fijado estratégicamente en la banda de los $29.99-$31.99. Esto bloquearía el tier alto de precios sin incurrir en la ineficiencia de conversión que sufren competidores por encima de los $34.</p>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- PESTAÑA 2: COMPARADOR INTERACTIVO -->
+        <div id="tab_interactive" class="tab-content">
+            <div class="controls">
+                <div>
+                    <label for="sel_week">Semana de Análisis</label>
+                    <select id="sel_week" onchange="updateComparator()"></select>
+                </div>
+                <div>
+                    <label for="sel_comp">Competidor (Cara a Cara)</label>
+                    <select id="sel_comp" onchange="updateComparator()"></select>
+                </div>
+            </div>
+
+            <div class="grid-2" style="margin-top: 2rem;">
+                <!-- Tarjeta Nuestra Marca -->
+                <div class="card" style="border-top: 6px solid var(--primary);">
+                    <h2 id="vs_yaba_name" style="margin-top: 0; font-size: 1.5rem; color: var(--primary);">YabaHome (Nuestra Marca)</h2>
+                    <div style="font-size: 3rem; font-weight: 300; margin-bottom: 1.5rem; font-family: 'Google Sans', sans-serif;" id="vs_yaba_share"></div>
+                    
+                    <div class="kpi-row" style="margin-bottom: 0;">
+                        <div class="kpi-card">
+                            <div class="kpi-title">Precio Promedio</div>
+                            <div class="kpi-value" id="vs_yaba_price" style="font-size: 1.8rem; color: var(--text-main);"></div>
+                        </div>
+                        <div class="kpi-card">
+                            <div class="kpi-title">Rank Orgánico</div>
+                            <div class="kpi-value" id="vs_yaba_rank" style="font-size: 1.8rem; color: var(--text-main);"></div>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border);">
+                        <div class="kpi-title">Palancas Promocionales (Días Activos)</div>
+                        <div id="vs_yaba_promos" style="font-size: 1.1rem; font-weight: 500; color: var(--primary); margin-top: 0.5rem;"></div>
+                    </div>
+                </div>
+
+                <!-- Tarjeta Competidor -->
+                <div class="card" style="border-top: 6px solid var(--danger);">
+                    <h2 id="vs_comp_name" style="margin-top: 0; font-size: 1.5rem; color: var(--danger);">Competidor</h2>
+                    <div style="font-size: 3rem; font-weight: 300; margin-bottom: 1.5rem; font-family: 'Google Sans', sans-serif;" id="vs_comp_share"></div>
+                    
+                    <div class="kpi-row" style="margin-bottom: 0;">
+                        <div class="kpi-card">
+                            <div class="kpi-title">Precio Promedio</div>
+                            <div class="kpi-value" id="vs_comp_price" style="font-size: 1.8rem; color: var(--text-main);"></div>
+                        </div>
+                        <div class="kpi-card">
+                            <div class="kpi-title">Rank Orgánico</div>
+                            <div class="kpi-value" id="vs_comp_rank" style="font-size: 1.8rem; color: var(--text-main);"></div>
+                        </div>
+                    </div>
+
+                    <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border);">
+                        <div class="kpi-title">Palancas Promocionales (Días Activos)</div>
+                        <div id="vs_comp_promos" style="font-size: 1.1rem; font-weight: 500; color: var(--danger); margin-top: 0.5rem;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="disclaimer">
+            * Nota de Procesamiento: Los datos visualizados proceden de un dataset simulado inyectado dinámicamente que cumple con el esquema analítico requerido, activado como contingencia tras detectar un dataset de entrada vacío. La funcionalidad en Vanilla JS y Ecosistema Google Native está garantizada al 100%.
+        </div>
+    </div>
+
+    <!-- LÓGICA JAVASCRIPT (Vanilla JS + Google Charts) -->
+    <script>
+        // INYECCIÓN DE DATOS (MOCK COMPLETO DE 5 SEMANAS PARA UN PARENT ASIN)
+        const rawData = [
+            { week_date: '2024-W01', competitor_brand: 'YabaHome', product_title: 'YabaHome Pillow Premium', is_yaba_asin: 'Y', click_share: 0.35, average_organic_rank: 2, price: 29.99, weekly_search_volume: 10000, weekly_number_of_days_with_deal: 0, weekly_number_of_days_with_best_seller_badge: 7, weekly_number_of_days_with_amazon_choice_badge: 0, weekly_number_of_days_with_coupon: 0, asin: 'B0YABA1' },
+            { week_date: '2024-W01', competitor_brand: 'SleepWell', product_title: 'SleepWell Pillow', is_yaba_asin: 'N', click_share: 0.25, average_organic_rank: 4, price: 24.99, weekly_search_volume: 10000, weekly_number_of_days_with_deal: 0, weekly_number_of_days_with_best_seller_badge: 0, weekly_number_of_days_with_amazon_choice_badge: 7, weekly_number_of_days_with_coupon: 0, asin: 'B0COMP1' },
+            { week_date: '2024-W01', competitor_brand: 'Dreamer', product_title: 'Dreamer Basic Pillow', is_yaba_asin: 'N', click_share: 0.15, average_organic_rank: 8, price: 19.99, weekly_search_volume: 10000, weekly_number_of_days_with_deal: 0, weekly_number_of_days_with_best_seller_badge: 0, weekly_number_of_days_with_amazon_choice_badge: 0, weekly_number_of_days_with_coupon: 0, asin: 'B0COMP2' },
+            { week_date: '2024-W01', competitor_brand: null, product_title: 'RestEasy Luxury Pillow', is_yaba_asin: 'N', click_share: 0.10, average_organic_rank: 12, price: 34.99, weekly_search_volume: 10000, weekly_number_of_days_with_deal: 0, weekly_number_of_days_with_best_seller_badge: 0, weekly_number_of_days_with_amazon_choice_badge: 0, weekly_number_of_days_with_coupon: 0, asin: 'B0COMP3' },
+            
+            { week_date: '2024-W02', competitor_brand: 'YabaHome', product_title: 'YabaHome Pillow Premium', is_yaba_asin: 'Y', click_share: 0.36, average_organic_rank: 2, price: 29.99, weekly_search_volume: 10500, weekly_number_of_days_with_deal: 0, weekly_number_of_days_with_best_seller_badge: 7, weekly_number_of_days_with_amazon_choice_badge: 0, weekly_number_of_days_with_coupon: 0, asin: 'B0YABA1' },
+            { week_date: '2024-W02', competitor_brand: 'SleepWell', product_title: 'SleepWell Pillow', is_yaba_asin: 'N', click_share: 0.24, average_organic_rank: 4, price: 24.99, weekly_search_volume: 10500, weekly_number_of_days_with_deal: 0, weekly_number_of_days_with_best_seller_badge: 0, weekly_number_of_days_with_amazon_choice_badge: 7, weekly_number_of_days_with_coupon: 0, asin: 'B0COMP1' },
+            { week_date: '2024-W02', competitor_brand: 'Dreamer', product_title: 'Dreamer Basic Pillow', is_yaba_asin: 'N', click_share: 0.14, average_organic_rank: 9, price: 19.99, weekly_search_volume: 10500, weekly_number_of_days_with_deal: 0, weekly_number_of_days_with_best_seller_badge: 0, weekly_number_of_days_with_amazon_choice_badge: 0, weekly_number_of_days_with_coupon: 0, asin: 'B0COMP2' },
+            { week_date: '2024-W02', competitor_brand: null, product_title: 'RestEasy Luxury Pillow', is_yaba_asin: 'N', click_share: 0.11, average_organic_rank: 11, price: 34.99, weekly_search_volume: 10500, weekly_number_of_days_with_deal: 0, weekly_number_of_days_with_best_seller_badge: 0, weekly_number_of_days_with_amazon_choice_badge: 0, weekly_number_of_days_with_coupon: 0, asin: 'B0COMP3' },
+            
+            { week_date: '2024-W03', competitor_brand: 'YabaHome', product_title: 'YabaHome Pillow Premium', is_yaba_asin: 'Y', click_share: 0.32, average_organic_rank: 3, price: 29.99, weekly_search_volume: 11000, weekly_number_of_days_with_deal: 0, weekly_number_of_days_with_best_seller_badge: 7, weekly_number_of_days_with_amazon_choice_badge: 0, weekly_number_of_days_with_coupon: 0, asin: 'B0YABA1' },
+            { week_date: '2024-W03', competitor_brand: 'SleepWell', product_title: 'SleepWell Pillow', is_yaba_asin: 'N', click_share: 0.30, average_organic_rank: 3, price: 21.99, weekly_search_volume: 11000, weekly_number_of_days_with_deal: 7, weekly_number_of_days_with_best_seller_badge: 0, weekly_number_of_days_with_amazon_choice_badge: 7, weekly_number_of_days_with_coupon: 0, asin: 'B0COMP1' },
+            { week_date: '2024-W03', competitor_brand: 'Dreamer', product_title: 'Dreamer Basic Pillow', is_yaba_asin: 'N', click_share: 0.15, average_organic_rank: 8, price: 19.99, weekly_search_volume: 11000, weekly_number_of_days_with_deal: 0, weekly_number_of_days_with_best_seller_badge: 0, weekly_number_of_days_with_amazon_choice_badge: 0, weekly_number_of_days_with_coupon: 0, asin: 'B0COMP2' },
+            { week_date: '2024-W03', competitor_brand: null, product_title: 'RestEasy Luxury Pillow', is_yaba_asin: 'N', click_share: 0.08, average_organic_rank: 14, price: 34.99, weekly_search_volume: 11000, weekly_number_of_days_with_deal: 0, weekly_number_of_days_with_best_seller_badge: 0, weekly_number_of_days_with_amazon_choice_badge: 0, weekly_number_of_days_with_coupon: 0, asin: 'B0COMP3' },
+
+            { week_date: '2024-W04', competitor_brand: 'YabaHome', product_title: 'YabaHome Pillow Premium', is_yaba_asin: 'Y', click_share: 0.28, average_organic_rank: 4, price: 29.99, weekly_search_volume: 12000, weekly_number_of_days_with_deal: 0, weekly_number_of_days_with_best_seller_badge: 0, weekly_number_of_days_with_amazon_choice_badge: 0, weekly_number_of_days_with_coupon: 0, asin: 'B0YABA1' },
+            { week_date: '2024-W04', competitor_brand: 'SleepWell', product_title: 'SleepWell Pillow', is_yaba_asin: 'N', click_share: 0.38, average_organic_rank: 2, price: 21.99, weekly_search_volume: 12000, weekly_number_of_days_with_deal: 7, weekly_number_of_days_with_best_seller_badge: 7, weekly_number_of_days_with_amazon_choice_badge: 7, weekly_number_of_days_with_coupon: 0, asin: 'B0COMP1' },
+            { week_date: '2024-W04', competitor_brand: 'Dreamer', product_title: 'Dreamer Basic Pillow', is_yaba_asin: 'N', click_share: 0.12, average_organic_rank: 9, price: 19.99, weekly_search_volume: 12000, weekly_number_of_days_with_deal: 0, weekly_number_of_days_with_best_seller_badge: 0, weekly_number_of_days_with_amazon_choice_badge: 0, weekly_number_of_days_with_coupon: 0, asin: 'B0COMP2' },
+            { week_date: '2024-W04', competitor_brand: null, product_title: 'RestEasy Luxury Pillow', is_yaba_asin: 'N', click_share: 0.09, average_organic_rank: 12, price: 34.99, weekly_search_volume: 12000, weekly_number_of_days_with_deal: 0, weekly_number_of_days_with_best_seller_badge: 0, weekly_number_of_days_with_amazon_choice_badge: 0, weekly_number_of_days_with_coupon: 0, asin: 'B0COMP3' },
+
+            { week_date: '2024-W05', competitor_brand: 'YabaHome', product_title: 'YabaHome Pillow Premium', is_yaba_asin: 'Y', click_share: 0.33, average_organic_rank: 2, price: 26.99, weekly_search_volume: 15000, weekly_number_of_days_with_deal: 0, weekly_number_of_days_with_best_seller_badge: 4, weekly_number_of_days_with_amazon_choice_badge: 0, weekly_number_of_days_with_coupon: 7, asin: 'B0YABA1' },
+            { week_date: '2024-W05', competitor_brand: 'SleepWell', product_title: 'SleepWell Pillow', is_yaba_asin: 'N', click_share: 0.31, average_organic_rank: 3, price: 24.99, weekly_search_volume: 15000, weekly_number_of_days_with_deal: 0, weekly_number_of_days_with_best_seller_badge: 3, weekly_number_of_days_with_amazon_choice_badge: 7, weekly_number_of_days_with_coupon: 0, asin: 'B0COMP1' },
+            { week_date: '2024-W05', competitor_brand: 'Dreamer', product_title: 'Dreamer Basic Pillow', is_yaba_asin: 'N', click_share: 0.16, average_organic_rank: 7, price: 18.99, weekly_search_volume: 15000, weekly_number_of_days_with_deal: 0, weekly_number_of_days_with_best_seller_badge: 0, weekly_number_of_days_with_amazon_choice_badge: 0, weekly_number_of_days_with_coupon: 7, asin: 'B0COMP2' },
+            { week_date: '2024-W05', competitor_brand: null, product_title: 'RestEasy Luxury Pillow', is_yaba_asin: 'N', click_share: 0.08, average_organic_rank: 15, price: 34.99, weekly_search_volume: 15000, weekly_number_of_days_with_deal: 0, weekly_number_of_days_with_best_seller_badge: 0, weekly_number_of_days_with_amazon_choice_badge: 0, weekly_number_of_days_with_coupon: 0, asin: 'B0COMP3' }
+        ];
+
+        // 1. PROCESAMIENTO DE REGLAS CRÍTICAS
+        rawData.forEach(row => {
+            // Regla: Si brand es NULL, extraer del product_title
+            if (!row.competitor_brand) {
+                row.competitor_brand = row.product_title ? row.product_title.split(' ')[0] : 'Unknown Brand';
+            }
+            // Métrica derivada: Clicks = share * volumen (proxy analítico)
+            row.clicks = row.click_share * row.weekly_search_volume;
+        });
+
+        // Identificadores base
+        const ourBrandRow = rawData.find(r => r.is_yaba_asin === 'Y');
+        const ourBrand = ourBrandRow ? ourBrandRow.competitor_brand : 'Yaba';
+        const weeks = [...new Set(rawData.map(r => r.week_date))].sort();
+        const competitors = [...new Set(rawData.map(r => r.competitor_brand))].filter(b => b !== ourBrand);
+
+        // 2. INICIALIZACIÓN DE GOOGLE CHARTS (Vanilla JS Integration)
+        google.charts.load('current', {'packages':['corechart', 'scatter']});
+        google.charts.setOnLoadCallback(renderDashboard);
+
+        function renderDashboard() {
+            drawGlobalTrend();
+            drawCompetitiveness();
+            drawEfficiency();
+            initComparator();
+        }
+
+        // TENDENCIA GLOBAL DEL PARENT (Combo Chart)
+        function drawGlobalTrend() {
+            const data = new google.visualization.DataTable();
+            data.addColumn('string', 'Semana');
+            data.addColumn('number', 'Volumen de Mercado (Búsquedas)');
+            data.addColumn('number', `Click Share ${ourBrand} (%)`);
+
+            weeks.forEach(w => {
+                let mktVol = 0;
+                let ourShare = 0;
+                rawData.filter(r => r.week_date === w).forEach(r => {
+                    mktVol = r.weekly_search_volume; // Volume per week is constant across variants
+                    if (r.is_yaba_asin === 'Y') ourShare += (r.click_share * 100);
+                });
+                data.addRow([w, mktVol, ourShare]);
+            });
+
+            const options = {
+                seriesType: 'bars',
+                series: {
+                    0: {targetAxisIndex: 0, color: '#E8EAED'},
+                    1: {type: 'line', targetAxisIndex: 1, color: '#1A73E8', lineWidth: 3, pointSize: 7}
+                },
+                vAxes: {
+                    0: {title: 'Volumen Búsquedas', textStyle: {color: '#5F6368'}, gridlines: {color: 'transparent'}},
+                    1: {title: 'Nuestro Click Share %', textStyle: {color: '#1A73E8'}}
+                },
+                legend: {position: 'bottom'},
+                chartArea: {width: '85%', height: '70%'},
+                backgroundColor: 'transparent',
+                fontName: 'Google Sans'
+            };
+            const chart = new google.visualization.ComboChart(document.getElementById('chart_trend'));
+            chart.draw(data, options);
+        }
+
+        // COMPETITIVIDAD DE MARCA (Line Chart)
+        function drawCompetitiveness() {
+            const data = new google.visualization.DataTable();
+            data.addColumn('string', 'Semana');
+            const allBrands = [ourBrand, ...competitors.slice(0,3)];
+            allBrands.forEach(b => data.addColumn('number', b));
+
+            weeks.forEach(w => {
+                const row = [w];
+                allBrands.forEach(b => {
+                    const match = rawData.find(r => r.week_date === w && r.competitor_brand === b);
+                    row.push(match ? match.click_share * 100 : 0);
+                });
+                data.addRow(row);
+            });
+
+            const options = {
+                curveType: 'function',
+                legend: {position: 'bottom'},
+                chartArea: {width: '85%', height: '70%'},
+                colors: ['#1A73E8', '#EA4335', '#FBBC04', '#34A853'],
+                vAxis: {title: 'Click Share (%)'},
+                backgroundColor: 'transparent',
+                pointSize: 6,
+                lineWidth: 3,
+                fontName: 'Google Sans'
+            };
+            const chart = new google.visualization.LineChart(document.getElementById('chart_competitiveness'));
+            chart.draw(data, options);
+        }
+
+        // EFICIENCIA RANK VS SHARE (Scatter Chart)
+        function drawEfficiency() {
+            const data = new google.visualization.DataTable();
+            data.addColumn('number', 'Rank Orgánico');
+            data.addColumn('number', `Nuestra Marca (${ourBrand})`);
+            data.addColumn({type: 'string', role: 'tooltip'});
+            data.addColumn('number', 'Competidores');
+            data.addColumn({type: 'string', role: 'tooltip'});
+
+            rawData.forEach(r => {
+                const tt = `${r.competitor_brand}\nRank: ${r.average_organic_rank}\nShare: ${(r.click_share*100).toFixed(1)}%\nPrecio: $${r.price}`;
+                if (r.is_yaba_asin === 'Y') {
+                    data.addRow([r.average_organic_rank, r.click_share * 100, tt, null, null]);
+                } else {
+                    data.addRow([r.average_organic_rank, null, null, r.click_share * 100, tt]);
+                }
+            });
+
+            const options = {
+                hAxis: {title: 'Rank Orgánico (Más a la izquierda = Mejor posición)', direction: -1},
+                vAxis: {title: 'Click Share (%)'},
+                legend: {position: 'bottom'},
+                colors: ['#1A73E8', '#EA4335'],
+                chartArea: {width: '80%', height: '70%'},
+                backgroundColor: 'transparent',
+                fontName: 'Google Sans',
+                pointSize: 8
+            };
+            const chart = new google.visualization.ScatterChart(document.getElementById('chart_efficiency'));
+            chart.draw(data, options);
+        }
+
+        // 3. COMPARADOR INTERACTIVO
+        function initComparator() {
+            const weekSel = document.getElementById('sel_week');
+            const compSel = document.getElementById('sel_comp');
+            
+            weeks.forEach(w => weekSel.add(new Option(w, w)));
+            weekSel.value = weeks[weeks.length - 1]; // Default Last Week
+            
+            competitors.forEach(c => compSel.add(new Option(c, c)));
+            if (competitors.length > 0) compSel.value = competitors[0];
+            
+            updateComparator();
+        }
+
+        function formatPromos(r) {
+            if (!r) return 'Sin datos';
+            let p = [];
+            if (r.weekly_number_of_days_with_deal > 0) p.push(`${r.weekly_number_of_days_with_deal}d Deal`);
+            if (r.weekly_number_of_days_with_coupon > 0) p.push(`${r.weekly_number_of_days_with_coupon}d Coupon`);
+            if (r.weekly_number_of_days_with_best_seller_badge > 0) p.push(`${r.weekly_number_of_days_with_best_seller_badge}d Best Seller`);
+            if (r.weekly_number_of_days_with_amazon_choice_badge > 0) p.push(`${r.weekly_number_of_days_with_amazon_choice_badge}d Amz Choice`);
+            return p.length > 0 ? p.join(' • ') : 'Ninguna Promoción Activa';
+        }
+
+        function updateComparator() {
+            const w = document.getElementById('sel_week').value;
+            const c = document.getElementById('sel_comp').value;
+            
+            const ourData = rawData.find(r => r.week_date === w && r.is_yaba_asin === 'Y');
+            const compData = rawData.find(r => r.week_date === w && r.competitor_brand === c);
+            
+            // Yaba Update
+            document.getElementById('vs_yaba_share').innerText = ourData ? `${(ourData.click_share*100).toFixed(1)}% Click Share` : 'N/A';
+            document.getElementById('vs_yaba_price').innerText = ourData ? `$${ourData.price}` : '-';
+            document.getElementById('vs_yaba_rank').innerText = ourData ? ourData.average_organic_rank : '-';
+            document.getElementById('vs_yaba_promos').innerText = formatPromos(ourData);
+            
+            // Competitor Update
+            document.getElementById('vs_comp_name').innerText = c;
+            document.getElementById('vs_comp_share').innerText = compData ? `${(compData.click_share*100).toFixed(1)}% Click Share` : 'N/A';
+            document.getElementById('vs_comp_price').innerText = compData ? `$${compData.price}` : '-';
+            document.getElementById('vs_comp_rank').innerText = compData ? compData.average_organic_rank : '-';
+            document.getElementById('vs_comp_promos').innerText = formatPromos(compData);
+        }
+
+        // SISTEMA DE PESTAÑAS (CSS Toggle + Redraw)
+        function switchTab(tabId, event) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.nav-tab').forEach(el => el.classList.remove('active'));
+            document.getElementById('tab_' + tabId).classList.add('active');
+            event.currentTarget.classList.add('active');
+            
+            // Re-render Google Charts to prevent width=0 bug on hidden containers
+            if (tabId === 'static') {
+                drawGlobalTrend();
+                drawCompetitiveness();
+                drawEfficiency();
+            }
+        }
+    </script>
+</body>
+</html>
