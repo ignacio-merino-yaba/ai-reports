@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reporte de Inteligencia de Mercado Yaba - Análisis Parent ASIN</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <!-- Google Material Icons -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <!-- Google Charts -->
+    <script src="https://www.gstatic.com/charts/loader.js"></script>
+
+    <style>
+        /* Base Styles (Google Material Aesthetic) */
+        :root {
+            --primary: #1a73e8;
+            --primary-light: #e8f0fe;
+            --competitor: #d93025;
+            --competitor-light: #fce8e6;
+            --text-main: #202124;
+            --text-secondary: #5f6368;
+            --border: #dadce0;
+            --bg-main: #f8f9fa;
+            --bg-card: #ffffff;
+            --success: #188038;
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: var(--bg-main);
+            margin: 0;
+            color: var(--text-main);
+            line-height: 1.5;
+        }
+
+        /* Header & Navigation */
+        header {
+            background-color: var(--bg-card);
+            padding: 16px 24px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        h1 {
+            font-size: 22px;
+            font-weight: 500;
+            margin: 0;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 24px;
+            border-bottom: 1px solid var(--border);
+            padding: 0 24px;
+            background: var(--bg-card);
+        }
+
+        .tab {
+            padding: 14px 4px;
+            cursor: pointer;
+            color: var(--text-secondary);
+            font-weight: 500;
+            font-size: 14px;
+            border-bottom: 3px solid transparent;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s ease;
+        }
+
+        .tab:hover {
+            color: var(--primary);
+        }
+
+        .tab.active {
+            color: var(--primary);
+            border-bottom: 3px solid var(--primary);
+        }
+
+        /* Layout */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        .content {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Cards & Metrics */
+        .card {
+            background: var(--bg-card);
+            border-radius: 8px;
+            box-shadow: 0 1px 2px 0 rgba(60,64,67,0.3), 0 1px 3px 1px rgba(60,64,67,0.15);
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+
+        .card-title {
+            font-size: 18px;
+            font-weight: 500;
+            margin-bottom: 16px;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 12px;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .metric {
+            padding: 16px;
+            background: var(--bg-card);
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .metric::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 4px; height: 100%;
+            background: var(--border);
+        }
+
+        .metric.blue::before { background: var(--primary); }
+        .metric.red::before { background: var(--competitor); }
+        .metric.green::before { background: var(--success); }
+
+        .metric-title {
+            font-size: 12px;
+            color: var(--text-secondary);
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .metric-value {
+            font-size: 28px;
+            font-weight: 400;
+            color: var(--text-main);
+            margin-top: 8px;
+        }
+
+        /* Charts Container */
+        .chart-container {
+            width: 100%;
+            height: 350px;
+        }
+
+        /* Typography & Lists */
+        p { margin-top: 0; margin-bottom: 16px; }
+        
+        ul.insights {
+            padding-left: 20px;
+            margin: 0;
+        }
+
+        ul.insights li {
+            margin-bottom: 12px;
+        }
+
+        ul.insights li b {
+            color: var(--text-main);
+            font-weight: 500;
+        }
+
+        h4 {
+            margin: 24px 0 12px 0;
+            font-size: 16px;
+            color: var(--text-main);
+            font-weight: 500;
+        }
+
+        /* Controls & Comparator */
+        .controls-bar {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 24px;
+            background: var(--bg-card);
+            padding: 16px;
+            border-radius: 8px;
+            box-shadow: 0 1px 2px 0 rgba(60,64,67,0.3);
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .control-group label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            font-weight: 500;
+            text-transform: uppercase;
+        }
+
+        select {
+            padding: 10px 14px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            font-family: 'Roboto', sans-serif;
+            font-size: 14px;
+            color: var(--text-main);
+            outline: none;
+            background: #fff;
+            min-width: 180px;
+            cursor: pointer;
+        }
+
+        select:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 1px var(--primary);
+        }
+
+        .vs-container {
+            display: flex;
+            gap: 24px;
+            flex-wrap: wrap;
+        }
+
+        .vs-column {
+            flex: 1;
+            min-width: 300px;
+        }
+
+        .vs-header {
+            text-align: center;
+            font-size: 18px;
+            font-weight: 500;
+            padding: 16px;
+            border-radius: 8px 8px 0 0;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .vs-header.yaba { background: var(--primary); }
+        .vs-header.comp { background: var(--competitor); }
+
+        .vs-badge {
+            font-size: 12px;
+            background: rgba(255,255,255,0.2);
+            padding: 2px 8px;
+            border-radius: 12px;
+            display: inline-block;
+            margin: 0 auto;
+        }
+
+        .vs-body {
+            border: 1px solid var(--border);
+            border-top: none;
+            border-radius: 0 0 8px 8px;
+            padding: 0 16px;
+            background: var(--bg-card);
+        }
+
+        .vs-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 16px 0;
+            border-bottom: 1px solid var(--bg-main);
+        }
+
+        .vs-row:last-child {
+            border-bottom: none;
+        }
+
+        .vs-label {
+            color: var(--text-secondary);
+            font-weight: 400;
+        }
+
+        .vs-val {
+            font-weight: 500;
+            color: var(--text-main);
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1><span class="material-icons">analytics</span> Yaba Market Intelligence</h1>
+        <div style="font-size: 14px; color: #5f6368;">Parent ASIN: <b>B00PARENT</b> (Agg_Mice)</div>
+    </header>
+
+    <div class="tabs">
+        <div class="tab active" onclick="switchTab('tab-dashboard')">
+            <span class="material-icons">dashboard</span> Reporte Principal
+        </div>
+        <div class="tab" onclick="switchTab('tab-comparator')">
+            <span class="material-icons">compare_arrows</span> Comparador Interactivo
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- TAB 1: REPORTE ESTÁTICO & GRÁFICOS -->
+        <div id="tab-dashboard" class="content active">
+            
+            <div class="metrics-grid">
+                <div class="metric blue">
+                    <div class="metric-title">Nuestra Cuota Últ. Sem (W44)</div>
+                    <div class="metric-value" id="metric-yaba-share">-</div>
+                </div>
+                <div class="metric red">
+                    <div class="metric-title">Top Competidor Share</div>
+                    <div class="metric-value" id="metric-comp-share">-</div>
+                </div>
+                <div class="metric green">
+                    <div class="metric-title">Nuestro Rank Orgánico (W44)</div>
+                    <div class="metric-value" id="metric-yaba-rank">-</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title"><span class="material-icons">insights</span> 1. Tendencia Global del Parent</div>
+                <div id="trend-chart" class="chart-container"></div>
+                <p style="margin-top: 16px; color: var(--text-secondary);">El parent <b>B00PARENT</b> presenta alta volatilidad en cuotas de clics dependiente de estacionalidad promocional. Durante las últimas semanas, nuestros ASINs (YabaTech) han mantenido un promedio robusto (~25%). En la W43 hubo una inflexión donde el agregado de competidores repuntó gracias a ofertas flash combinadas, reduciendo temporalmente nuestra tracción. Esta última semana (W44), recuperamos visibilidad, estabilizando el parent frente a la presión general del mercado.</p>
+            </div>
+
+            <div class="card">
+                <div class="card-title"><span class="material-icons">stacked_line_chart</span> 2. Competitividad de Marca (Yaba vs Top 3)</div>
+                <div id="comp-chart" class="chart-container"></div>
+                <p style="margin-top: 16px; color: var(--text-secondary);"><b>Logi</b> se confirma como nuestro rival principal y único capaz de disputar el dominio (#1 rank share). Logi nos superó en la W41 y W43 mediante la inyección simultánea de <i>Deal Days</i> y <i>Coupons</i>. Marcas como <b>Razer</b> y <b>Corsair</b> operan en bandas inferiores de share (<15%) debido a una estrategia de precio premium sin subsidios recurrentes. La curva de YabaTech evidencia que somos directamente reactivos a los movimientos de Logi.</p>
+            </div>
+
+            <div class="card">
+                <div class="card-title"><span class="material-icons">campaign</span> 3. Palancas que Aumentan el Click Share</div>
+                <ul class="insights text-secondary" style="color: var(--text-secondary);">
+                    <li><b>Precio Base:</b> Existe una fuerte elasticidad al precio en el segmento <35€. Nuestro posicionamiento a 29.99€ nos otorga tracción natural frente a Logi (35.99€), pero esta ventaja desaparece si el competidor activa cupones.</li>
+                    <li><b>Best Seller Badge sin Deals:</b> Funciona como un ancla defensiva excepcional. En semanas con <i>Best Seller Days</i> activos y 0 Deals (ej. YabaTech en W40), nuestro Share se consolida, protegiendo tráfico orgánico puro de alta calidad.</li>
+                    <li><b>Efecto Amplificador (Best Seller + Deals):</b> Observado en Logi durante la W42. La combinación de promoción de precio con la validación social del Badge generó un pico drástico de eficiencia en la captación de clics en la SERP.</li>
+                    <li><b>Coupons vs Deals:</b> Los <i>Deal Days</i> actúan como aceleradores de impresión (mejora directa de ranking), mientras que los cupones protegen cuota de clics al mejorar el CTR sin afectar el rank base tan drásticamente.</li>
+                    <li><b>Amazon Choice:</b> Mostró un impacto marginal para marcas secundarias. Corsair lo retuvo durante varias semanas pero sin romper la barrera del Rank 9, demostrando que el badge no compensa un precio elevado sin acompañamiento promocional.</li>
+                </ul>
+            </div>
+
+            <div class="card">
+                <div class="card-title"><span class="material-icons">scatter_plot</span> 4. Eficiencia Orgánica (Rank vs Click Share)</div>
+                <div id="scatter-chart" class="chart-container"></div>
+                <p style="margin-top: 16px; color: var(--text-secondary);">El gráfico evidencia la eficiencia del ranking. <b>Sobreperformers:</b> YabaTech y Logi operan con máxima eficiencia; rankear en el Top 3 garantiza más del 20% de Share. <b>Underperformers:</b> Las marcas listadas fuera de la posición 6 experimentan una caída logarítmica abrupta. Particularmente, las "Generic Brands" a pesar de ser las más baratas (19.99€), son incapaces de traducir su precio en clics eficientes (apenas ~3%), demostrando que el mercado valora el posicionamiento de marca.</p>
+            </div>
+
+            <div class="card">
+                <div class="card-title"><span class="material-icons">lightbulb</span> 5. Conclusiones Clave y Recomendaciones</div>
+                <h4>🚀 Top 5 Insights</h4>
+                <ul class="insights text-secondary" style="color: var(--text-secondary);">
+                    <li><b>Mercado Binario:</b> El 50-60% de los clics se disputan en un duopolio estricto entre YabaTech y Logi.</li>
+                    <li><b>Hipersensibilidad Promocional:</b> La ausencia de promociones durante más de 7 días resulta inmediatamente en pérdida de Share si el competidor activo lanza ofertas relámpago.</li>
+                    <li><b>Suelo Estructural:</b> Posicionarse <30€ garantiza un suelo base de conversión, haciendo inútiles los esfuerzos de competidores no-brand para penetrar por la vía extrema del low-cost.</li>
+                    <li><b>El coste del Badge:</b> Perder el <i>Best Seller Badge</i> correlaciona casi perfectamente con pérdidas de 3 a 5 puntos porcentuales en la métrica de Click Share a favor del que lo captura.</li>
+                    <li><b>Aislamiento Premium:</b> Competidores en franjas >40€ (Razer) absorben un público cautivo no elástico, por lo cual no representan una amenaza de volumen para nuestro parent ASIN.</li>
+                </ul>
+                
+                <h4>🎯 Recomendaciones Accionables</h4>
+                <ul class="insights" style="color: var(--text-main);">
+                    <li><b>1. Sistema de "Espejo" de Cupones:</b> Activar inmediatamente cupones defensivos del 10% si se detectan <i>Deal Days</i> en el principal ASIN de Logi para cortar la fuga de tráfico y mantener el Rank 1 orgánico.</li>
+                    <li><b>2. Reactivación del Badge mediante Sponsored Brand:</b> Desplegar campañas agresivas de Top-of-Search específicas en las keywords donde perdimos el Rank 1 en la W44 para recuperar velocity frente al algoritmo.</li>
+                    <li><b>3. Eficiencia Presupuestaria:</b> Eliminar la inversión defensiva de Product Targeting sobre ASINs de Razer y Corsair, ya que sus audiencias cruzadas no aportan volumen útil; redirigir el 100% hacia defensa de marca y ataque a Logi.</li>
+                </ul>
+            </div>
+
+            <div class="card" style="margin-bottom: 0;">
+                <div class="card-title"><span class="material-icons">explore</span> 6. Otros Insights Estratégicos</div>
+                <ul class="insights text-secondary" style="color: var(--text-secondary);">
+                    <li><b>Fragilidad en Conversión de Competidores:</b> Corsair recibe tráfico gracias a su Amazon Choice intermitente pero presenta bajo Share, lo cual denota problemas in-page (reviews, contenido). Oportunidad para ganar cuota inyectando Sponsored Display en sus páginas de producto.</li>
+                    <li><b>Salud de Marca Propia:</b> Nuestro Parent sostiene un impression share muy parejo a nuestro click share, lo que valida que nuestros títulos, imágenes principales e iconografía son eficientes seduciendo el clic una vez mostrados.</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- TAB 2: COMPARADOR INTERACTIVO -->
+        <div id="tab-comparator" class="content">
+            <div class="controls-bar">
+                <div class="control-group">
+                    <label>Semana Analizada</label>
+                    <select id="comp-week" onchange="updateComparator()"></select>
+                </div>
+                <div class="control-group">
+                    <label>Competidor a Enfrentar</label>
+                    <select id="comp-brand" onchange="updateComparator()"></select>
+                </div>
+            </div>
+
+            <div class="card" style="margin-bottom: 24px;">
+                <div class="card-title"><span class="material-icons">bar_chart</span> Distribución de Click Share</div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-weight: 500;">
+                    <span style="color: var(--primary);" id="vs-val-yaba">0%</span>
+                    <span style="color: var(--competitor);" id="vs-val-comp">0%</span>
+                </div>
+                <div style="width: 100%; height: 16px; display: flex; border-radius: 8px; overflow: hidden; background: #e8eaed;">
+                    <div id="vs-bar-yaba" style="height: 100%; background: var(--primary); transition: width 0.4s ease;"></div>
+                    <div id="vs-bar-comp" style="height: 100%; background: var(--competitor); transition: width 0.4s ease;"></div>
+                </div>
+            </div>
+
+            <div class="vs-container">
+                <!-- Columna Yaba -->
+                <div class="vs-column">
+                    <div class="vs-header yaba">
+                        <div>YabaTech</div>
+                        <div class="vs-badge">Nuestra Marca</div>
+                    </div>
+                    <div class="vs-body">
+                        <div class="vs-row"><span class="vs-label">ASIN</span><span class="vs-val" id="yaba-asin">-</span></div>
+                        <div class="vs-row"><span class="vs-label">Precio Promedio</span><span class="vs-val" id="yaba-price">-</span></div>
+                        <div class="vs-row"><span class="vs-label">Rank Orgánico</span><span class="vs-val" id="yaba-rank">-</span></div>
+                        <div class="vs-row"><span class="vs-label">Días con Deal</span><span class="vs-val" id="yaba-deals">-</span></div>
+                        <div class="vs-row"><span class="vs-label">Días con Cupón</span><span class="vs-val" id="yaba-coupons">-</span></div>
+                        <div class="vs-row"><span class="vs-label">Best Seller Days</span><span class="vs-val" id="yaba-bestseller">-</span></div>
+                    </div>
+                </div>
+
+                <!-- Columna Competidor -->
+                <div class="vs-column">
+                    <div class="vs-header comp">
+                        <div id="comp-header-title">Competidor</div>
+                        <div class="vs-badge">Mercado</div>
+                    </div>
+                    <div class="vs-body">
+                        <div class="vs-row"><span class="vs-label">ASIN</span><span class="vs-val" id="comp-asin">-</span></div>
+                        <div class="vs-row"><span class="vs-label">Precio Promedio</span><span class="vs-val" id="comp-price">-</span></div>
+                        <div class="vs-row"><span class="vs-label">Rank Orgánico</span><span class="vs-val" id="comp-rank">-</span></div>
+                        <div class="vs-row"><span class="vs-label">Días con Deal</span><span class="vs-val" id="comp-deals">-</span></div>
+                        <div class="vs-row"><span class="vs-label">Días con Cupón</span><span class="vs-val" id="comp-coupons">-</span></div>
+                        <div class="vs-row"><span class="vs-label">Best Seller Days</span><span class="vs-val" id="comp-bestseller">-</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- LÓGICA DE DATOS Y RENDERIZADO EN VANILLA JS -->
+    <script>
+        // 1. INYECCIÓN DE DATOS PROCESADOS (Mock data contextualizado basado en el prompt para asegurar ejecución sin servidor)
+        const marketData = [
+            { week_date: "2023-W40", actual_brand: "YabaTech", is_yaba_asin: "Y", click_share: 0.261, average_organic_rank: 4.4, price: 29.99, weekly_number_of_days_with_deal: 0, weekly_number_of_days_with_coupon: 7, weekly_number_of_days_with_best_seller_badge: 7, asin: "B00YABA01" },
+            { week_date: "2023-W40", actual_brand: "Logi", is_yaba_asin: "N", click_share: 0.255, average_organic_rank: 1.5, price: 35.99, weekly_number_of_days_with_deal: 0, weekly_number_of_days_with_coupon: 7, weekly_number_of_days_with_best_seller_badge: 0, asin: "B00LOGI01" },
+            { week_date: "2023-W40", actual_brand: "Razer", is_yaba_asin: "N", click_share: 0.142, average_organic_rank: 4.5, price: 45.99, weekly_number_of_days_with_deal: 0, weekly_number_of_days_with_coupon: 0, weekly_number_of_days_with_best_seller_badge: 0, asin: "B00RAZR01" },
+            { week_date: "2023-W40", actual_brand: "Corsair", is_yaba_asin: "N", click_share: 0.055, average_organic_rank: 9.5, price: 39.99, weekly_number_of_days_with_deal: 0, weekly_number_of_days_with_coupon: 0, weekly_number_of_days_with_best_seller_badge: 0, asin: "B00CORS01" },
+            { week_date: "2023-W40", actual_brand: "Generic Brand", is_yaba_asin: "N", click_share: 0.042, average_organic_rank: 16.6, price: 19.99, weekly_number_of_days_with_deal: 0, weekly_number_of_days_with_coupon: 0, weekly_number_of_days_with_best_seller_badge: 0, asin: "B00UNKN01" },
+
+            { week_date: "2023-W41", actual_brand: "YabaTech", is_yaba_asin: "Y", click_share: 0.261, average_organic_rank: 2.6, price: 29.99, weekly_number_of_days_with_deal: 7, weekly_number_of_days_with_coupon: 0, weekly_number_of_days_with_best_seller_badge: 0, asin: "B00YABA01" },
+            { week_date: "2023-W41", actual_brand: "Logi", is_yaba_asin: "N", click_share: 0.336, average_organic_rank: 2.7, price: 35.99, weekly_number_of_days_with_deal: 0, weekly_number_of_days_with_coupon: 0, weekly_number_of_days_with_best_seller_badge: 7, asin: "B00LOGI01" },
+            { week_date: "2023-W41", actual_brand: "Razer", is_yaba_asin: "N", click_share: 0.105, average_organic_rank: 3.1, price: 45.99, weekly_number_of_days_with_deal: 0, weekly_number_of_days_with_coupon: 0, weekly_number_of_days_with_best_seller_badge: 0, asin: "B00RAZR01" },
+            { week_date: "2023-W41", actual_brand: "Corsair", is_yaba_asin: "N", click_share: 0.067, average_organic_rank: 9.4, price: 39.99, weekly_number_of_days_with_deal: 0, weekly_number_of_days_with_coupon: 0, weekly_number_of_days_with_best_seller_badge: 0, asin: "B00CORS01" },
+            { week_date: "2023-W41", actual_brand: "Generic Brand", is_yaba_asin: "N", click_share: 0.019, average_organic_rank: 12.1, price: 19.99, weekly_number_of_days_with_deal: 0, weekly_number_of_days_with_coupon: 7, weekly_number_of_days_with_best_seller_badge: 0, asin: "B00UNKN01" },
+
+            { week_date: "2023-W42", actual_brand: "YabaTech", is_yaba_asin: "Y", click_share: 0.282, average_organic_rank: 1.4, price: 29.99, weekly_number_of_days_with_deal: 3, weekly_number_of_days_with_coupon: 7, weekly_number_of_days_with_best_seller_badge: 7, asin: "B00YABA01" },
+            { week_date: "2023-W42", actual_brand: "Logi", is_yaba_asin: "N", click_share: 0.313, average_organic_rank: 1.9, price: 35.99, weekly_number_of_days_with_deal: 7, weekly_number_of_days_with_coupon: 7, weekly_number_of_days_with_best_seller_badge: 7, asin: "B00LOGI01" },
+            { week_date: "2023-W42", actual_brand: "Razer", is_yaba_asin: "N", click_share: 0.130, average_organic_rank: 6.8, price: 45.99, weekly_number_of_days_with_deal: 0, weekly_number_of_days_with_coupon: 7, weekly_number_of_days_with_best_seller_badge: 0, asin: "B00RAZR01" },
+            { week_date: "2023-W42", actual_brand: "Corsair", is_yaba_asin: "N", click_share: 0.081, average_organic_rank: 9.6, price: 39.99, weekly_number_of_days_with_deal: 0, weekly_number_of_days_with_coupon: 7, weekly_number_of_days_with_best_seller_badge: 0, asin: "B00CORS01" },
+            { week_date: "2023-W42", actual_brand: "Generic Brand", is_yaba_asin: "N", click_share: 0.032, average_organic_rank: 11.2, price: 19.99, weekly_number_of_days_with_deal: 0, weekly_number_of_days_with_coupon: 0, weekly_number_of_days_with_best_seller_badge: 0, asin: "B00UNKN01" },
+
+            { week_date: "2023-W43", actual_brand: "YabaTech", is_yaba_asin: "Y", click_share: 0.238, average_organic_rank: 1.3, price: 29.99, weekly_number_of_days_with_deal: 0, weekly_number_of_days_with_coupon: 7, weekly_number_of_days_with_best_seller_badge: 7, asin: "B00YABA01" },
+            { week_date: "2023-W43", actual_brand: "Logi", is_yaba_asin: "N", click_share: 0.350, average_organic_rank: 1.8, price: 35.99, weekly_number_of_days_with_deal: 7, weekly_number_of_days_with_coupon: 7, weekly_number_of_days_with_best_seller_badge: 0, asin: "B00LOGI01" },
+            { week_date: "2023-W43", actual_brand: "Razer", is_yaba_asin: "N", click_share: 0.149, average_organic_rank: 5.0, price: 45.99, weekly_number_of_days_with_deal: 0, weekly_number_of_days_with_coupon: 0, weekly_number_of_days_with_best_seller_badge: 0, asin: "B00RAZR01" },
+            { week_date: "2023-W43", actual_brand: "Corsair", is_yaba_asin: "N", click_share: 0.081, average_organic_rank: 9.5, price: 39.99, weekly_number_of_days_with_deal: 0, weekly_number_of_days_with_coupon: 0, weekly_number_of_days_with_best_seller_badge: 0, asin: "B00CORS01" },
+            { week_date: "2023-W43", actual_brand: "Generic Brand", is_yaba_asin: "N", click_share: 0.025, average_organic_rank: 19.8, price: 19.99, weekly_number_of_days_with_deal: 0, weekly_number_of_days_with_coupon: 7, weekly_number_of_days_with_best_seller_badge: 0, asin: "B00UNKN01" },
+
+            { week_date: "2023-W44", actual_brand: "YabaTech", is_yaba_asin: "Y", click_share: 0.249, average_organic_rank: 1.1, price: 29.99, weekly_number_of_days_with_deal: 0, weekly_number_of_days_with_coupon: 0, weekly_number_of_days_with_best_seller_badge: 0, asin: "B00YABA01" },
+            { week_date: "2023-W44", actual_brand: "Logi", is_yaba_asin: "N", click_share: 0.250, average_organic_rank: 2.9, price: 35.99, weekly_number_of_days_with_deal: 0, weekly_number_of_days_with_coupon: 0, weekly_number_of_days_with_best_seller_badge: 7, asin: "B00LOGI01" },
+            { week_date: "2023-W44", actual_brand: "Razer", is_yaba_asin: "N", click_share: 0.106, average_organic_rank: 3.9, price: 45.99, weekly_number_of_days_with_deal: 0, weekly_number_of_days_with_coupon: 7, weekly_number_of_days_with_best_seller_badge: 0, asin: "B00RAZR01" },
+            { week_date: "2023-W44", actual_brand: "Corsair", is_yaba_asin: "N", click_share: 0.058, average_organic_rank: 9.7, price: 39.99, weekly_number_of_days_with_deal: 0, weekly_number_of_days_with_coupon: 7, weekly_number_of_days_with_best_seller_badge: 0, asin: "B00CORS01" },
+            { week_date: "2023-W44", actual_brand: "Generic Brand", is_yaba_asin: "N", click_share: 0.036, average_organic_rank: 15.7, price: 19.99, weekly_number_of_days_with_deal: 0, weekly_number_of_days_with_coupon: 0, weekly_number_of_days_with_best_seller_badge: 0, asin: "B00UNKN01" }
+        ];
+
+        // 2. INICIALIZACIÓN DE TABS Y GOOGLE CHARTS
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.content').forEach(c => c.classList.remove('active'));
+            
+            document.querySelector(`[onclick="switchTab('${tabId}')"]`).classList.add('active');
+            document.getElementById(tabId).classList.add('active');
+
+            // Trigger reflow/redraw if returning to dashboard
+            if (tabId === 'tab-dashboard') {
+                drawCharts();
+            }
+        }
+
+        google.charts.load('current', {'packages':['corechart']});
+        google.charts.setOnLoadCallback(initDashboard);
+
+        function initDashboard() {
+            populateTopMetrics();
+            drawCharts();
+            populateFilters();
+            
+            window.addEventListener('resize', () => {
+                if(document.getElementById('tab-dashboard').classList.contains('active')) {
+                    drawCharts();
+                }
+            });
+        }
+
+        function populateTopMetrics() {
+            const latestWeek = '2023-W44';
+            const wData = marketData.filter(d => d.week_date === latestWeek);
+            
+            const yaba = wData.find(d => d.is_yaba_asin === 'Y');
+            const comps = wData.filter(d => d.is_yaba_asin === 'N');
+            const topComp = comps.reduce((p, c) => (p.click_share > c.click_share) ? p : c);
+
+            document.getElementById('metric-yaba-share').innerText = (yaba.click_share * 100).toFixed(1) + '%';
+            document.getElementById('metric-comp-share').innerText = `${topComp.actual_brand} (${(topComp.click_share * 100).toFixed(1)}%)`;
+            document.getElementById('metric-yaba-rank').innerText = `#${yaba.average_organic_rank.toFixed(1)}`;
+        }
+
+        // 3. GENERACIÓN DE GRÁFICOS GOOGLE NATIVE
+        function drawCharts() {
+            drawTrendChart();
+            drawCompChart();
+            drawScatterChart();
+        }
+
+        function drawTrendChart() {
+            const data = new google.visualization.DataTable();
+            data.addColumn('string', 'Semana');
+            data.addColumn('number', 'Nuestros ASINs (YabaTech)');
+            data.addColumn('number', 'Resto Competidores');
+
+            const weeks = [...new Set(marketData.map(d => d.week_date))].sort();
+            weeks.forEach(w => {
+                const wData = marketData.filter(d => d.week_date === w);
+                const yShare = wData.filter(d => d.is_yaba_asin === 'Y').reduce((s, d) => s + d.click_share, 0);
+                const cShare = wData.filter(d => d.is_yaba_asin === 'N').reduce((s, d) => s + d.click_share, 0);
+                data.addRow([w, yShare, cShare]);
+            });
+
+            const options = {
+                fontName: 'Roboto', backgroundColor: 'transparent',
+                chartArea: { width: '85%', height: '70%' },
+                isStacked: true,
+                colors: ['#1a73e8', '#f28b82'],
+                legend: { position: 'top', alignment: 'center', textStyle: { color: '#5f6368' } },
+                vAxis: { format: '#%', textStyle: { color: '#5f6368' }, gridlines: { color: '#e8eaed' } },
+                hAxis: { textStyle: { color: '#5f6368' } }
+            };
+
+            const chart = new google.visualization.ColumnChart(document.getElementById('trend-chart'));
+            chart.draw(data, options);
+        }
+
+        function drawCompChart() {
+            const data = new google.visualization.DataTable();
+            data.addColumn('string', 'Semana');
+            
+            const mainBrands = ['YabaTech', 'Logi', 'Razer', 'Corsair']; 
+            mainBrands.forEach(b => data.addColumn('number', b));
+
+            const weeks = [...new Set(marketData.map(d => d.week_date))].sort();
+            weeks.forEach(w => {
+                const row = [w];
+                mainBrands.forEach(b => {
+                    const match = marketData.find(d => d.week_date === w && d.actual_brand === b);
+                    row.push(match ? match.click_share : null);
+                });
+                data.addRow(row);
+            });
+
+            const options = {
+                fontName: 'Roboto', backgroundColor: 'transparent',
+                chartArea: { width: '85%', height: '70%' },
+                curveType: 'function', lineWidth: 3, pointSize: 6,
+                colors: ['#1a73e8', '#d93025', '#f29900', '#188038'],
+                legend: { position: 'top', alignment: 'center', textStyle: { color: '#5f6368' } },
+                vAxis: { format: '#%', textStyle: { color: '#5f6368' }, gridlines: { color: '#e8eaed' } },
+                hAxis: { textStyle: { color: '#5f6368' } }
+            };
+
+            const chart = new google.visualization.LineChart(document.getElementById('comp-chart'));
+            chart.draw(data, options);
+        }
+
+        function drawScatterChart() {
+            const data = new google.visualization.DataTable();
+            data.addColumn('number', 'Rank Orgánico');
+            
+            const brands = ['YabaTech', 'Logi', 'Razer', 'Corsair', 'Generic Brand'];
+            brands.forEach(b => data.addColumn('number', b));
+
+            marketData.forEach(d => {
+                const row = [d.average_organic_rank, null, null, null, null, null];
+                const idx = brands.indexOf(d.actual_brand);
+                if (idx !== -1) {
+                    row[idx + 1] = d.click_share;
+                    data.addRow(row);
+                }
+            });
+
+            const options = {
+                fontName: 'Roboto', backgroundColor: 'transparent',
+                chartArea: { width: '85%', height: '70%' },
+                colors: ['#1a73e8', '#d93025', '#f29900', '#188038', '#9aa0a6'],
+                legend: { position: 'top', alignment: 'center', textStyle: { color: '#5f6368' } },
+                hAxis: { title: 'Mejor <-- Rank Orgánico --> Peor', textStyle: { color: '#5f6368' }, gridlines: { color: 'transparent' } },
+                vAxis: { title: 'Click Share (%)', format: '#%', textStyle: { color: '#5f6368' }, gridlines: { color: '#e8eaed' } },
+                pointSize: 9, dataOpacity: 0.85
+            };
+
+            const chart = new google.visualization.ScatterChart(document.getElementById('scatter-chart'));
+            chart.draw(data, options);
+        }
+
+        // 4. LÓGICA COMPARADOR INTERACTIVO
+        function populateFilters() {
+            const weeks = [...new Set(marketData.map(d => d.week_date))].sort().reverse();
+            const compBrands = [...new Set(marketData.filter(d => d.is_yaba_asin === 'N').map(d => d.actual_brand))].sort();
+
+            const selW = document.getElementById('comp-week');
+            weeks.forEach(w => selW.add(new Option(w, w)));
+
+            const selB = document.getElementById('comp-brand');
+            compBrands.forEach(b => selB.add(new Option(b, b)));
+
+            // Set default competitor to main rival Logi
+            selB.value = 'Logi';
+            updateComparator();
+        }
+
+        function updateComparator() {
+            const w = document.getElementById('comp-week').value;
+            const b = document.getElementById('comp-brand').value;
+
+            const yaba = marketData.find(d => d.week_date === w && d.is_yaba_asin === 'Y') || {};
+            const comp = marketData.find(d => d.week_date === w && d.actual_brand === b) || {};
+
+            // Update Yaba Column
+            document.getElementById('yaba-asin').innerText = yaba.asin || '-';
+            document.getElementById('yaba-price').innerText = yaba.price ? `€${yaba.price}` : '-';
+            document.getElementById('yaba-rank').innerText = yaba.average_organic_rank ? `#${yaba.average_organic_rank.toFixed(1)}` : '-';
+            document.getElementById('yaba-deals').innerText = yaba.weekly_number_of_days_with_deal ?? '-';
+            document.getElementById('yaba-coupons').innerText = yaba.weekly_number_of_days_with_coupon ?? '-';
+            document.getElementById('yaba-bestseller').innerText = yaba.weekly_number_of_days_with_best_seller_badge ?? '-';
+
+            // Update Comp Column
+            document.getElementById('comp-header-title').innerText = b;
+            document.getElementById('comp-asin').innerText = comp.asin || '-';
+            document.getElementById('comp-price').innerText = comp.price ? `€${comp.price}` : '-';
+            document.getElementById('comp-rank').innerText = comp.average_organic_rank ? `#${comp.average_organic_rank.toFixed(1)}` : '-';
+            document.getElementById('comp-deals').innerText = comp.weekly_number_of_days_with_deal ?? '-';
+            document.getElementById('comp-coupons').innerText = comp.weekly_number_of_days_with_coupon ?? '-';
+            document.getElementById('comp-bestseller').innerText = comp.weekly_number_of_days_with_best_seller_badge ?? '-';
+
+            // Visual Bar Distribution Update
+            const sY = yaba.click_share || 0;
+            const sC = comp.click_share || 0;
+            const total = sY + sC;
+            
+            let wY = 50, wC = 50;
+            if (total > 0) {
+                wY = (sY / total) * 100;
+                wC = (sC / total) * 100;
+            } else if (sY === 0 && sC === 0) {
+                wY = 0; wC = 0;
+            }
+
+            document.getElementById('vs-bar-yaba').style.width = `${wY}%`;
+            document.getElementById('vs-bar-comp').style.width = `${wC}%`;
+            document.getElementById('vs-val-yaba').innerText = sY > 0 ? `${(sY*100).toFixed(1)}%` : '0%';
+            document.getElementById('vs-val-comp').innerText = sC > 0 ? `${(sC*100).toFixed(1)}%` : '0%';
+        }
+    </script>
+</body>
+</html>
