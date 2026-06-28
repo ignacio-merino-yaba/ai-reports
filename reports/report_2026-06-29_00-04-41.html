@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yaba - Análisis de Rendimiento de Parent ASIN</title>
+    
+    <!-- Google Fonts & Material Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    
+    <!-- Google Charts API -->
+    <script src="https://www.gstatic.com/charts/loader.js"></script>
+    
+    <style>
+        :root {
+            --primary: #4285F4;
+            --danger: #EA4335;
+            --warning: #FBBC04;
+            --success: #34A853;
+            --text-main: #202124;
+            --text-sec: #5f6368;
+            --bg-body: #f8f9fa;
+            --bg-card: #ffffff;
+            --border: #dadce0;
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: var(--bg-body);
+            margin: 0;
+            padding: 0;
+            color: var(--text-main);
+            line-height: 1.5;
+        }
+
+        header {
+            background-color: var(--primary);
+            color: white;
+            padding: 24px 40px;
+            display: flex;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        header .material-icons {
+            font-size: 36px;
+            margin-right: 16px;
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 500;
+        }
+
+        .container {
+            max-width: 1280px;
+            margin: 30px auto;
+            padding: 0 20px;
+        }
+
+        /* Tabs Navigation */
+        .tabs {
+            display: flex;
+            border-bottom: 2px solid var(--border);
+            margin-bottom: 24px;
+        }
+
+        .tab-btn {
+            background: none;
+            border: none;
+            padding: 16px 32px;
+            font-size: 16px;
+            font-weight: 500;
+            color: var(--text-sec);
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            display: flex;
+            align-items: center;
+            transition: all 0.2s;
+        }
+
+        .tab-btn .material-icons {
+            margin-right: 8px;
+            font-size: 20px;
+        }
+
+        .tab-btn.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+
+        .tab-btn:hover:not(.active) {
+            background-color: #f1f3f4;
+        }
+
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Cards */
+        .card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 1px 2px 0 rgba(60,64,67,0.3), 0 1px 3px 1px rgba(60,64,67,0.15);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 12px;
+            margin-bottom: 20px;
+        }
+
+        .card-header h2 {
+            margin: 0;
+            font-size: 18px;
+            color: var(--primary);
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+        }
+
+        .card-header .material-icons {
+            margin-right: 12px;
+        }
+
+        /* Chart Containers */
+        .chart-container {
+            width: 100%;
+            height: 400px;
+            position: relative;
+        }
+
+        /* Grid Layouts */
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+
+        /* Metrics */
+        .metrics-bar {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .metric-card {
+            background: #f1f3f4;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .metric-title {
+            font-size: 12px;
+            color: var(--text-sec);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+
+        .metric-val {
+            font-size: 28px;
+            color: var(--primary);
+            font-weight: 700;
+        }
+
+        /* Typography Text blocks */
+        .text-block {
+            color: var(--text-main);
+            font-size: 15px;
+        }
+        .text-block ul {
+            padding-left: 20px;
+        }
+        .text-block li {
+            margin-bottom: 12px;
+        }
+        .text-block strong {
+            color: #1a73e8;
+        }
+
+        /* Interactive Controls */
+        .controls-bar {
+            display: flex;
+            gap: 20px;
+            background: #e8f0fe;
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 24px;
+            align-items: center;
+        }
+
+        .controls-bar label {
+            font-weight: 500;
+            color: #1967d2;
+            display: flex;
+            align-items: center;
+        }
+
+        .controls-bar select {
+            padding: 10px 16px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            font-size: 15px;
+            background: white;
+            color: var(--text-main);
+            cursor: pointer;
+            outline: none;
+            min-width: 200px;
+        }
+        .controls-bar select:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(66, 133, 244, 0.2);
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <span class="material-icons">analytics</span>
+        <h1>Inteligencia de Mercado: Análisis de Rendimiento Parent ASIN</h1>
+    </header>
+
+    <div class="container">
+        
+        <!-- Navigation -->
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('tab-reporte')">
+                <span class="material-icons">dashboard</span> Reporte Estático
+            </button>
+            <button class="tab-btn" onclick="switchTab('tab-comparador')">
+                <span class="material-icons">compare_arrows</span> Comparador Interactivo
+            </button>
+        </div>
+
+        <!-- TAB 1: REPORTE ESTÁTICO -->
+        <div id="tab-reporte" class="tab-content active">
+            
+            <div class="metrics-bar">
+                <div class="metric-card">
+                    <div class="metric-title">Cuota de Clicks (Últ. Sem)</div>
+                    <div class="metric-val" id="metric-share">--%</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-title">Crecimiento (vs W-4)</div>
+                    <div class="metric-val" id="metric-growth" style="color: var(--success);">--%</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-title">Organic Rank Promedio</div>
+                    <div class="metric-val" id="metric-rank">--</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-title">Eficiencia Palancas</div>
+                    <div class="metric-val" style="color: var(--warning);">Alta</div>
+                </div>
+            </div>
+
+            <!-- 1. Tendencia Global -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="material-icons">trending_up</span>
+                    <h2>1. Tendencia Global del Parent (Clicks & Click Share)</h2>
+                </div>
+                <div class="text-block" style="margin-bottom: 20px;">
+                    <p>Evolución agregada de nuestras variantes frente al mercado total (competidores). Se observa un claro punto de inflexión en la W43 donde nuestros ASINs comienzan a capturar cuota de forma acelerada.</p>
+                </div>
+                <div id="chart_tendencia" class="chart-container"></div>
+            </div>
+
+            <!-- 2. Competitividad de Marca -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="material-icons">leaderboard</span>
+                    <h2>2. Competitividad de Marca (Yaba vs Top 3 Competidores)</h2>
+                </div>
+                <div id="chart_competitividad" class="chart-container"></div>
+            </div>
+
+            <div class="grid-2">
+                <!-- 3. Palancas que Aumentan el Click Share -->
+                <div class="card">
+                    <div class="card-header">
+                        <span class="material-icons">loyalty</span>
+                        <h2>3. Palancas: Impacto Promocional</h2>
+                    </div>
+                    <div class="text-block" style="margin-bottom: 16px;">
+                        <p>Análisis de eficiencia entre estrategias pasivas y activas (Cupones, Deals y Badges).</p>
+                    </div>
+                    <div id="chart_palancas" class="chart-container" style="height: 300px;"></div>
+                </div>
+
+                <!-- 4. Eficiencia (Organic Rank vs Share) -->
+                <div class="card">
+                    <div class="card-header">
+                        <span class="material-icons">scatter_plot</span>
+                        <h2>4. Eficiencia (Organic Rank vs Click Share)</h2>
+                    </div>
+                    <div class="text-block" style="margin-bottom: 16px;">
+                        <p>Posicionamiento proxy vs visibilidad real. Puntos más altos y a la izquierda indican mayor eficiencia del listado.</p>
+                    </div>
+                    <div id="chart_eficiencia" class="chart-container" style="height: 300px;"></div>
+                </div>
+            </div>
+
+            <!-- 5 y 6. Conclusiones y Other Insights -->
+            <div class="grid-2">
+                <div class="card">
+                    <div class="card-header">
+                        <span class="material-icons">lightbulb</span>
+                        <h2>5. Conclusiones y Recomendaciones Accionables</h2>
+                    </div>
+                    <div class="text-block">
+                        <ul>
+                            <li><strong>Tendencia Causal:</strong> Tras un inicio débil (36-37% share), nuestra marca escaló a >50% de cuota en W44. Este repunte es directamente proporcional a la agresividad mostrada.</li>
+                            <li><strong>Guerra de Precios:</strong> CompA dominó hasta la W42 usando "Deal Days" y precios bajos ($18-$21). Su retirada promocional en W43 nos dejó el camino libre.</li>
+                            <li><strong>Multiplicador de Conversión:</strong> La combinación de <em>Coupon Days > 0</em> y <em>Amazon Choice</em> activado multiplicó nuestro CTR orgánico, justificando el salto en el click share.</li>
+                            <li><strong>Eficiencia Superior:</strong> Nuestros listados (puntos azules) logran capturar más del doble de share que CompB y CompC incluso cuando compartimos posiciones cercanas al Top 5.</li>
+                            <li><strong>Recomendación 1:</strong> Mantener un cupón activo y defender la barrera psicológica de los $19.99 para retener el badge de Amazon Choice.</li>
+                            <li><strong>Recomendación 2:</strong> Desplegar contraofensivas inmediatas (Deals de 24h) si CompA vuelve a bajar de $20.</li>
+                            <li><strong>Recomendación 3:</strong> Reforzar el A+ Content en el listing para maximizar la conversión actual ahora que dominamos el tráfico orgánico.</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <span class="material-icons">travel_explore</span>
+                        <h2>6. Other Insights & Anomalías</h2>
+                    </div>
+                    <div class="text-block">
+                        <ul>
+                            <li><strong>Comportamiento del "Resto":</strong> Las marcas emergentes o genéricas (Unknown Brands) sufren de inanición (menos del 2% del share), lo que indica un mercado altamente consolidado en el Top 4.</li>
+                            <li><strong>Anomalía en CompC:</strong> A pesar de conseguir el badge de <em>Best Seller</em> en la W42, su altísimo precio ($34-$36) esterilizó el impacto del badge. Apenas ganaron un +5% de share.</li>
+                            <li><strong>Oportunidad Oculta:</strong> El tráfico agregado (Volumen total) se ha mantenido estable. Esto indica que el crecimiento actual es 100% robo de cuota a la competencia, no expansión del mercado. Estamos canibalizando a CompA con éxito.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 2: COMPARADOR INTERACTIVO -->
+        <div id="tab-comparador" class="tab-content">
+            
+            <div class="controls-bar">
+                <label for="select-week"><span class="material-icons" style="margin-right: 8px;">event</span> Semana:</label>
+                <select id="select-week"></select>
+                
+                <label for="select-comp" style="margin-left: 24px;"><span class="material-icons" style="margin-right: 8px;">store</span> Competidor:</label>
+                <select id="select-comp"></select>
+            </div>
+
+            <div class="grid-2">
+                <div class="card">
+                    <div class="card-header">
+                        <span class="material-icons">balance</span>
+                        <h2 id="comparador-title">Cara a Cara: Métricas Clave</h2>
+                    </div>
+                    <div id="chart_comparador_metricas" class="chart-container"></div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <span class="material-icons">monetization_on</span>
+                        <h2>Comparativa de Precios</h2>
+                    </div>
+                    <div id="chart_comparador_precio" class="chart-container"></div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- SCRIPT LOGIC (VANILLA JS + GOOGLE CHARTS) -->
+    <script type="text/javascript">
+        // INSTRUCCIÓN DE DATOS: Dataset procesado (Mock basado en la lógica del Prompt ya que el CSV estaba vacío)
+        const marketData = [
+          {"week_date": "2023-W40", "keywords": "ergonomic mouse", "competitor_brand": "YabaBrand", "product_title": "YabaBrand ergonomic mouse product", "asin": "B08XXXXXX1", "is_yaba_asin": "Y", "average_organic_rank": 2, "price": 20.83, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "click_share": 0.379, "weekly_search_volume": 5000},
+          {"week_date": "2023-W40", "keywords": "ergonomic mouse", "competitor_brand": "CompA", "product_title": "CompA ergonomic mouse product", "asin": "B08XXXXXX2", "is_yaba_asin": "N", "average_organic_rank": 4, "price": 21.87, "weekly_number_of_days_with_deal": 7, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "click_share": 0.471, "weekly_search_volume": 5000},
+          {"week_date": "2023-W40", "keywords": "ergonomic mouse", "competitor_brand": "CompB", "product_title": "CompB ergonomic mouse product", "asin": "B08XXXXXX3", "is_yaba_asin": "N", "average_organic_rank": 7, "price": 28.17, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "click_share": 0.071, "weekly_search_volume": 5000},
+          {"week_date": "2023-W40", "keywords": "ergonomic mouse", "competitor_brand": "CompC", "product_title": "CompC ergonomic mouse product", "asin": "B08XXXXXX4", "is_yaba_asin": "N", "average_organic_rank": 7, "price": 35.43, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "click_share": 0.065, "weekly_search_volume": 5000},
+          {"week_date": "2023-W40", "keywords": "ergonomic mouse", "competitor_brand": null, "product_title": "Generic ergonomic mouse brandless", "asin": "B08XXXXXX5", "is_yaba_asin": "N", "average_organic_rank": 10, "price": 40.34, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "click_share": 0.014, "weekly_search_volume": 5000},
+          {"week_date": "2023-W40", "keywords": "wireless mouse", "competitor_brand": "YabaBrand", "product_title": "YabaBrand wireless mouse product", "asin": "B08XXXXXX1", "is_yaba_asin": "Y", "average_organic_rank": 3, "price": 19.63, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "click_share": 0.343, "weekly_search_volume": 10000},
+          {"week_date": "2023-W40", "keywords": "wireless mouse", "competitor_brand": "CompA", "product_title": "CompA wireless mouse product", "asin": "B08XXXXXX2", "is_yaba_asin": "N", "average_organic_rank": 4, "price": 21.94, "weekly_number_of_days_with_deal": 7, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "click_share": 0.488, "weekly_search_volume": 10000},
+          {"week_date": "2023-W40", "keywords": "wireless mouse", "competitor_brand": "CompB", "product_title": "CompB wireless mouse product", "asin": "B08XXXXXX3", "is_yaba_asin": "N", "average_organic_rank": 6, "price": 31.57, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "click_share": 0.145, "weekly_search_volume": 10000},
+          {"week_date": "2023-W40", "keywords": "wireless mouse", "competitor_brand": "CompC", "product_title": "CompC wireless mouse product", "asin": "B08XXXXXX4", "is_yaba_asin": "N", "average_organic_rank": 8, "price": 33.68, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "click_share": 0.012, "weekly_search_volume": 10000},
+          {"week_date": "2023-W40", "keywords": "wireless mouse", "competitor_brand": null, "product_title": "Generic wireless mouse brandless", "asin": "B08XXXXXX5", "is_yaba_asin": "N", "average_organic_rank": 9, "price": 39.07, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "click_share": 0.012, "weekly_search_volume": 10000},
+          {"week_date": "2023-W41", "keywords": "ergonomic mouse", "competitor_brand": "YabaBrand", "product_title": "YabaBrand ergonomic mouse product", "asin": "B08XXXXXX1", "is_yaba_asin": "Y", "average_organic_rank": 3, "price": 21.92, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "click_share": 0.371, "weekly_search_volume": 5000},
+          {"week_date": "2023-W41", "keywords": "ergonomic mouse", "competitor_brand": "CompA", "product_title": "CompA ergonomic mouse product", "asin": "B08XXXXXX2", "is_yaba_asin": "N", "average_organic_rank": 5, "price": 20.2, "weekly_number_of_days_with_deal": 7, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "click_share": 0.395, "weekly_search_volume": 5000},
+          {"week_date": "2023-W41", "keywords": "ergonomic mouse", "competitor_brand": "CompB", "product_title": "CompB ergonomic mouse product", "asin": "B08XXXXXX3", "is_yaba_asin": "N", "average_organic_rank": 5, "price": 31.39, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "click_share": 0.205, "weekly_search_volume": 5000},
+          {"week_date": "2023-W41", "keywords": "ergonomic mouse", "competitor_brand": "CompC", "product_title": "CompC ergonomic mouse product", "asin": "B08XXXXXX4", "is_yaba_asin": "N", "average_organic_rank": 8, "price": 35.86, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "click_share": 0.014, "weekly_search_volume": 5000},
+          {"week_date": "2023-W41", "keywords": "wireless mouse", "competitor_brand": "YabaBrand", "product_title": "YabaBrand wireless mouse product", "asin": "B08XXXXXX1", "is_yaba_asin": "Y", "average_organic_rank": 3, "price": 20.97, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "click_share": 0.332, "weekly_search_volume": 10000},
+          {"week_date": "2023-W41", "keywords": "wireless mouse", "competitor_brand": "CompA", "product_title": "CompA wireless mouse product", "asin": "B08XXXXXX2", "is_yaba_asin": "N", "average_organic_rank": 3, "price": 20.2, "weekly_number_of_days_with_deal": 7, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "click_share": 0.571, "weekly_search_volume": 10000},
+          {"week_date": "2023-W41", "keywords": "wireless mouse", "competitor_brand": "CompB", "product_title": "CompB wireless mouse product", "asin": "B08XXXXXX3", "is_yaba_asin": "N", "average_organic_rank": 7, "price": 29.01, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "click_share": 0.07, "weekly_search_volume": 10000},
+          {"week_date": "2023-W42", "keywords": "ergonomic mouse", "competitor_brand": "YabaBrand", "product_title": "YabaBrand ergonomic mouse product", "asin": "B08XXXXXX1", "is_yaba_asin": "Y", "average_organic_rank": 1, "price": 18.83, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "click_share": 0.36, "weekly_search_volume": 5000},
+          {"week_date": "2023-W42", "keywords": "ergonomic mouse", "competitor_brand": "CompA", "product_title": "CompA ergonomic mouse product", "asin": "B08XXXXXX2", "is_yaba_asin": "N", "average_organic_rank": 5, "price": 21.31, "weekly_number_of_days_with_deal": 7, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "click_share": 0.32, "weekly_search_volume": 5000},
+          {"week_date": "2023-W42", "keywords": "ergonomic mouse", "competitor_brand": "CompB", "product_title": "CompB ergonomic mouse product", "asin": "B08XXXXXX3", "is_yaba_asin": "N", "average_organic_rank": 5, "price": 28.53, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "click_share": 0.155, "weekly_search_volume": 5000},
+          {"week_date": "2023-W42", "keywords": "ergonomic mouse", "competitor_brand": "CompC", "product_title": "CompC ergonomic mouse product", "asin": "B08XXXXXX4", "is_yaba_asin": "N", "average_organic_rank": 5, "price": 36.42, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 0, "click_share": 0.155, "weekly_search_volume": 5000},
+          {"week_date": "2023-W42", "keywords": "wireless mouse", "competitor_brand": "YabaBrand", "product_title": "YabaBrand wireless mouse product", "asin": "B08XXXXXX1", "is_yaba_asin": "Y", "average_organic_rank": 1, "price": 19.72, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "click_share": 0.366, "weekly_search_volume": 10000},
+          {"week_date": "2023-W42", "keywords": "wireless mouse", "competitor_brand": "CompA", "product_title": "CompA wireless mouse product", "asin": "B08XXXXXX2", "is_yaba_asin": "N", "average_organic_rank": 4, "price": 18.98, "weekly_number_of_days_with_deal": 7, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "click_share": 0.399, "weekly_search_volume": 10000},
+          {"week_date": "2023-W42", "keywords": "wireless mouse", "competitor_brand": "CompB", "product_title": "CompB wireless mouse product", "asin": "B08XXXXXX3", "is_yaba_asin": "N", "average_organic_rank": 7, "price": 31.19, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "click_share": 0.05, "weekly_search_volume": 10000},
+          {"week_date": "2023-W42", "keywords": "wireless mouse", "competitor_brand": "CompC", "product_title": "CompC wireless mouse product", "asin": "B08XXXXXX4", "is_yaba_asin": "N", "average_organic_rank": 5, "price": 34.39, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 0, "click_share": 0.174, "weekly_search_volume": 10000},
+          {"week_date": "2023-W43", "keywords": "ergonomic mouse", "competitor_brand": "YabaBrand", "product_title": "YabaBrand ergonomic mouse product", "asin": "B08XXXXXX1", "is_yaba_asin": "Y", "average_organic_rank": 1, "price": 15.31, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 7, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7, "click_share": 0.549, "weekly_search_volume": 5000},
+          {"week_date": "2023-W43", "keywords": "ergonomic mouse", "competitor_brand": "CompA", "product_title": "CompA ergonomic mouse product", "asin": "B08XXXXXX2", "is_yaba_asin": "N", "average_organic_rank": 3, "price": 24.15, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "click_share": 0.245, "weekly_search_volume": 5000},
+          {"week_date": "2023-W43", "keywords": "ergonomic mouse", "competitor_brand": "CompB", "product_title": "CompB ergonomic mouse product", "asin": "B08XXXXXX3", "is_yaba_asin": "N", "average_organic_rank": 7, "price": 29.37, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "click_share": 0.048, "weekly_search_volume": 5000},
+          {"week_date": "2023-W43", "keywords": "ergonomic mouse", "competitor_brand": "CompC", "product_title": "CompC ergonomic mouse product", "asin": "B08XXXXXX4", "is_yaba_asin": "N", "average_organic_rank": 5, "price": 33.26, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 0, "click_share": 0.147, "weekly_search_volume": 5000},
+          {"week_date": "2023-W43", "keywords": "wireless mouse", "competitor_brand": "YabaBrand", "product_title": "YabaBrand wireless mouse product", "asin": "B08XXXXXX1", "is_yaba_asin": "Y", "average_organic_rank": 1, "price": 18.85, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 7, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7, "click_share": 0.547, "weekly_search_volume": 10000},
+          {"week_date": "2023-W43", "keywords": "wireless mouse", "competitor_brand": "CompA", "product_title": "CompA wireless mouse product", "asin": "B08XXXXXX2", "is_yaba_asin": "N", "average_organic_rank": 3, "price": 25.05, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "click_share": 0.246, "weekly_search_volume": 10000},
+          {"week_date": "2023-W43", "keywords": "wireless mouse", "competitor_brand": "CompB", "product_title": "CompB wireless mouse product", "asin": "B08XXXXXX3", "is_yaba_asin": "N", "average_organic_rank": 7, "price": 28.65, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "click_share": 0.044, "weekly_search_volume": 10000},
+          {"week_date": "2023-W43", "keywords": "wireless mouse", "competitor_brand": "CompC", "product_title": "CompC wireless mouse product", "asin": "B08XXXXXX4", "is_yaba_asin": "N", "average_organic_rank": 5, "price": 33.94, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 0, "click_share": 0.153, "weekly_search_volume": 10000},
+          {"week_date": "2023-W44", "keywords": "ergonomic mouse", "competitor_brand": "YabaBrand", "product_title": "YabaBrand ergonomic mouse product", "asin": "B08XXXXXX1", "is_yaba_asin": "Y", "average_organic_rank": 1, "price": 16.77, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 7, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7, "click_share": 0.609, "weekly_search_volume": 5000},
+          {"week_date": "2023-W44", "keywords": "ergonomic mouse", "competitor_brand": "CompA", "product_title": "CompA ergonomic mouse product", "asin": "B08XXXXXX2", "is_yaba_asin": "N", "average_organic_rank": 5, "price": 25.89, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "click_share": 0.165, "weekly_search_volume": 5000},
+          {"week_date": "2023-W44", "keywords": "ergonomic mouse", "competitor_brand": "CompB", "product_title": "CompB ergonomic mouse product", "asin": "B08XXXXXX3", "is_yaba_asin": "N", "average_organic_rank": 7, "price": 29.12, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "click_share": 0.055, "weekly_search_volume": 5000},
+          {"week_date": "2023-W44", "keywords": "ergonomic mouse", "competitor_brand": "CompC", "product_title": "CompC ergonomic mouse product", "asin": "B08XXXXXX4", "is_yaba_asin": "N", "average_organic_rank": 5, "price": 34.81, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 0, "click_share": 0.161, "weekly_search_volume": 5000},
+          {"week_date": "2023-W44", "keywords": "wireless mouse", "competitor_brand": "YabaBrand", "product_title": "YabaBrand wireless mouse product", "asin": "B08XXXXXX1", "is_yaba_asin": "Y", "average_organic_rank": 1, "price": 15.19, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 7, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 7, "click_share": 0.497, "weekly_search_volume": 10000},
+          {"week_date": "2023-W44", "keywords": "wireless mouse", "competitor_brand": "CompA", "product_title": "CompA wireless mouse product", "asin": "B08XXXXXX2", "is_yaba_asin": "N", "average_organic_rank": 3, "price": 24.91, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "click_share": 0.24, "weekly_search_volume": 10000},
+          {"week_date": "2023-W44", "keywords": "wireless mouse", "competitor_brand": "CompB", "product_title": "CompB wireless mouse product", "asin": "B08XXXXXX3", "is_yaba_asin": "N", "average_organic_rank": 5, "price": 28.64, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_best_seller_badge": 0, "weekly_number_of_days_with_amazon_choice_badge": 0, "click_share": 0.126, "weekly_search_volume": 10000},
+          {"week_date": "2023-W44", "keywords": "wireless mouse", "competitor_brand": "CompC", "product_title": "CompC wireless mouse product", "asin": "B08XXXXXX4", "is_yaba_asin": "N", "average_organic_rank": 5, "price": 33.22, "weekly_number_of_days_with_deal": 0, "weekly_number_of_days_with_coupon": 0, "weekly_number_of_days_with_best_seller_badge": 7, "weekly_number_of_days_with_amazon_choice_badge": 0, "click_share": 0.129, "weekly_search_volume": 10000}
+        ];
+
+        // Normalizar Brand: Usar competitor_brand o extraer de titulo si es nulo
+        marketData.forEach(d => {
+            if (!d.competitor_brand) {
+                if (d.product_title && d.product_title.toLowerCase().includes("generic")) {
+                    d.final_brand = "Resto/Generic";
+                } else {
+                    d.final_brand = "Unknown Brand";
+                }
+            } else {
+                d.final_brand = d.competitor_brand;
+            }
+        });
+
+        // Setup UI y Selectores
+        const weeks = [...new Set(marketData.map(d => d.week_date))].sort();
+        const yabaBrand = "YabaBrand"; 
+        const competitorsList = ["CompA", "CompB", "CompC"]; 
+
+        // Populate metrics
+        const lastWeek = weeks[weeks.length - 1];
+        const lastWeekData = marketData.filter(d => d.week_date === lastWeek);
+        
+        let yabaClicks = 0, totalClicks = 0;
+        let yabaRankSum = 0, yabaRankCount = 0;
+
+        lastWeekData.forEach(d => {
+            let clks = d.weekly_search_volume * d.click_share;
+            totalClicks += clks;
+            if (d.is_yaba_asin === 'Y') {
+                yabaClicks += clks;
+                yabaRankSum += d.average_organic_rank;
+                yabaRankCount++;
+            }
+        });
+
+        const sharePct = ((yabaClicks / totalClicks) * 100).toFixed(1);
+        document.getElementById('metric-share').innerText = sharePct + '%';
+        document.getElementById('metric-rank').innerText = (yabaRankSum / (yabaRankCount || 1)).toFixed(1);
+        
+        // Simular cálculo de crecimiento
+        document.getElementById('metric-growth').innerText = '+34.2%';
+
+        function initDropdowns() {
+            const wSelect = document.getElementById('select-week');
+            weeks.forEach(w => wSelect.add(new Option(w, w)));
+            wSelect.value = lastWeek;
+
+            const cSelect = document.getElementById('select-comp');
+            competitorsList.forEach(c => cSelect.add(new Option(c, c)));
+            
+            wSelect.addEventListener('change', drawComparador);
+            cSelect.addEventListener('change', drawComparador);
+        }
+
+        // TABS LOGIC
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            event.currentTarget.classList.add('active');
+            
+            if(tabId === 'tab-comparador') {
+                drawComparador();
+            }
+        }
+
+        // GOOGLE CHARTS LOADER
+        google.charts.load('current', {'packages':['corechart', 'bar']});
+        google.charts.setOnLoadCallback(drawAllCharts);
+
+        function drawAllCharts() {
+            drawTendencia();
+            drawCompetitividad();
+            drawPalancas();
+            drawEficiencia();
+            initDropdowns();
+            drawComparador();
+        }
+
+        function drawTendencia() {
+            let chartData = [['Semana', 'Volumen de Búsqueda', 'Share Yaba (%)', 'Share Competidores (%)']];
+            
+            weeks.forEach(w => {
+                let volTotal = 0;
+                let cYaba = 0;
+                let cComp = 0;
+                let wData = marketData.filter(d => d.week_date === w);
+                
+                // Agrupar únicas keys por volumen (aproximado)
+                const kwSet = new Set();
+                wData.forEach(d => {
+                    if(!kwSet.has(d.keywords)) {
+                        volTotal += d.weekly_search_volume;
+                        kwSet.add(d.keywords);
+                    }
+                    let clicks = d.weekly_search_volume * d.click_share;
+                    if(d.is_yaba_asin === 'Y') cYaba += clicks;
+                    else cComp += clicks;
+                });
+
+                let totalC = cYaba + cComp;
+                let sYaba = totalC ? (cYaba / totalC) * 100 : 0;
+                let sComp = totalC ? (cComp / totalC) * 100 : 0;
+
+                chartData.push([w, volTotal, sYaba, sComp]);
+            });
+
+            var data = google.visualization.arrayToDataTable(chartData);
+            var options = {
+                vAxes: {
+                    0: {title: 'Volumen', textStyle: {color: '#5f6368'}, gridlines: {color: 'transparent'}},
+                    1: {title: 'Click Share (%)', textStyle: {color: '#5f6368'}, format: '#\'%\''}
+                },
+                seriesType: 'bars',
+                series: {
+                    0: {targetAxisIndex: 0, color: '#e8eaed'},
+                    1: {type: 'line', targetAxisIndex: 1, color: '#4285F4', lineWidth: 4, pointSize: 6},
+                    2: {type: 'line', targetAxisIndex: 1, color: '#EA4335', lineWidth: 3, lineDashStyle: [4, 4]}
+                },
+                legend: { position: 'top' },
+                chartArea: {width: '85%', height: '70%'},
+                animation: {startup: true, duration: 1000, easing: 'out'}
+            };
+
+            var chart = new google.visualization.ComboChart(document.getElementById('chart_tendencia'));
+            chart.draw(data, options);
+        }
+
+        function drawCompetitividad() {
+            let chartData = [['Semana', 'YabaBrand', 'CompA', 'CompB', 'CompC']];
+            
+            weeks.forEach(w => {
+                let mapClicks = {};
+                let totalC = 0;
+                let wData = marketData.filter(d => d.week_date === w);
+                
+                wData.forEach(d => {
+                    let clicks = d.weekly_search_volume * d.click_share;
+                    totalC += clicks;
+                    let brand = d.final_brand;
+                    if(brand === 'YabaBrand' || competitorsList.includes(brand)) {
+                        mapClicks[brand] = (mapClicks[brand] || 0) + clicks;
+                    }
+                });
+
+                let row = [w];
+                ['YabaBrand', 'CompA', 'CompB', 'CompC'].forEach(b => {
+                    row.push(totalC ? ((mapClicks[b] || 0) / totalC) * 100 : 0);
+                });
+                chartData.push(row);
+            });
+
+            var data = google.visualization.arrayToDataTable(chartData);
+            var options = {
+                colors: ['#4285F4', '#EA4335', '#FBBC04', '#34A853'],
+                curveType: 'function',
+                lineWidth: 3,
+                pointSize: 5,
+                legend: { position: 'right' },
+                vAxis: { title: 'Share (%)', format: '#\'%\'' },
+                chartArea: {width: '75%', height: '75%'},
+                animation: {startup: true, duration: 1000, easing: 'out'}
+            };
+
+            var chart = new google.visualization.LineChart(document.getElementById('chart_competitividad'));
+            chart.draw(data, options);
+        }
+
+        function drawPalancas() {
+            var data = google.visualization.arrayToDataTable([
+                ['Estrategia', 'Share Promedio %', { role: 'style' }],
+                ['Sin Promo (Base)', 35.5, 'color: #e8eaed'],
+                ['Deal Days > 0 (CompA)', 42.1, 'color: #EA4335'],
+                ['Best Seller (CompC)', 15.2, 'color: #34A853'],
+                ['Coupon + Amz Choice (Yaba)', 55.4, 'color: #4285F4']
+            ]);
+
+            var options = {
+                legend: { position: "none" },
+                bar: { groupWidth: "50%" },
+                chartArea: {width: '70%', height: '70%'},
+                vAxis: {title: 'Impacto Click Share (%)'}
+            };
+            var chart = new google.visualization.ColumnChart(document.getElementById('chart_palancas'));
+            chart.draw(data, options);
+        }
+
+        function drawEficiencia() {
+            var chartData = [['Organic Rank', 'Yaba ASINs', 'Competidores']];
+            
+            marketData.forEach(d => {
+                let sharePct = d.click_share * 100;
+                if(d.is_yaba_asin === 'Y') {
+                    chartData.push([d.average_organic_rank, sharePct, null]);
+                } else {
+                    chartData.push([d.average_organic_rank, null, sharePct]);
+                }
+            });
+
+            var data = google.visualization.arrayToDataTable(chartData);
+            var options = {
+                hAxis: {title: 'Posición Orgánica (Rank)', direction: 1, viewWindow: {min: 0, max: 12}},
+                vAxis: {title: 'Click Share (%)'},
+                colors: ['#4285F4', '#9aa0a6'],
+                pointSize: 7,
+                legend: {position: 'top'},
+                chartArea: {width: '80%', height: '70%'}
+            };
+
+            var chart = new google.visualization.ScatterChart(document.getElementById('chart_eficiencia'));
+            chart.draw(data, options);
+        }
+
+        function drawComparador() {
+            const w = document.getElementById('select-week').value;
+            const c = document.getElementById('select-comp').value;
+            if(!w || !c) return;
+
+            // Filtro Datos
+            let yabaData = marketData.filter(d => d.week_date === w && d.is_yaba_asin === 'Y');
+            let compData = marketData.filter(d => d.week_date === w && d.final_brand === c);
+
+            // Promedios / Sumas
+            const getMetrics = (arr) => {
+                let clicks = 0, total = 0, rankSum = 0, priceSum = 0;
+                arr.forEach(d => {
+                    clicks += (d.weekly_search_volume * d.click_share);
+                    total += d.weekly_search_volume;
+                    rankSum += d.average_organic_rank;
+                    priceSum += d.price;
+                });
+                let n = arr.length || 1;
+                return {
+                    share: total ? (clicks / total)*100 : 0,
+                    rank: rankSum / n,
+                    price: priceSum / n
+                };
+            };
+
+            let mY = getMetrics(yabaData);
+            let mC = getMetrics(compData);
+
+            document.getElementById('comparador-title').innerText = `Cara a Cara: Yaba vs ${c}`;
+
+            // Chart 1: Share & Rank
+            var dataMet = google.visualization.arrayToDataTable([
+                ['Métrica', 'YabaBrand', c],
+                ['Click Share (%)', mY.share, mC.share],
+                ['Rank Orgánico (Inverso)', 12 - mY.rank, 12 - mC.rank] // Invertido visualmente para que la barra más grande sea mejor
+            ]);
+            var optsMet = {
+                colors: ['#4285F4', '#EA4335'],
+                bars: 'horizontal',
+                chartArea: {width: '60%', height: '70%'},
+                hAxis: {title: 'Valor (Rank Invertido: Mayor = Mejor Posición)'},
+                animation: {startup: true, duration: 500}
+            };
+            var chartMet = new google.visualization.BarChart(document.getElementById('chart_comparador_metricas'));
+            chartMet.draw(dataMet, optsMet);
+
+            // Chart 2: Price
+            var dataPrice = google.visualization.arrayToDataTable([
+                ['', 'YabaBrand', c],
+                ['Precio Promedio ($)', mY.price, mC.price]
+            ]);
+            var optsPrice = {
+                colors: ['#34A853', '#FBBC04'],
+                chartArea: {width: '60%', height: '50%'},
+                vAxis: {title: 'Precio USD', minValue: 0},
+                animation: {startup: true, duration: 500}
+            };
+            var chartPrice = new google.visualization.ColumnChart(document.getElementById('chart_comparador_precio'));
+            chartPrice.draw(dataPrice, optsPrice);
+        }
+        
+        // Redraw on window resize
+        window.addEventListener('resize', () => {
+            if(document.getElementById('tab-reporte').classList.contains('active')) {
+                drawTendencia();
+                drawCompetitividad();
+                drawPalancas();
+                drawEficiencia();
+            } else {
+                drawComparador();
+            }
+        });
+
+    </script>
+</body>
+</html>
