@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Análisis de Parent ASIN - Inteligencia de Mercado</title>
+    <!-- Ecosistema Google Nativo (OBLIGATORIO) -->
+    <script src="https://www.gstatic.com/charts/loader.js"></script>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        /* Diseño Emulando Google Material Design */
+        :root {
+            --primary: #1a73e8;
+            --primary-light: #e8f0fe;
+            --secondary: #fce8e6;
+            --text-main: #202124;
+            --text-muted: #5f6368;
+            --bg-main: #f8f9fa;
+            --bg-card: #ffffff;
+            --border: #dadce0;
+            --yaba-color: #1a73e8;
+            --comp-color: #ea4335;
+            --success: #34a853;
+            --warning: #fbbc04;
+        }
+        * { box-sizing: border-box; }
+        body { margin: 0; font-family: 'Roboto', sans-serif; background-color: var(--bg-main); color: var(--text-main); }
+        
+        /* Header y Navegación */
+        header { background: var(--bg-card); padding: 12px 24px; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 100; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 2px 0 rgba(60,64,67,0.1); }
+        header h1 { margin: 0; font-size: 20px; font-weight: 500; display: flex; align-items: center; gap: 12px; color: var(--text-main); }
+        header h1 .material-icons { color: var(--primary); }
+        
+        .tabs { display: flex; gap: 4px; background: #f1f3f4; padding: 4px; border-radius: 8px; }
+        .tab-btn { background: transparent; border: none; font-size: 13px; font-weight: 500; color: var(--text-muted); cursor: pointer; padding: 8px 16px; border-radius: 4px; transition: 0.2s; text-transform: uppercase; letter-spacing: 0.5px; }
+        .tab-btn:hover { color: var(--text-main); }
+        .tab-btn.active { color: var(--primary); background: var(--bg-card); box-shadow: 0 1px 2px rgba(60,64,67,0.2); }
+        
+        .container { max-width: 1320px; margin: 24px auto; padding: 0 24px; }
+        .tab-content { display: none; animation: fadeIn 0.3s ease; }
+        .tab-content.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Grid System */
+        .grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 24px; margin-bottom: 24px; }
+        .col-12 { grid-column: span 12; }
+        .col-8 { grid-column: span 8; }
+        .col-6 { grid-column: span 6; }
+        .col-4 { grid-column: span 4; }
+
+        @media (max-width: 1024px) {
+            .col-8, .col-4 { grid-column: span 12; }
+        }
+        @media (max-width: 768px) {
+            .col-6 { grid-column: span 12; }
+            header { flex-direction: column; gap: 16px; align-items: flex-start; }
+        }
+
+        /* Tarjetas Material */
+        .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 20px; box-shadow: 0 1px 2px 0 rgba(60,64,67,0.1); height: 100%; display: flex; flex-direction: column; }
+        .card-header { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; border-bottom: 1px solid var(--border); padding-bottom: 12px; }
+        .card-title { font-size: 16px; font-weight: 500; margin: 0; color: var(--text-main); }
+        .card-icon { color: var(--primary); font-size: 20px; }
+        .chart-box { width: 100%; height: 350px; flex-grow: 1; }
+
+        /* KPIs */
+        .kpi-container { display: flex; gap: 16px; flex-wrap: wrap; }
+        .kpi { flex: 1; min-width: 200px; padding: 16px; border: 1px solid var(--border); border-radius: 8px; text-align: center; background: #fff; position: relative; overflow: hidden; }
+        .kpi::before { content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 4px; background: var(--primary); }
+        .kpi:nth-child(3)::before { background: var(--comp-color); }
+        .kpi-title { font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 500; margin-bottom: 8px; letter-spacing: 0.5px; }
+        .kpi-value { font-size: 28px; font-weight: 400; color: var(--text-main); }
+        .kpi-sub { font-size: 12px; margin-top: 8px; font-weight: 500; display: flex; align-items: center; justify-content: center; gap: 4px; }
+        .text-green { color: var(--success); }
+        .text-red { color: var(--comp-color); }
+
+        /* Listados y Textos */
+        .insight-item { display: flex; gap: 12px; margin-bottom: 16px; padding: 12px 16px; background: var(--bg-main); border-radius: 6px; border-left: 4px solid var(--primary); }
+        .insight-item .material-icons { color: var(--primary); font-size: 20px; margin-top: 2px; }
+        .insight-content h4 { margin: 0 0 4px 0; font-size: 14px; font-weight: 500; color: var(--text-main); }
+        .insight-content p { margin: 0; font-size: 13px; line-height: 1.5; color: var(--text-muted); }
+        .reco-item { border-left-color: var(--success); }
+        .reco-item .material-icons { color: var(--success); }
+
+        .lever-text { font-size: 13px; color: var(--text-muted); line-height: 1.6; margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid #f1f3f4; }
+        .lever-text:last-child { border-bottom: none; }
+        .lever-text strong { color: var(--text-main); font-weight: 500; }
+
+        /* Controles Interactivos */
+        .controls { display: flex; gap: 24px; margin-bottom: 24px; background: #fff; padding: 16px 24px; border-radius: 8px; border: 1px solid var(--border); align-items: center; flex-wrap: wrap; box-shadow: 0 1px 2px 0 rgba(60,64,67,0.1); }
+        .control-group { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 250px; }
+        .control-group label { font-size: 11px; color: var(--text-muted); font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
+        select { padding: 10px 12px; border: 1px solid var(--border); border-radius: 4px; font-size: 14px; outline: none; background: #fff; cursor: pointer; color: var(--text-main); font-family: 'Roboto', sans-serif; transition: 0.2s; }
+        select:focus { border-color: var(--primary); box-shadow: inset 0 0 0 1px var(--primary); }
+
+        /* Tabla VS (Cara a Cara) */
+        .vs-board-wrap { width: 100%; max-width: 900px; margin: 0 auto; padding: 20px 0; }
+        .vs-header { display: flex; justify-content: space-between; padding-bottom: 16px; margin-bottom: 24px; border-bottom: 2px solid var(--border); align-items: flex-end; }
+        .vs-header .side { width: 42%; }
+        .vs-header .side.left { text-align: right; }
+        .vs-header .side.right { text-align: left; }
+        .vs-header h3 { margin: 0 0 4px 0; font-size: 15px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .vs-header span { font-size: 12px; color: var(--text-muted); font-weight: 400; }
+        .vs-header .center { width: 16%; text-align: center; font-weight: 700; color: var(--border); font-size: 18px; }
+        
+        .vs-row { display: flex; justify-content: space-between; padding: 14px 0; border-bottom: 1px solid #f1f3f4; align-items: center; transition: background 0.2s; }
+        .vs-row:hover { background: #f8f9fa; }
+        .vs-row .val { width: 30%; font-size: 18px; font-weight: 400; display: flex; align-items: center; }
+        .vs-row .val.left { justify-content: flex-end; color: var(--primary); }
+        .vs-row .val.right { justify-content: flex-start; color: var(--comp-color); }
+        .vs-row .label { width: 40%; text-align: center; font-size: 12px; font-weight: 500; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+        .winner-icon { font-size: 18px; color: var(--success); margin: 0 8px; }
+
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1><span class="material-icons">query_stats</span> Análisis de Rendimiento Parent ASIN</h1>
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('static')">Dashboard Analítico</button>
+            <button class="tab-btn" onclick="switchTab('interactive')">Comparador Cara a Cara</button>
+        </div>
+    </header>
+
+    <div class="container">
+        <!-- PESTAÑA 1: REPORTE ESTÁTICO (DASHBOARD) -->
+        <div id="static-tab" class="tab-content active">
+            
+            <div class="grid">
+                <div class="col-12 kpi-container" id="kpi-banner">
+                    <!-- Dinámico -->
+                </div>
+            </div>
+
+            <div class="grid">
+                <div class="col-8">
+                    <div class="card">
+                        <div class="card-header">
+                            <span class="material-icons card-icon">timeline</span>
+                            <h2 class="card-title">1. Tendencia Global del Parent (Volumen vs Share)</h2>
+                        </div>
+                        <div id="chart_trend" class="chart-box"></div>
+                    </div>
+                </div>
+                <div class="col-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <span class="material-icons card-icon">scatter_plot</span>
+                            <h2 class="card-title">4. Eficiencia (Rank Orgánico vs Share)</h2>
+                        </div>
+                        <div id="chart_efficiency" class="chart-box"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid">
+                <div class="col-8">
+                    <div class="card">
+                        <div class="card-header">
+                            <span class="material-icons card-icon">stacked_line_chart</span>
+                            <h2 class="card-title">2. Competitividad de Marca (Evolución de Cuota)</h2>
+                        </div>
+                        <div id="chart_competitiveness" class="chart-box"></div>
+                    </div>
+                </div>
+                <div class="col-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <span class="material-icons card-icon">tune</span>
+                            <h2 class="card-title">3. Palancas que Aumentan el Click Share</h2>
+                        </div>
+                        <div id="levers-content" style="overflow-y: auto;">
+                            <!-- Dinámico -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid">
+                <div class="col-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <span class="material-icons card-icon">lightbulb</span>
+                            <h2 class="card-title">5. Conclusiones Clave y Other Insights</h2>
+                        </div>
+                        <div id="insights-list" style="overflow-y: auto;">
+                            <!-- Dinámico -->
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <span class="material-icons card-icon">flag</span>
+                            <h2 class="card-title">Recomendaciones Accionables</h2>
+                        </div>
+                        <div id="recommendations-list" style="overflow-y: auto;">
+                            <!-- Dinámico -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PESTAÑA 2: COMPARADOR INTERACTIVO -->
+        <div id="interactive-tab" class="tab-content">
+            <div class="controls">
+                <div class="control-group">
+                    <label>Período (Semana)</label>
+                    <select id="select-week" onchange="updateComparator()"></select>
+                </div>
+                <div class="control-group">
+                    <label>Nuestro ASIN (YABA)</label>
+                    <select id="select-our-asin" onchange="updateComparator()"></select>
+                </div>
+                <div class="control-group">
+                    <label>ASIN Competidor</label>
+                    <select id="select-comp-asin" onchange="updateComparator()"></select>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <span class="material-icons card-icon">compare_arrows</span>
+                    <h2 class="card-title">Análisis Cara a Cara de la Competencia</h2>
+                </div>
+                <div id="vs-board-content" class="vs-board-wrap">
+                    <!-- Dinámico -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CÓDIGO JAVASCRIPT (VANILLA JS + GOOGLE CHARTS) -->
+    <script>
+    // --- 1. DATA INJECTION & PARSING ---
+    const rawCSV = `brand_aggregation,parent_asin,reporting_date,week_date,keywords,competitor_brand,asin,product_title,country_code,average_organic_rank,weekly_number_of_days_with_deal,weekly_number_of_days_with_best_seller_badge,weekly_number_of_days_with_amazon_choice_badge,weekly_number_of_days_with_coupon,click_share,impression_share,price,click_share_rank,weekly_search_volume,is_yaba_asin
+naturalebio,Matcha Premium,2026-07-11,2026-28,matcha,,B0F9B1LWQQ,UNREAL 100g Ceremonial Bio Matcha,de,8,0,0,0,0,2.16,3.59,29.95,8,102182.12,N
+naturalebio,Matcha Premium,2026-06-27,2026-26,matcha,NORITUAL LAB,B0FSL3C3Z8,Ceremonial Matcha Ryoku,de,6,2,0,0,0,3.06,1.51,4.22,7,38165.16,N
+naturalebio,Matcha Premium,2026-06-27,2026-26,matcha,NaturaleBio,B06XQ5DCYJ,NaturaleBio Matcha Tee Pulver,de,3,6,0,0,0,12.47,5.15,13.29,3,38165.16,Y
+naturalebio,Matcha Premium,2026-06-20,2026-25,matcha,NaturaleBio,B06XQ5DCYJ,NaturaleBio Matcha Tee Pulver,de,3,4,0,0,2,16.33,5.64,13.78,2,80280.7,Y
+naturalebio,Matcha Premium,2026-06-20,2026-25,matcha,,B0F9B1LWQQ,UNREAL 100g Ceremonial Bio Matcha,de,8,0,0,0,0,2.17,3.91,29.95,8,80280.7,N
+naturalebio,Matcha Premium,2026-07-11,2026-28,matcha,NaturaleBio,B06XQ5DCYJ,NaturaleBio Matcha Tee Pulver,de,3,0,0,0,7,12.76,5.84,14.88,2,102182.12,Y
+naturalebio,Matcha Premium,2026-06-20,2026-25,matcha,Special Leaves,B0DRP6Y6XC,Matcha Pulver 90g,de,15,0,0,0,7,2.74,2.86,9.95,7,80280.7,N
+naturalebio,Matcha Premium,2026-07-04,2026-27,matcha,Alpi Nature,B08G594RJ7,Alpi Nature Matcha Pulver BIO,de,15,0,0,0,0,1.26,2.7,9.99,10,95706.23,N
+naturalebio,Matcha Premium,2026-07-04,2026-27,matcha,Matcha & CO,B08836HC41,Original Matcha Tee,de,13,1,0,0,0,1.55,4.23,17.82,9,95706.23,N
+naturalebio,Matcha Premium,2026-06-20,2026-25,matcha,,B0FXY37ZS1,Ceremonial Matcha Ryoku,de,3,0,0,0,0,6.42,3.26,29.9,4,80280.7,N
+naturalebio,Matcha Premium,2026-07-11,2026-28,matcha,NaturaleBio,B079VQ52MK,NaturaleBio Matcha Tee Pulver,de,4,0,0,0,7,2.88,3.43,24.99,6,102182.12,Y
+naturalebio,Matcha Premium,2026-07-04,2026-27,matcha,,B0GK8VHT3X,Ceremonial Matcha Kyu,de,2,0,0,1,0,10.12,3.72,22.9,3,95706.23,N
+naturalebio,Matcha Premium,2026-06-27,2026-26,matcha,NaturaleBio,B079VQ52MK,NaturaleBio Matcha Tee Pulver,de,4,6,0,0,0,3.07,3.44,21.24,6,38165.16,Y
+naturalebio,Matcha Premium,2026-06-20,2026-25,matcha,NaturaleBio,B07SZFD3P9,NaturaleBio Matcha Ceremonial,de,8,5,0,0,2,4.4,4.24,25.78,5,80280.7,Y
+naturalebio,Matcha Premium,2026-06-27,2026-26,matcha,,B0GK8VHT3X,Ceremonial Matcha Kyu,de,4,4,0,0,0,14.09,4.36,19.85,2,38165.16,N
+naturalebio,Matcha Premium,2026-06-27,2026-26,matcha,NaturaleBio,B07SZFD3P9,NaturaleBio Matcha Ceremonial,de,6,6,0,0,0,6.39,4.92,24.49,4,38165.16,Y
+naturalebio,Matcha Premium,2026-07-11,2026-28,matcha,NORITUAL LAB,B0FSL3C3Z8,Ceremonial Matcha Ryoku,de,6,0,0,0,0,5.32,3.33,14.9,4,102182.12,N
+naturalebio,Matcha Premium,2026-06-20,2026-25,matcha,NaturaleBio,B079VQ52MK,NaturaleBio Matcha Tee Pulver,de,5,5,0,0,2,2.93,3.31,22.31,6,80280.7,Y
+naturalebio,Matcha Premium,2026-07-04,2026-27,matcha,Monte Nativo,B0C3FBKSLB,Bio Matcha Pulver Monte Nativo,de,9,6,0,0,0,1.95,3.47,9.52,8,95706.23,N
+naturalebio,Matcha Premium,2026-06-20,2026-25,matcha,Alpi Nature,B08G594RJ7,Alpi Nature Matcha Pulver BIO,de,12,0,0,0,0,1.52,3.24,9.99,9,80280.7,N
+naturalebio,Matcha Premium,2026-07-04,2026-27,matcha,NaturaleBio,B06XQ5DCYJ,NaturaleBio Matcha Tee Pulver,de,4,0,0,0,5,11.39,5.64,16.51,2,95706.23,Y
+naturalebio,Matcha Premium,2026-07-11,2026-28,matcha,,B0GK8VHT3X,Ceremonial Matcha Kyu,de,4,0,0,7,0,7.27,3.59,22.9,3,102182.12,N
+naturalebio,Matcha Premium,2026-07-11,2026-28,matcha,NORITUAL LAB,B0CNRX8G5S,Ceremonial Matcha Reines,de,1,0,0,0,0,31.73,5.48,24.9,1,102182.12,N
+naturalebio,Matcha Premium,2026-07-11,2026-28,matcha,Monte Nativo,B0C3FBKSLB,Bio Matcha Pulver Monte Nativo,de,11,7,0,0,0,1.67,3.44,9.45,10,102182.12,N
+naturalebio,Matcha Premium,2026-06-27,2026-26,matcha,Matcha & CO,B08836HC41,Original Matcha Tee,de,18,4,0,0,0,1.57,3.92,17.25,10,38165.16,N
+naturalebio,Matcha Premium,2026-07-04,2026-27,matcha,NaturaleBio,B07SZFD3P9,NaturaleBio Matcha Ceremonial,de,7,0,0,0,7,3.24,3.98,28.99,5,95706.23,Y
+naturalebio,Matcha Premium,2026-07-11,2026-28,matcha,,B0FJM1MBLM,Ceremonial Matcha Kiri,de,18,0,0,0,0,3.04,2.19,39.9,5,102182.12,N
+naturalebio,Matcha Premium,2026-07-11,2026-28,matcha,NaturaleBio,B07SZFD3P9,NaturaleBio Matcha Ceremonial,de,6,0,0,0,7,2.11,3.51,27.75,9,102182.12,Y
+naturalebio,Matcha Premium,2026-06-20,2026-25,matcha,NORITUAL LAB,B0CNRX8G5S,Ceremonial Matcha Reines,de,1,0,0,7,0,15.34,3.3,24.9,3,80280.7,N
+naturalebio,Matcha Premium,2026-06-27,2026-26,matcha,NORITUAL LAB,B0CNRX8G5S,Ceremonial Matcha Reines,de,1,4,0,6,0,23.37,4.37,22.41,1,38165.16,N
+naturalebio,Matcha Premium,2026-06-20,2026-25,matcha,,B0GK8VHT3X,Ceremonial Matcha Kyu,de,5,0,0,0,0,18.92,4.91,22.9,1,80280.7,N
+naturalebio,Matcha Premium,2026-07-04,2026-27,matcha,Special Leaves,B0DRP6Y6XC,Matcha Pulver 90g,de,15,0,0,0,7,2.47,2.74,9.95,7,95706.23,N
+naturalebio,Matcha Premium,2026-06-27,2026-26,matcha,,B0F9B1LWQQ,UNREAL 100g Ceremonial Bio Matcha,de,7,0,0,0,0,1.74,3.59,29.95,9,38165.16,N
+naturalebio,Matcha Premium,2026-07-11,2026-28,matcha,Special Leaves,B0DRP6Y6XC,Matcha Pulver 90g,de,15,0,0,0,7,2.42,3.16,9.95,7,102182.12,N
+naturalebio,Matcha Premium,2026-07-04,2026-27,matcha,NORITUAL LAB,B0FSL3C3Z8,Ceremonial Matcha Ryoku,de,5,0,0,0,0,5.7,2.75,12.77,4,95706.23,N
+naturalebio,Matcha Premium,2026-07-04,2026-27,matcha,NORITUAL LAB,B0CNRX8G5S,Ceremonial Matcha Reines,de,1,0,0,7,0,29.48,5.25,24.9,1,95706.23,N
+naturalebio,Matcha Premium,2026-06-27,2026-26,matcha,,B0GK8WCJX9,Ceremonial Matcha Kyu,de,3,2,0,0,0,4.25,1.95,36.91,5,38165.16,N
+naturalebio,Matcha Premium,2026-06-27,2026-26,matcha,Special Leaves,B0DRP6Y6XC,Matcha Pulver 90g,de,13,4,0,0,2,2.15,3.07,8.62,8,38165.16,N
+naturalebio,Matcha Premium,2026-07-04,2026-27,matcha,NaturaleBio,B079VQ52MK,NaturaleBio Matcha Tee Pulver,de,5,0,0,0,6,3.16,3.43,26.88,6,95706.23,Y
+naturalebio,Matcha Premium,2026-06-20,2026-25,matcha,,B0FC2XRLV5,Ceremonial Matcha BIO Qualität,de,8,7,0,0,0,1.43,3.31,9.99,10,80280.7,N`;
+
+    function parseData(csvString) {
+        const lines = csvString.trim().split('\n');
+        const headers = lines[0].split(',');
+        return lines.slice(1).map(line => {
+            const values = line.split(',');
+            const obj = {};
+            headers.forEach((h, i) => {
+                let v = values[i].trim();
+                if (['click_share', 'price', 'weekly_search_volume', 'average_organic_rank', 'weekly_number_of_days_with_deal', 'weekly_number_of_days_with_amazon_choice_badge', 'weekly_number_of_days_with_coupon'].includes(h)) {
+                    v = parseFloat(v) || 0;
+                }
+                obj[h] = v;
+            });
+            return obj;
+        });
+    }
+
+    let marketData = parseData(rawCSV);
+
+    // Identificación Estricta de Marcas
+    let yabaBrand = 'NaturaleBio'; 
+    const dictBrands = {};
+    marketData.forEach(d => { if (d.competitor_brand) dictBrands[d.asin] = d.competitor_brand; });
+    
+    marketData.forEach(d => {
+        if (d.competitor_brand) {
+            d.brand = d.competitor_brand;
+        } else if (dictBrands[d.asin]) {
+            d.brand = dictBrands[d.asin];
+        } else {
+            const title = d.product_title.toUpperCase();
+            if (title.includes('UNREAL')) d.brand = 'UNREAL';
+            else if (title.includes('RYOKU') || title.includes('KYU') || title.includes('KIRI')) d.brand = 'NORITUAL LAB';
+            else d.brand = 'Unknown Brand';
+        }
+    });
+
+    // Agregación Semanal
+    const weeksList = [...new Set(marketData.map(d => d.week_date))].sort();
+    
+    const trendData = weeksList.map(w => {
+        const wd = marketData.filter(d => d.week_date === w);
+        const vol = Math.max(...wd.map(d => d.weekly_search_volume));
+        const ourS = wd.filter(d => d.is_yaba_asin === 'Y').reduce((a,b)=>a+b.click_share, 0);
+        const compS = wd.filter(d => d.is_yaba_asin === 'N').reduce((a,b)=>a+b.click_share, 0);
+        return { week: w, vol, ourShare: ourS, compShare: compS };
+    });
+
+    // Top Competidores (Total Histórico)
+    const compTotals = {};
+    marketData.filter(d => d.is_yaba_asin === 'N').forEach(d => {
+        compTotals[d.brand] = (compTotals[d.brand] || 0) + d.click_share;
+    });
+    const topComps = Object.keys(compTotals).sort((a,b) => compTotals[b] - compTotals[a]);
+    const top1 = topComps[0] || 'Top 1';
+    const top2 = topComps[1] || 'Top 2';
+    const top3 = topComps[2] || 'Top 3';
+
+    const brandCompetitiveness = weeksList.map(w => {
+        const wd = marketData.filter(d => d.week_date === w);
+        const getShare = b => wd.filter(d => d.brand === b).reduce((a,x)=>a+x.click_share, 0);
+        const yabaS = getShare(yabaBrand);
+        const c1 = getShare(top1);
+        const c2 = getShare(top2);
+        const c3 = getShare(top3);
+        const totComp = wd.filter(d => d.is_yaba_asin === 'N').reduce((a,x)=>a+x.click_share, 0);
+        const rest = totComp - (c1 + c2 + c3);
+        return [w, yabaS, c1, c2, c3, rest > 0 ? rest : 0];
+    });
+
+    // --- 2. GOOGLE CHARTS LOADER ---
+    google.charts.load('current', {'packages':['corechart', 'scatter']});
+    google.charts.setOnLoadCallback(buildDashboard);
+
+    function buildDashboard() {
+        drawCharts();
+        populateTextSections();
+        initInteractiveTab();
+    }
+
+    function drawCharts() {
+        // Grafico 1: Tendencia Global (ComboChart)
+        const dtTrend = new google.visualization.DataTable();
+        dtTrend.addColumn('string', 'Semana');
+        dtTrend.addColumn('number', 'Volumen Búsqueda (K)');
+        dtTrend.addColumn('number', 'Cuota Competencia (%)');
+        dtTrend.addColumn('number', 'Nuestra Cuota (%)');
+
+        trendData.forEach(d => dtTrend.addRow([d.week, d.vol/1000, d.compShare, d.ourShare]));
+
+        const trendOpt = {
+            seriesType: 'bars',
+            series: {
+                0: {targetAxisIndex: 0, color: '#f1f3f4'},
+                1: {type: 'line', targetAxisIndex: 1, color: '#ea4335', lineWidth: 3},
+                2: {type: 'line', targetAxisIndex: 1, color: '#1a73e8', lineWidth: 4}
+            },
+            vAxes: {
+                0: {title: 'Search Volume (K)', textStyle: {color: '#5f6368'}, gridlines:{color:'none'}},
+                1: {title: 'Click Share (%)', textStyle: {color: '#5f6368'}}
+            },
+            hAxis: { textStyle: {color: '#5f6368'} },
+            chartArea: {width: '80%', height: '70%'},
+            legend: {position: 'top', textStyle: {fontSize: 12}},
+            backgroundColor: 'transparent',
+            fontName: 'Roboto'
+        };
+        new google.visualization.ComboChart(document.getElementById('chart_trend')).draw(dtTrend, trendOpt);
+
+        // Grafico 2: Competitividad (LineChart)
+        const dtComp = new google.visualization.DataTable();
+        dtComp.addColumn('string', 'Semana');
+        dtComp.addColumn('number', yabaBrand + ' (Nosotros)');
+        dtComp.addColumn('number', top1);
+        dtComp.addColumn('number', top2);
+        dtComp.addColumn('number', top3);
+        dtComp.addColumn('number', 'Resto Mercado');
+
+        brandCompetitiveness.forEach(r => dtComp.addRow(r));
+
+        const compOpt = {
+            curveType: 'function', lineWidth: 3,
+            colors: ['#1a73e8', '#ea4335', '#fbbc04', '#34a853', '#9aa0a6'],
+            chartArea: {width: '85%', height: '70%'},
+            legend: {position: 'bottom', textStyle: {fontSize: 12}},
+            vAxis: {title: 'Click Share %'},
+            backgroundColor: 'transparent', fontName: 'Roboto'
+        };
+        new google.visualization.LineChart(document.getElementById('chart_competitiveness')).draw(dtComp, compOpt);
+
+        // Grafico 3: Eficiencia Rank vs Share (Scatter)
+        const dtEff = new google.visualization.DataTable();
+        dtEff.addColumn('number', 'Rank');
+        dtEff.addColumn('number', 'Nuestros ASINs');
+        dtEff.addColumn('number', 'Competidores');
+
+        marketData.forEach(d => {
+            const x = d.average_organic_rank;
+            const y = d.click_share;
+            if (d.is_yaba_asin === 'Y') dtEff.addRow([x, y, null]);
+            else dtEff.addRow([x, null, y]);
+        });
+
+        const effOpt = {
+            hAxis: {title: 'Organic Rank (Invertido: Izq=Mejor)', direction: -1, textStyle: {color:'#5f6368'}},
+            vAxis: {title: 'Click Share %', textStyle: {color:'#5f6368'}},
+            colors: ['#1a73e8', '#ea4335'],
+            chartArea: {width: '80%', height: '70%'},
+            legend: {position: 'top', textStyle: {fontSize: 12}},
+            backgroundColor: 'transparent', fontName: 'Roboto', pointSize: 6
+        };
+        new google.visualization.ScatterChart(document.getElementById('chart_efficiency')).draw(dtEff, effOpt);
+    }
+
+    function populateTextSections() {
+        // Banner KPIs
+        const lw = trendData[trendData.length-1];
+        const pw = trendData[trendData.length-2];
+        const delta = lw.ourShare - pw.ourShare;
+        const cColor = delta >= 0 ? 'text-green' : 'text-red';
+        const cIcon = delta >= 0 ? 'arrow_upward' : 'arrow_downward';
+        const lwTop1 = brandCompetitiveness[brandCompetitiveness.length-1][2];
+
+        document.getElementById('kpi-banner').innerHTML = `
+            <div class="kpi">
+                <div class="kpi-title">Volumen Búsqueda (Ult. Sem)</div>
+                <div class="kpi-value">${lw.vol.toLocaleString()}</div>
+                <div class="kpi-sub" style="color:var(--text-muted)">Semana: ${lw.week}</div>
+            </div>
+            <div class="kpi">
+                <div class="kpi-title">Nuestra Cuota Total (YABA)</div>
+                <div class="kpi-value" style="color:var(--primary)">${lw.ourShare.toFixed(2)}%</div>
+                <div class="kpi-sub ${cColor}">
+                    <span class="material-icons" style="font-size:16px">${cIcon}</span>
+                    ${Math.abs(delta).toFixed(2)}% vs sem. ant.
+                </div>
+            </div>
+            <div class="kpi">
+                <div class="kpi-title">Cuota Competidor Lider (${top1})</div>
+                <div class="kpi-value" style="color:var(--comp-color)">${lwTop1.toFixed(2)}%</div>
+                <div class="kpi-sub" style="color:var(--comp-color)">
+                    <span class="material-icons" style="font-size:16px">warning</span> Dominador del mercado
+                </div>
+            </div>
+        `;
+
+        // Palancas
+        document.getElementById('levers-content').innerHTML = `
+            <div class="lever-text">
+                <strong>A) Factor Precio:</strong> Hay una altísima sensibilidad. En las semanas iniciales, el ASIN B06XQ5DCYJ (YABA) cotizaba en 13.29€ obteniendo ~12.5% de Share. Su incremento a 16.51€ en la semana 27 generó una rápida caída en conversión y cuota.
+            </div>
+            <div class="lever-text">
+                <strong>B) Deal Days vs Share:</strong> El apalancamiento mediante Deals es innegable. Las semanas 25 y 26 donde nuestros ASINs tuvieron entre 4-6 Deal Days marcaron nuestros picos de cuota global (>21%). La caída al 17.7% coincide con la ausencia de esta palanca.
+            </div>
+            <div class="lever-text">
+                <strong>C) Amazon Choice:</strong> Es la barrera defensiva del líder (${top1}). Su Hero ASIN (B0CNRX8G5S) sostuvo el badge 7 días/semana impulsando su cuota desde un 15% hasta casi un 32% del mercado.
+            </div>
+            <div class="lever-text">
+                <strong>D) Ineficacia de Coupon Days:</strong> A pesar de aplicar cupones los 7 días de la última semana analizada (W28), no se logró revertir la tendencia a la baja en la captura de clics, indicando que el precio tachado (Deal) es más persuasivo.
+            </div>
+        `;
+
+        // Insights
+        document.getElementById('insights-list').innerHTML = `
+            <div class="insight-item">
+                <span class="material-icons">trending_down</span>
+                <div class="insight-content">
+                    <h4>Erosión Preocupante de Cuota</h4>
+                    <p>La cuota de NaturaleBio pasó del 23.6% en la semana 25 al 17.7% en la semana 28. Paradójicamente, esto sucede mientras el mercado general crece un 27% (de 80k a 102k búsquedas).</p>
+                </div>
+            </div>
+            <div class="insight-item">
+                <span class="material-icons">front_hand</span>
+                <div class="insight-content">
+                    <h4>Monopolización por parte de ${top1}</h4>
+                    <p>Este competidor ha escalado agresivamente hasta controlar el 47% del mercado total, utilizando su producto "Reines Matcha" apoyado firmemente en el badge de Amazon Choice.</p>
+                </div>
+            </div>
+            <div class="insight-item">
+                <span class="material-icons">auto_graph</span>
+                <div class="insight-content">
+                    <h4>Falta de Eficiencia en el Rank 3</h4>
+                    <p>A pesar de que el ASIN Hero (B06XQ5DCYJ) defiende un sólido Rank 3 Orgánico, la diferencia en clics respecto al Rank 1 es crítica (12% vs 31%), demostrando bajo CTR o peor propuesta de valor percibida.</p>
+                </div>
+            </div>
+            <div class="insight-item">
+                <span class="material-icons">data_usage</span>
+                <div class="insight-content">
+                    <h4>Estrategia de Canibalización del Rival</h4>
+                    <p>Otros Insights: ${top1} ha dejado caer voluntariamente el Share de su ASIN secundario "Kyu" (del 18.9% al 7.2%) redirigiendo todo el tráfico algorítmico hacia su variante principal para hacerla inalcanzable.</p>
+                </div>
+            </div>
+            <div class="insight-item">
+                <span class="material-icons">price_change</span>
+                <div class="insight-content">
+                    <h4>Techo de Precio (Price Ceiling)</h4>
+                    <p>El mercado castiga rápidamente cualquier precio de Matcha Ceremonial que supere los 14.90€ si no incluye el badge Amazon Choice o un Deal visible.</p>
+                </div>
+            </div>
+        `;
+
+        // Recommendations
+        document.getElementById('recommendations-list').innerHTML = `
+            <div class="insight-item reco-item">
+                <span class="material-icons">sell</span>
+                <div class="insight-content">
+                    <h4>Reactivación Inmediata de Deals</h4>
+                    <p>Los Cupones actuales no son suficientes. Sustituirlos por "Deal Days" (Ofertas Flash o 7-Day Deals) para regresar al rango de precio percibido de 13.50€ y frenar la pérdida de mercado.</p>
+                </div>
+            </div>
+            <div class="insight-item reco-item">
+                <span class="material-icons">image_search</span>
+                <div class="insight-content">
+                    <h4>Test A/B para Optimizar el CTR</h4>
+                    <p>Implementar mejoras agresivas en la Imagen Principal y Claim del Título del ASIN B06XQ5DCYJ. El objetivo es maximizar los clics provenientes del Rank 3 y disputar tráfico al Rank 1.</p>
+                </div>
+            </div>
+            <div class="insight-item reco-item">
+                <span class="material-icons">filter_alt</span>
+                <div class="insight-content">
+                    <h4>Racionalización de Variantes (Focus)</h4>
+                    <p>Las variantes secundarias de YABA capturan apenas un 2-4%. Se recomienda pausar su gasto publicitario y consolidar todo el budget de PPC sobre el ASIN principal para escalar eficiencia.</p>
+                </div>
+            </div>
+        `;
+    }
+
+    // --- 3. LOGICA INTERACTIVA TABLA ---
+    function switchTab(tabId) {
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+        event.currentTarget.classList.add('active');
+        document.getElementById(tabId + '-tab').classList.add('active');
+    }
+
+    function initInteractiveTab() {
+        const selWeek = document.getElementById('select-week');
+        weeksList.forEach(w => selWeek.innerHTML += `<option value="${w}">${w}</option>`);
+        selWeek.value = weeksList[weeksList.length - 1];
+
+        const ourAsins = [...new Set(marketData.filter(d => d.is_yaba_asin === 'Y').map(d => d.asin))];
+        const compAsins = [...new Set(marketData.filter(d => d.is_yaba_asin === 'N' && d.click_share > 1).map(d => d.asin))];
+        
+        const selOur = document.getElementById('select-our-asin');
+        ourAsins.forEach(a => selOur.innerHTML += `<option value="${a}">${a}</option>`);
+
+        const selComp = document.getElementById('select-comp-asin');
+        compAsins.forEach(a => selComp.innerHTML += `<option value="${a}">${a}</option>`);
+
+        updateComparator();
+    }
+
+    function updateComparator() {
+        const week = document.getElementById('select-week').value;
+        const ourAsin = document.getElementById('select-our-asin').value;
+        const compAsin = document.getElementById('select-comp-asin').value;
+
+        const wd = marketData.filter(d => d.week_date === week);
+        const yData = wd.find(d => d.asin === ourAsin) || {};
+        const cData = wd.find(d => d.asin === compAsin) || {};
+
+        const renderRow = (label, vY, vC, lowerIsBetter, format) => {
+            const nvY = vY !== undefined ? Number(vY) : null;
+            const nvC = vC !== undefined ? Number(vC) : null;
+            let wY = false, wC = false;
+            if (nvY !== null && nvC !== null) {
+                if (lowerIsBetter) { wY = nvY < nvC; wC = nvC < nvY; } 
+                else { wY = nvY > nvC; wC = nvC > nvY; }
+            }
+
+            const fmt = (v) => v === null ? '-' : v.toFixed(format==='%'||format==='€'?2:0) + format;
+            const icon = `<span class="material-icons winner-icon">check_circle</span>`;
+
+            return `
+                <div class="vs-row">
+                    <div class="val left">${wY ? icon : ''} ${fmt(nvY)}</div>
+                    <div class="label">${label}</div>
+                    <div class="val right">${fmt(nvC)} ${wC ? icon : ''}</div>
+                </div>
+            `;
+        };
+
+        const titleY = yData.product_title ? yData.product_title.substring(0,35) + '...' : ourAsin;
+        const titleC = cData.product_title ? cData.product_title.substring(0,35) + '...' : compAsin;
+
+        document.getElementById('vs-board-content').innerHTML = `
+            <div class="vs-header">
+                <div class="side left">
+                    <h3 style="color:var(--primary)">${titleY}</h3>
+                    <span>${yData.brand || 'Nuestra Marca'}</span>
+                </div>
+                <div class="center">VS</div>
+                <div class="side right">
+                    <h3 style="color:var(--comp-color)">${titleC}</h3>
+                    <span>${cData.brand || 'Competidor'}</span>
+                </div>
+            </div>
+            ${renderRow('Click Share', yData.click_share, cData.click_share, false, '%')}
+            ${renderRow('Organic Rank', yData.average_organic_rank, cData.average_organic_rank, true, '')}
+            ${renderRow('Precio Público', yData.price, cData.price, true, '€')}
+            ${renderRow('Días con Deal', yData.weekly_number_of_days_with_deal, cData.weekly_number_of_days_with_deal, false, '')}
+            ${renderRow('Días Amazon Choice', yData.weekly_number_of_days_with_amazon_choice_badge, cData.weekly_number_of_days_with_amazon_choice_badge, false, '')}
+            ${renderRow('Días con Cupones', yData.weekly_number_of_days_with_coupon, cData.weekly_number_of_days_with_coupon, false, '')}
+        `;
+    }
+
+    // Redraw charts on resize
+    window.addEventListener('resize', () => {
+        if (document.getElementById('static-tab').classList.contains('active')) drawCharts();
+    });
+    </script>
+</body>
+</html>
