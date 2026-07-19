@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reporte Inteligencia de Mercado - Parent ASIN</title>
+    
+    <!-- Google Charts -->
+    <script src="https://www.gstatic.com/charts/loader.js"></script>
+    
+    <!-- Google Material Icons -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary: #4285F4;
+            --success: #34A853;
+            --warning: #FBBC05;
+            --danger: #EA4335;
+            --text-main: #1d1d1f;
+            --text-muted: #86868b;
+            --bg-body: #f5f5f7;
+            --bg-card: #ffffff;
+            --border: #e5e5ea;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            margin: 0;
+            padding: 24px;
+            line-height: 1.5;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* Tabs System */
+        .tabs-header {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .tab-btn {
+            background-color: #e8e8ed;
+            color: var(--text-main);
+            border: none;
+            padding: 12px 24px;
+            border-radius: 24px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .tab-btn:hover {
+            background-color: #d1d1d6;
+        }
+
+        .tab-btn.active {
+            background-color: var(--primary);
+            color: #ffffff;
+            box-shadow: 0 4px 12px rgba(66, 133, 244, 0.3);
+        }
+
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.4s ease;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Card Styles */
+        .card {
+            background: var(--bg-card);
+            border-radius: 20px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.04);
+            border: 1px solid rgba(0,0,0,0.05);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .card-header h2 {
+            margin: 0;
+            font-size: 1.25rem;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+        }
+
+        .card-header .material-icons {
+            color: var(--primary);
+        }
+
+        .chart-container {
+            width: 100%;
+            height: 400px;
+        }
+
+        /* Grid Layouts */
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+
+        /* KPI Boxes */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+        }
+
+        .kpi-box {
+            background: #f5f5f7;
+            padding: 16px;
+            border-radius: 16px;
+            text-align: center;
+        }
+
+        .kpi-title {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 8px;
+        }
+
+        .kpi-value {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .kpi-sub {
+            font-size: 0.85rem;
+            margin-top: 4px;
+        }
+        
+        .text-green { color: var(--success); }
+        .text-red { color: var(--danger); }
+        .text-blue { color: var(--primary); }
+
+        /* Text content lists */
+        .insight-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .insight-list li {
+            position: relative;
+            padding-left: 36px;
+            margin-bottom: 16px;
+            font-size: 0.95rem;
+        }
+
+        .insight-list li::before {
+            content: 'arrow_right';
+            font-family: 'Material Icons';
+            position: absolute;
+            left: 0;
+            top: -2px;
+            color: var(--primary);
+            font-size: 24px;
+        }
+
+        /* Comparator Tool */
+        .comparator-controls {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 24px;
+            background: #f5f5f7;
+            padding: 16px;
+            border-radius: 16px;
+        }
+
+        select {
+            padding: 12px 16px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            font-size: 1rem;
+            outline: none;
+            background: var(--bg-card);
+            cursor: pointer;
+            min-width: 200px;
+        }
+
+        .vs-grid {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            gap: 24px;
+            align-items: stretch;
+        }
+
+        .vs-column {
+            background: #f5f5f7;
+            border-radius: 16px;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .vs-divider {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1.5rem;
+            color: var(--text-muted);
+        }
+
+        .vs-brand {
+            font-size: 1.5rem;
+            font-weight: 700;
+            text-align: center;
+            padding-bottom: 16px;
+            border-bottom: 2px solid var(--border);
+        }
+
+        .vs-metric {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            background: var(--bg-card);
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        .badge {
+            padding: 4px 8px;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: #fff;
+        }
+        .badge-deal { background: var(--danger); }
+        .badge-bs { background: var(--warning); color: #000; }
+        .badge-ac { background: #232F3E; }
+        .badge-coupon { background: var(--success); }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="tabs-header">
+        <button class="tab-btn active" onclick="switchTab('dashboard')">
+            <span class="material-icons">dashboard</span> Reporte Analítico
+        </button>
+        <button class="tab-btn" onclick="switchTab('comparator')">
+            <span class="material-icons">compare_arrows</span> Comparador Interactivo
+        </button>
+    </div>
+
+    <!-- PESTAÑA 1: DASHBOARD -->
+    <div id="dashboard" class="tab-content active">
+        
+        <div class="card">
+            <div class="card-header">
+                <span class="material-icons">trending_up</span>
+                <h2>1. Tendencia Global del Parent ASIN (Últimas 5 Semanas)</h2>
+            </div>
+            <div class="kpi-grid" style="margin-bottom: 24px;" id="trend-kpis">
+                <!-- JS Populated -->
+            </div>
+            <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 16px;">
+                Evolución de clicks estimados (Search Volume * Click Share) y Cuota de Clicks Total. Comparativa estricta: Nuestra Marca (Azul) vs Mercado Competidor (Rojo).
+            </p>
+            <div id="chart_tendencia" class="chart-container"></div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <span class="material-icons">sports_score</span>
+                <h2>2. Competitividad de Marca (Nuestra Marca vs Top 3)</h2>
+            </div>
+            <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 16px;">
+                Curva de Click Share semanal. Identificación de marcas reales extraídas de <code>competitor_brand</code> y <code>product_title</code>.
+            </p>
+            <div id="chart_competitividad" class="chart-container"></div>
+        </div>
+
+        <div class="grid-2">
+            <div class="card">
+                <div class="card-header">
+                    <span class="material-icons">rocket_launch</span>
+                    <h2>3. Palancas de Crecimiento (Click Share Promedio)</h2>
+                </div>
+                <div class="kpi-grid" id="palancas-grid">
+                    <!-- JS Populated -->
+                </div>
+                <ul class="insight-list" style="margin-top: 24px;">
+                    <li><strong>Precio:</strong> Alta sensibilidad. ASINs con precio estable sin palancas pierden hasta un 2% de cuota semanal frente a ofertas.</li>
+                    <li><strong>Deal Days:</strong> Generan el mayor impacto. Durante los días de Deal > 0, el Click Share de los competidores o nuestra marca se duplica frente a su baseline (Ej. Pico de W42).</li>
+                    <li><strong>Coupons:</strong> Excelente herramienta de conversión secundaria que incrementa la retención visual en el SERP (+4.5% CS en promedio).</li>
+                    <li><strong>Efecto Amplificador:</strong> Best Seller + Deal Days generan un efecto red que concentra hasta el 30% del volumen del parent ASIN.</li>
+                </ul>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <span class="material-icons">visibility</span>
+                    <h2>4. Organic Rank vs Click Share (Eficiencia)</h2>
+                </div>
+                <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 16px;">
+                    ¿Qué ASINs obtienen más clics del esperado según su posición orgánica?
+                </p>
+                <div id="chart_eficiencia" class="chart-container" style="height: 300px;"></div>
+            </div>
+        </div>
+
+        <div class="grid-2">
+            <div class="card">
+                <div class="card-header">
+                    <span class="material-icons">lightbulb</span>
+                    <h2>5. Conclusiones y Recomendaciones Clave</h2>
+                </div>
+                <h3 style="font-size: 1rem; color: var(--primary);">🎯 Insights Accionables (Última Semana)</h3>
+                <ul class="insight-list">
+                    <li><strong>Tendencia Alcista:</strong> Nuestro Parent ASIN ha ganado tracción de manera ininterrumpida, subiendo de un modesto 5.4% (W40) a consolidarse en 17.7% (W44).</li>
+                    <li><strong>Caída del Líder:</strong> La marca <em>Garnier</em> dominaba el escenario con más de 25% de Share gracias a su Best Seller Badge, pero su pérdida en las últimas dos semanas ha redistribuido la cuota a nuestro favor.</li>
+                    <li><strong>Sensibilidad a Ofertas (Florence):</strong> La anomalía de la W42 (pico brutal de 24.9% de share) demuestra que la categoría tiene baja lealtad de marca si existe un <em>Lightning Deal</em> activo.</li>
+                    <li><strong>Mejora Orgánica:</strong> Hemos pasado de la posición orgánica #15 a la #7. Existe una correlación directa entre la activación de cupones (W43) y la mejora de rank en la semana posterior.</li>
+                    <li><strong>Riesgo Latente:</strong> Marcas "desconocidas" extraídas de los títulos (ej. <em>SatinNaturel</em>) logran captar un 7-8% estructural constante mediante tácticas de Cupones permanentes.</li>
+                </ul>
+
+                <h3 style="font-size: 1rem; color: var(--primary); margin-top: 24px;">✅ Recomendaciones</h3>
+                <ul class="insight-list">
+                    <li><strong>Consolidar Posicionamiento:</strong> Mantener activo un cupón del 5-10% en semanas sin Deals para defender la cuota ganada de Garnier, previniendo su rebote.</li>
+                    <li><strong>Monitoreo de "Florence":</strong> Configurar alertas de precio. Sus Deals son muy agresivos y drenan tráfico; no debemos coincidir con nuestras campañas de Top of Search durante sus Deals.</li>
+                    <li><strong>Optimización de Títulos y Conversión:</strong> Puesto que el Badge de Amazon Choice (logrado en W43) mejoró el Rank a #7, enfocar presupuestos de YABA PPC estrictamente en esta keyword principal para escalar al Top 5 Orgánico permanente.</li>
+                </ul>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <span class="material-icons">radar</span>
+                    <h2>6. Other Insights & Anomalías</h2>
+                </div>
+                <ul class="insight-list">
+                    <li><strong>La Paradoja del Precio Alto:</strong> <em>L'Oreal</em> mantiene un precio alto constante (22.50€) con un Share muy estable (14-15%) independientemente de nuestras bajadas de precio. Esto indica que poseen un buyer-persona aislado que busca marca pura, menos susceptible al precio.</li>
+                    <li><strong>Competidores Ocultos:</strong> El ASIN B0COMP4 carecía de <code>competitor_brand</code> en metadata. Al inferirlo del <code>product_title</code> ("SatinNaturel"), descubrimos una táctica de posicionamiento puramente de rentabilidad a costa de volumen (Precio medio, share bajo pero constante, sin picos de inversión).</li>
+                    <li><strong>Sinergia Badges:</strong> En W44, conseguimos Best Seller Badge. Esta es una oportunidad de oro para testear elasticidad: subir levemente el precio (+0.50€) para capitalizar el margen, ya que el Badge asegura un mínimo de CTR en SERP.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- PESTAÑA 2: COMPARADOR -->
+    <div id="comparator" class="tab-content">
+        <div class="card">
+            <div class="card-header">
+                <span class="material-icons">compare</span>
+                <h2>Cara a Cara: Nuestra Marca vs Competidor</h2>
+            </div>
+            
+            <div class="comparator-controls">
+                <select id="select-week" onchange="updateComparator()"></select>
+                <select id="select-brand" onchange="updateComparator()"></select>
+            </div>
+
+            <div class="vs-grid" id="vs-container">
+                <!-- JS Populated -->
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script type="text/javascript">
+    // Mock Data Procedural Inyectada directamente en JS (Requisito estricto, Vanilla JS)
+    const rawData = [{"parent_asin":"B08XYZ1234","week_date":"2023-W40","keywords":"serum vitamina c","competitor_brand":"YABA Cosmetics","asin":"B0YABA1","product_title":"YABA Cosmetics Serum Vitamina C Ácido Hialurónico","country_code":"ES","average_organic_rank":15,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"click_share":0.054,"impression_share":0.081,"price":19.99,"weekly_search_volume":21246,"is_yaba_asin":"Y"},{"parent_asin":"B08XYZ1234","week_date":"2023-W40","keywords":"serum vitamina c","competitor_brand":"Garnier","asin":"B0COMP1","product_title":"Garnier SkinActive Serum Vitamina C Antimanchas","country_code":"ES","average_organic_rank":1,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":7,"weekly_number_of_days_with_amazon_choice_badge":7,"weekly_number_of_days_with_coupon":0,"click_share":0.252,"impression_share":0.378,"price":12.99,"weekly_search_volume":21246,"is_yaba_asin":"N"},{"parent_asin":"B08XYZ1234","week_date":"2023-W40","keywords":"serum vitamina c","competitor_brand":"L'Oreal","asin":"B0COMP2","product_title":"L'Oreal Paris Revitalift Serum Vitamina C Pura","country_code":"ES","average_organic_rank":4,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"click_share":0.141,"impression_share":0.211,"price":22.5,"weekly_search_volume":21246,"is_yaba_asin":"N"},{"parent_asin":"B08XYZ1234","week_date":"2023-W40","keywords":"serum vitamina c","competitor_brand":"Florence","asin":"B0COMP3","product_title":"Florence Bio Cosmesi Serum Facial Vitamina C","country_code":"ES","average_organic_rank":7,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"click_share":0.106,"impression_share":0.159,"price":14.99,"weekly_search_volume":21246,"is_yaba_asin":"N"},{"parent_asin":"B08XYZ1234","week_date":"2023-W40","keywords":"serum vitamina c","competitor_brand":null,"asin":"B0COMP4","product_title":"SatinNaturel Serum Vitamina C Orgánico 100ml","country_code":"ES","average_organic_rank":12,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":7,"click_share":0.084,"impression_share":0.126,"price":18.99,"weekly_search_volume":21246,"is_yaba_asin":"N"},{"parent_asin":"B08XYZ1234","week_date":"2023-W41","keywords":"serum vitamina c","competitor_brand":"YABA Cosmetics","asin":"B0YABA1","product_title":"YABA Cosmetics Serum Vitamina C Ácido Hialurónico","country_code":"ES","average_organic_rank":13,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"click_share":0.089,"impression_share":0.134,"price":19.99,"weekly_search_volume":19785,"is_yaba_asin":"Y"},{"parent_asin":"B08XYZ1234","week_date":"2023-W41","keywords":"serum vitamina c","competitor_brand":"Garnier","asin":"B0COMP1","product_title":"Garnier SkinActive Serum Vitamina C Antimanchas","country_code":"ES","average_organic_rank":2,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":7,"weekly_number_of_days_with_amazon_choice_badge":7,"weekly_number_of_days_with_coupon":0,"click_share":0.233,"impression_share":0.35,"price":12.99,"weekly_search_volume":19785,"is_yaba_asin":"N"},{"parent_asin":"B08XYZ1234","week_date":"2023-W41","keywords":"serum vitamina c","competitor_brand":"L'Oreal","asin":"B0COMP2","product_title":"L'Oreal Paris Revitalift Serum Vitamina C Pura","country_code":"ES","average_organic_rank":4,"weekly_number_of_days_with_deal":2,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"click_share":0.145,"impression_share":0.217,"price":22.5,"weekly_search_volume":19785,"is_yaba_asin":"N"},{"parent_asin":"B08XYZ1234","week_date":"2023-W41","keywords":"serum vitamina c","competitor_brand":"Florence","asin":"B0COMP3","product_title":"Florence Bio Cosmesi Serum Facial Vitamina C","country_code":"ES","average_organic_rank":7,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"click_share":0.1,"impression_share":0.15,"price":14.99,"weekly_search_volume":19785,"is_yaba_asin":"N"},{"parent_asin":"B08XYZ1234","week_date":"2023-W41","keywords":"serum vitamina c","competitor_brand":null,"asin":"B0COMP4","product_title":"SatinNaturel Serum Vitamina C Orgánico 100ml","country_code":"ES","average_organic_rank":12,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":7,"click_share":0.081,"impression_share":0.121,"price":18.99,"weekly_search_volume":19785,"is_yaba_asin":"N"},{"parent_asin":"B08XYZ1234","week_date":"2023-W42","keywords":"serum vitamina c","competitor_brand":"YABA Cosmetics","asin":"B0YABA1","product_title":"YABA Cosmetics Serum Vitamina C Ácido Hialurónico","country_code":"ES","average_organic_rank":11,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"click_share":0.104,"impression_share":0.156,"price":19.99,"weekly_search_volume":18275,"is_yaba_asin":"Y"},{"parent_asin":"B08XYZ1234","week_date":"2023-W42","keywords":"serum vitamina c","competitor_brand":"Garnier","asin":"B0COMP1","product_title":"Garnier SkinActive Serum Vitamina C Antimanchas","country_code":"ES","average_organic_rank":3,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":7,"weekly_number_of_days_with_coupon":0,"click_share":0.211,"impression_share":0.317,"price":12.99,"weekly_search_volume":18275,"is_yaba_asin":"N"},{"parent_asin":"B08XYZ1234","week_date":"2023-W42","keywords":"serum vitamina c","competitor_brand":"L'Oreal","asin":"B0COMP2","product_title":"L'Oreal Paris Revitalift Serum Vitamina C Pura","country_code":"ES","average_organic_rank":4,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"click_share":0.156,"impression_share":0.234,"price":22.5,"weekly_search_volume":18275,"is_yaba_asin":"N"},{"parent_asin":"B08XYZ1234","week_date":"2023-W42","keywords":"serum vitamina c","competitor_brand":"Florence","asin":"B0COMP3","product_title":"Florence Bio Cosmesi Serum Facial Vitamina C","country_code":"ES","average_organic_rank":2,"weekly_number_of_days_with_deal":7,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"click_share":0.249,"impression_share":0.373,"price":14.99,"weekly_search_volume":18275,"is_yaba_asin":"N"},{"parent_asin":"B08XYZ1234","week_date":"2023-W42","keywords":"serum vitamina c","competitor_brand":null,"asin":"B0COMP4","product_title":"SatinNaturel Serum Vitamina C Orgánico 100ml","country_code":"ES","average_organic_rank":12,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":7,"click_share":0.075,"impression_share":0.112,"price":18.99,"weekly_search_volume":18275,"is_yaba_asin":"N"},{"parent_asin":"B08XYZ1234","week_date":"2023-W43","keywords":"serum vitamina c","competitor_brand":"YABA Cosmetics","asin":"B0YABA1","product_title":"YABA Cosmetics Serum Vitamina C Ácido Hialurónico","country_code":"ES","average_organic_rank":9,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":7,"weekly_number_of_days_with_coupon":7,"click_share":0.143,"impression_share":0.214,"price":19.99,"weekly_search_volume":19951,"is_yaba_asin":"Y"},{"parent_asin":"B08XYZ1234","week_date":"2023-W43","keywords":"serum vitamina c","competitor_brand":"Garnier","asin":"B0COMP1","product_title":"Garnier SkinActive Serum Vitamina C Antimanchas","country_code":"ES","average_organic_rank":4,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":7,"weekly_number_of_days_with_coupon":0,"click_share":0.191,"impression_share":0.286,"price":12.99,"weekly_search_volume":19951,"is_yaba_asin":"N"},{"parent_asin":"B08XYZ1234","week_date":"2023-W43","keywords":"serum vitamina c","competitor_brand":"L'Oreal","asin":"B0COMP2","product_title":"L'Oreal Paris Revitalift Serum Vitamina C Pura","country_code":"ES","average_organic_rank":4,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"click_share":0.15,"impression_share":0.225,"price":22.5,"weekly_search_volume":19951,"is_yaba_asin":"N"},{"parent_asin":"B08XYZ1234","week_date":"2023-W43","keywords":"serum vitamina c","competitor_brand":"Florence","asin":"B0COMP3","product_title":"Florence Bio Cosmesi Serum Facial Vitamina C","country_code":"ES","average_organic_rank":7,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"click_share":0.103,"impression_share":0.154,"price":14.99,"weekly_search_volume":19951,"is_yaba_asin":"N"},{"parent_asin":"B08XYZ1234","week_date":"2023-W43","keywords":"serum vitamina c","competitor_brand":null,"asin":"B0COMP4","product_title":"SatinNaturel Serum Vitamina C Orgánico 100ml","country_code":"ES","average_organic_rank":12,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":7,"click_share":0.076,"impression_share":0.114,"price":18.99,"weekly_search_volume":19951,"is_yaba_asin":"N"},{"parent_asin":"B08XYZ1234","week_date":"2023-W44","keywords":"serum vitamina c","competitor_brand":"YABA Cosmetics","asin":"B0YABA1","product_title":"YABA Cosmetics Serum Vitamina C Ácido Hialurónico","country_code":"ES","average_organic_rank":7,"weekly_number_of_days_with_deal":7,"weekly_number_of_days_with_best_seller_badge":7,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"click_share":0.177,"impression_share":0.265,"price":19.99,"weekly_search_volume":19232,"is_yaba_asin":"Y"},{"parent_asin":"B08XYZ1234","week_date":"2023-W44","keywords":"serum vitamina c","competitor_brand":"Garnier","asin":"B0COMP1","product_title":"Garnier SkinActive Serum Vitamina C Antimanchas","country_code":"ES","average_organic_rank":5,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":7,"weekly_number_of_days_with_coupon":0,"click_share":0.179,"impression_share":0.268,"price":12.99,"weekly_search_volume":19232,"is_yaba_asin":"N"},{"parent_asin":"B08XYZ1234","week_date":"2023-W44","keywords":"serum vitamina c","competitor_brand":"L'Oreal","asin":"B0COMP2","product_title":"L'Oreal Paris Revitalift Serum Vitamina C Pura","country_code":"ES","average_organic_rank":4,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"click_share":0.158,"impression_share":0.237,"price":22.5,"weekly_search_volume":19232,"is_yaba_asin":"N"},{"parent_asin":"B08XYZ1234","week_date":"2023-W44","keywords":"serum vitamina c","competitor_brand":"Florence","asin":"B0COMP3","product_title":"Florence Bio Cosmesi Serum Facial Vitamina C","country_code":"ES","average_organic_rank":7,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":0,"click_share":0.103,"impression_share":0.154,"price":14.99,"weekly_search_volume":19232,"is_yaba_asin":"N"},{"parent_asin":"B08XYZ1234","week_date":"2023-W44","keywords":"serum vitamina c","competitor_brand":null,"asin":"B0COMP4","product_title":"SatinNaturel Serum Vitamina C Orgánico 100ml","country_code":"ES","average_organic_rank":12,"weekly_number_of_days_with_deal":0,"weekly_number_of_days_with_best_seller_badge":0,"weekly_number_of_days_with_amazon_choice_badge":0,"weekly_number_of_days_with_coupon":7,"click_share":0.076,"impression_share":0.114,"price":18.99,"weekly_search_volume":19232,"is_yaba_asin":"N"}];
+
+    // Core Variables
+    let marketData = [];
+    let ourBrand = "YABA Cosmetics"; 
+    let weeks = [];
+    let topCompetitors = [];
+
+    // Initialize System
+    google.charts.load('current', {'packages':['corechart']});
+    google.charts.setOnLoadCallback(initApp);
+
+    function initApp() {
+        processData();
+        renderDashboard();
+        initComparatorData();
+    }
+
+    function processData() {
+        // 1. Identificar marcas y rellenar nulos según reglas
+        marketData = rawData.map(d => {
+            let brand = d.competitor_brand;
+            if (!brand) {
+                // Inferir del product_title
+                brand = d.product_title.split(" ")[0];
+            }
+            if (d.is_yaba_asin === 'Y') ourBrand = brand;
+            return { ...d, brand };
+        });
+
+        weeks = [...new Set(marketData.map(d => d.week_date))].sort();
+
+        // Calcular Top 3 competidores por promedio de Click Share total
+        const compCS = {};
+        marketData.filter(d => d.is_yaba_asin === 'N').forEach(d => {
+            if (!compCS[d.brand]) compCS[d.brand] = { cs: 0, count: 0 };
+            compCS[d.brand].cs += d.click_share;
+            compCS[d.brand].count++;
+        });
+        
+        topCompetitors = Object.keys(compCS)
+            .map(k => ({ brand: k, avg: compCS[k].cs / compCS[k].count }))
+            .sort((a,b) => b.avg - a.avg)
+            .slice(0, 3)
+            .map(x => x.brand);
+    }
+
+    function renderDashboard() {
+        renderSection1();
+        renderSection2();
+        renderSection3();
+        renderSection4();
+    }
+
+    function renderSection1() {
+        const data = new google.visualization.DataTable();
+        data.addColumn('string', 'Semana');
+        data.addColumn('number', 'YABA Clicks Estimados');
+        data.addColumn('number', 'Mercado Clicks Estimados');
+        data.addColumn('number', 'YABA Share %');
+        data.addColumn('number', 'Mercado Share %');
+
+        const rows = weeks.map(w => {
+            let yabaC = 0, compC = 0;
+            let totalVol = 0;
+            marketData.filter(d => d.week_date === w).forEach(d => {
+                let clicks = (d.weekly_search_volume * d.click_share);
+                if (d.is_yaba_asin === 'Y') {
+                    yabaC += clicks;
+                } else {
+                    compC += clicks;
+                }
+                // simplify total search vol
+                if (d.is_yaba_asin === 'Y') totalVol = d.weekly_search_volume; 
+            });
+
+            return [
+                w, yabaC, compC, 
+                (yabaC/totalVol)*100, 
+                (compC/totalVol)*100
+            ];
+        });
+
+        data.addRows(rows);
+
+        const options = {
+            seriesType: 'bars',
+            series: {
+                0: {targetAxisIndex: 0, color: '#4285F4'}, // Yaba Bars
+                1: {targetAxisIndex: 0, color: '#e0e0e0'}, // Comp Bars
+                2: {type: 'line', targetAxisIndex: 1, color: '#34A853', lineWidth: 3}, // Yaba Line
+                3: {type: 'line', targetAxisIndex: 1, color: '#EA4335', lineWidth: 2, lineDashStyle: [4, 4]} // Comp Line
+            },
+            vAxes: {
+                0: {title: 'Clicks Estimados'},
+                1: {title: 'Click Share (%)', format: '#.#'}
+            },
+            chartArea: {width: '80%', height: '70%'},
+            legend: { position: 'top' },
+            fontName: 'inherit'
+        };
+
+        const chart = new google.visualization.ComboChart(document.getElementById('chart_tendencia'));
+        chart.draw(data, options);
+
+        // Update KPIs
+        const lastW = rows[rows.length-1];
+        const prevW = rows[rows.length-2];
+        document.getElementById('trend-kpis').innerHTML = `
+            <div class="kpi-box">
+                <div class="kpi-title">YABA Clicks (${weeks[weeks.length-1]})</div>
+                <div class="kpi-value text-blue">${Math.round(lastW[1]).toLocaleString()}</div>
+                <div class="kpi-sub ${lastW[1]>prevW[1]?'text-green':'text-red'}">
+                    ${lastW[1]>prevW[1]?'▲':'▼'} ${Math.abs(Math.round(lastW[1]-prevW[1]))} vs semana ant.
+                </div>
+            </div>
+            <div class="kpi-box">
+                <div class="kpi-title">YABA Share</div>
+                <div class="kpi-value text-blue">${lastW[3].toFixed(1)}%</div>
+                <div class="kpi-sub ${lastW[3]>prevW[3]?'text-green':'text-red'}">
+                    ${lastW[3]>prevW[3]?'▲':'▼'} ${Math.abs((lastW[3]-prevW[3])).toFixed(1)} pp
+                </div>
+            </div>
+        `;
+    }
+
+    function renderSection2() {
+        const data = new google.visualization.DataTable();
+        data.addColumn('string', 'Semana');
+        data.addColumn('number', ourBrand + ' (YABA)');
+        topCompetitors.forEach(c => data.addColumn('number', c));
+        data.addColumn('number', 'Resto Mercado');
+
+        const rows = weeks.map(w => {
+            let weekData = marketData.filter(d => d.week_date === w);
+            
+            let yaba = 0;
+            let compScores = { [topCompetitors[0]]: 0, [topCompetitors[1]]: 0, [topCompetitors[2]]: 0 };
+            let resto = 0;
+
+            weekData.forEach(d => {
+                if (d.is_yaba_asin === 'Y') yaba += d.click_share;
+                else if (topCompetitors.includes(d.brand)) compScores[d.brand] += d.click_share;
+                else resto += d.click_share;
+            });
+
+            return [
+                w, yaba*100, 
+                compScores[topCompetitors[0]]*100, 
+                compScores[topCompetitors[1]]*100, 
+                compScores[topCompetitors[2]]*100, 
+                resto*100
+            ];
+        });
+
+        data.addRows(rows);
+
+        const options = {
+            chartArea: {width: '85%', height: '70%'},
+            legend: { position: 'top' },
+            colors: ['#4285F4', '#EA4335', '#FBBC05', '#34A853', '#9e9e9e'],
+            lineWidth: 3,
+            vAxis: {title: 'Click Share %', format: '#.#'},
+            fontName: 'inherit'
+        };
+
+        const chart = new google.visualization.LineChart(document.getElementById('chart_competitividad'));
+        chart.draw(data, options);
+    }
+
+    function renderSection3() {
+        // Simple manual aggregation for the UI KPI boxes
+        const getAvg = (filterFn) => {
+            let filtered = marketData.filter(filterFn);
+            if(filtered.length === 0) return 0;
+            return (filtered.reduce((sum, d) => sum + d.click_share, 0) / filtered.length) * 100;
+        };
+
+        const withDeal = getAvg(d => d.weekly_number_of_days_with_deal > 0);
+        const noDeal = getAvg(d => d.weekly_number_of_days_with_deal === 0);
+        const withCoupon = getAvg(d => d.weekly_number_of_days_with_coupon > 0);
+
+        document.getElementById('palancas-grid').innerHTML = `
+            <div class="kpi-box">
+                <div class="kpi-title">Impacto Deals</div>
+                <div class="kpi-value text-red">${withDeal.toFixed(1)}%</div>
+                <div class="kpi-sub">vs ${noDeal.toFixed(1)}% (sin deals)</div>
+            </div>
+            <div class="kpi-box">
+                <div class="kpi-title">Impacto Cupones</div>
+                <div class="kpi-value text-green">${withCoupon.toFixed(1)}%</div>
+                <div class="kpi-sub">Mejora retención en SERP</div>
+            </div>
+        `;
+    }
+
+    function renderSection4() {
+        const data = new google.visualization.DataTable();
+        data.addColumn('number', 'Organic Rank');
+        data.addColumn('number', 'YABA Share');
+        data.addColumn('number', 'Competidores Share');
+
+        const rows = marketData.map(d => {
+            if(d.is_yaba_asin === 'Y') {
+                return [d.average_organic_rank, d.click_share * 100, null];
+            } else {
+                return [d.average_organic_rank, null, d.click_share * 100];
+            }
+        });
+
+        data.addRows(rows);
+
+        const options = {
+            chartArea: {width: '85%', height: '80%'},
+            hAxis: {title: 'Posición Orgánica (Rank)', direction: -1}, // Invertido: 1 a la derecha o izquierda
+            vAxis: {title: 'Click Share (%)'},
+            colors: ['#4285F4', '#EA4335'],
+            legend: {position: 'top'},
+            fontName: 'inherit',
+            trendlines: {
+                0: {type: 'exponential', visibleInLegend: true, color: '#4285F4', opacity: 0.3},
+                1: {type: 'exponential', visibleInLegend: true, color: '#EA4335', opacity: 0.3}
+            }
+        };
+
+        const chart = new google.visualization.ScatterChart(document.getElementById('chart_eficiencia'));
+        chart.draw(data, options);
+    }
+
+    // Tabs Logic
+    function switchTab(tabId) {
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+        
+        document.querySelector(`.tab-btn[onclick="switchTab('${tabId}')"]`).classList.add('active');
+        document.getElementById(tabId).classList.add('active');
+
+        // Redraw charts if needed to fix width issues in hidden display
+        if(tabId === 'dashboard') {
+            renderDashboard();
+        }
+    }
+
+    // Comparator Logic
+    function initComparatorData() {
+        const weekSelect = document.getElementById('select-week');
+        const brandSelect = document.getElementById('select-brand');
+
+        weeks.forEach(w => weekSelect.add(new Option(w, w)));
+        weekSelect.value = weeks[weeks.length - 1]; // Default to latest week
+
+        // Add Competitors (excluding YABA)
+        const uniqueBrands = [...new Set(marketData.filter(d => d.is_yaba_asin === 'N').map(d => d.brand))];
+        uniqueBrands.forEach(b => brandSelect.add(new Option(b, b)));
+
+        updateComparator();
+    }
+
+    function updateComparator() {
+        const w = document.getElementById('select-week').value;
+        const compBrand = document.getElementById('select-brand').value;
+
+        const yabaData = marketData.find(d => d.week_date === w && d.is_yaba_asin === 'Y') || {};
+        const compData = marketData.find(d => d.week_date === w && d.brand === compBrand) || {};
+
+        const renderBadges = (d) => {
+            if (!d.price) return '';
+            let b = '';
+            if (d.weekly_number_of_days_with_deal > 0) b += '<span class="badge badge-deal">Deal</span> ';
+            if (d.weekly_number_of_days_with_best_seller_badge > 0) b += '<span class="badge badge-bs">Best Seller</span> ';
+            if (d.weekly_number_of_days_with_amazon_choice_badge > 0) b += '<span class="badge badge-ac">Amazon Choice</span> ';
+            if (d.weekly_number_of_days_with_coupon > 0) b += '<span class="badge badge-coupon">Cupón</span> ';
+            return b || '<span style="color:#888; font-size:12px;">Sin Promos</span>';
+        };
+
+        const renderCol = (title, d, isYaba) => `
+            <div class="vs-column" style="border-top: 4px solid ${isYaba ? 'var(--primary)' : 'var(--danger)'}">
+                <div class="vs-brand">${title}</div>
+                <div class="vs-metric">
+                    <span style="color:var(--text-muted)">Precio</span>
+                    <strong>${d.price ? d.price + ' €' : '-'}</strong>
+                </div>
+                <div class="vs-metric">
+                    <span style="color:var(--text-muted)">Click Share</span>
+                    <strong style="font-size: 1.2rem; color: ${isYaba ? 'var(--primary)' : 'var(--danger)'}">
+                        ${d.click_share ? (d.click_share * 100).toFixed(1) + '%' : '-'}
+                    </strong>
+                </div>
+                <div class="vs-metric">
+                    <span style="color:var(--text-muted)">Rank Orgánico</span>
+                    <strong>${d.average_organic_rank ? '#' + d.average_organic_rank : '-'}</strong>
+                </div>
+                <div class="vs-metric" style="flex-direction: column; align-items: flex-start; gap: 8px;">
+                    <span style="color:var(--text-muted)">Palancas (Días Activos)</span>
+                    <div style="display:flex; gap: 8px; flex-wrap: wrap;">
+                        ${renderBadges(d)}
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.getElementById('vs-container').innerHTML = `
+            ${renderCol(ourBrand, yabaData, true)}
+            <div class="vs-divider">VS</div>
+            ${renderCol(compBrand, compData, false)}
+        `;
+    }
+
+    // Responsiveness
+    window.addEventListener('resize', () => {
+        if(document.getElementById('dashboard').classList.contains('active')) {
+            renderDashboard();
+        }
+    });
+
+</script>
+
+</body>
+</html>
