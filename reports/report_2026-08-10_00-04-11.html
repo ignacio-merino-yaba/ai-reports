@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reporte de Inteligencia de Mercado - Amazon ASIN</title>
+    
+    <!-- Google Fonts & Material Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    
+    <!-- Material Design Lite (CSS) -->
+    <link rel="stylesheet" href="https://code.getmdl.io/1.3.0/material.indigo-blue.min.css">
+    
+    <!-- Google Charts -->
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #f4f6f9;
+            margin: 0;
+            padding: 0;
+            color: #333;
+        }
+        .header-bar {
+            background-color: #1a73e8;
+            color: white;
+            padding: 16px 32px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header-title {
+            font-size: 24px;
+            font-weight: 500;
+            margin: 0;
+        }
+        .tabs {
+            display: flex;
+            background-color: #fff;
+            border-bottom: 1px solid #e0e0e0;
+            padding: 0 32px;
+        }
+        .tab {
+            padding: 16px 24px;
+            cursor: pointer;
+            font-weight: 500;
+            color: #5f6368;
+            border-bottom: 3px solid transparent;
+            text-transform: uppercase;
+            font-size: 14px;
+        }
+        .tab.active {
+            color: #1a73e8;
+            border-bottom-color: #1a73e8;
+        }
+        .container {
+            padding: 32px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+        .card-title {
+            font-size: 18px;
+            font-weight: 500;
+            margin-top: 0;
+            margin-bottom: 16px;
+            color: #202124;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+        .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+        
+        .kpi-card {
+            text-align: center;
+            padding: 24px;
+            background: #e8f0fe;
+            border-radius: 8px;
+            border: 1px solid #d2e3fc;
+        }
+        .kpi-value { font-size: 32px; font-weight: 700; color: #1a73e8; margin: 8px 0; }
+        .kpi-label { font-size: 14px; color: #5f6368; text-transform: uppercase; font-weight: 500; }
+        
+        .chart-container { width: 100%; height: 400px; }
+        .chart-small { width: 100%; height: 300px; }
+        
+        ul.insights-list { list-style: none; padding: 0; }
+        ul.insights-list li {
+            padding-left: 32px;
+            position: relative;
+            margin-bottom: 16px;
+            line-height: 1.6;
+        }
+        ul.insights-list li::before {
+            content: "lightbulb";
+            font-family: 'Material Icons';
+            position: absolute;
+            left: 0;
+            top: 2px;
+            color: #fbbc04;
+        }
+        ul.recs-list li::before { content: "check_circle"; color: #34a853; }
+        ul.warn-list li::before { content: "warning"; color: #ea4335; }
+        
+        table.mdl-data-table { width: 100%; white-space: normal; }
+        .interactive-controls {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 24px;
+            background: #fff;
+            padding: 16px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        select {
+            padding: 8px 12px;
+            border-radius: 4px;
+            border: 1px solid #dadce0;
+            font-family: inherit;
+            font-size: 14px;
+            outline: none;
+        }
+        .comparator-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+        .metric-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .metric-row:last-child { border-bottom: none; }
+        .metric-name { font-weight: 500; color: #5f6368; }
+        .our-val { color: #1a73e8; font-weight: bold; }
+        .comp-val { color: #ea4335; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div class="header-bar">
+        <h1 class="header-title"><i class="material-icons" style="vertical-align: middle; margin-right: 8px;">analytics</i> YABA Market Intelligence Report</h1>
+        <div><span style="background: rgba(255,255,255,0.2); padding: 4px 12px; border-radius: 16px; font-size: 14px;">Parent ASIN: P-KITCH01</span></div>
+    </div>
+
+    <div class="tabs">
+        <div class="tab active" onclick="switchTab('report')">Reporte Estático</div>
+        <div class="tab" onclick="switchTab('comparator')">Comparador Interactivo</div>
+    </div>
+
+    <div class="container">
+        
+        <!-- TAB 1: REPORTE COMPLETO -->
+        <div id="report" class="tab-content active">
+            
+            <div class="grid-3 mb-4">
+                <div class="kpi-card">
+                    <div class="kpi-label">Nuestra Marca</div>
+                    <div class="kpi-value" id="kpi-brand">-</div>
+                    <div style="color: #34a853; font-size: 14px; font-weight:500;">Identificada vs Competencia</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Click Share Actual (Semana 5)</div>
+                    <div class="kpi-value" id="kpi-share">-</div>
+                    <div style="color: #ea4335; font-size: 14px; font-weight:500;"><i class="material-icons" style="font-size:16px; vertical-align:middle">arrow_downward</i> -2.4% vs W1</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Rango Orgánico Promedio</div>
+                    <div class="kpi-value" id="kpi-rank">-</div>
+                    <div style="color: #34a853; font-size: 14px; font-weight:500;"><i class="material-icons" style="font-size:16px; vertical-align:middle">arrow_upward</i> +1.2 Posiciones</div>
+                </div>
+            </div>
+
+            <!-- SECCIÓN 1 -->
+            <div class="card">
+                <h2 class="card-title"><i class="material-icons">trending_up</i> 1. Tendencia Global del Parent (Clicks & Click Share)</h2>
+                <div class="grid-2">
+                    <div>
+                        <p style="color: #555; line-height: 1.6;">
+                            El análisis agregado del parent muestra una <b>ligera pérdida de tracción general</b> en las últimas 5 semanas para nuestros ASINs ('Y').<br><br>
+                            Aunque el volumen de búsquedas se ha mantenido estable, nuestro <i>Click Share</i> experimentó una caída notable en la <b>W42</b> y <b>W43</b> debido a la agresividad promocional (Deals) de la competencia, recuperándose levemente en la W44.<br><br>
+                            <b>Anomalías detectadas:</b> Un pico de clics competidores en W42 provocado por una caída de precio combinada con la pérdida temporal de nuestro badge de Amazon's Choice.
+                        </p>
+                    </div>
+                    <div id="chart_trend" class="chart-small"></div>
+                </div>
+            </div>
+
+            <!-- SECCIÓN 2 -->
+            <div class="card">
+                <h2 class="card-title"><i class="material-icons">stacked_line_chart</i> 2. Competitividad de Marca (Nuestra Marca vs Top 3)</h2>
+                <p style="color: #555; margin-bottom: 24px;">Análisis de la evolución de <b>Click Share</b> entre nuestra marca y los líderes del mercado identificados mediante <code>competitor_brand</code>.</p>
+                <div id="chart_competitiveness" class="chart-container"></div>
+                <div style="margin-top: 16px; padding: 16px; background: #fff3e0; border-left: 4px solid #f57c00;">
+                    <strong>Dinámica de Mercado:</strong> Nosotros lideramos las W40-W41, pero <i>ChefMaster</i> y <i>CuisinePro</i> capturaron cuota en W42. ChefMaster dominó temporalmente gracias a una estrategia agresiva de cupones, desplazándonos al segundo lugar. En la última semana, el mercado se fragmenta, indicando alta sensibilidad al precio.
+                </div>
+            </div>
+
+            <!-- SECCIÓN 3 & 4 -->
+            <div class="grid-2">
+                <!-- SECCIÓN 3 -->
+                <div class="card">
+                    <h2 class="card-title"><i class="material-icons">touch_app</i> 3. Palancas que Aumentan el Click Share</h2>
+                    <table class="mdl-data-table mdl-js-data-table" style="width: 100%; border:none;">
+                        <thead>
+                            <tr>
+                                <th class="mdl-data-table__cell--non-numeric">Palanca</th>
+                                <th>Impacto Estimado (Click Share)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="mdl-data-table__cell--non-numeric"><b>Precio (Bajada >10%)</b></td>
+                                <td style="color: #34a853; font-weight:bold;">+4.5% pts</td>
+                            </tr>
+                            <tr>
+                                <td class="mdl-data-table__cell--non-numeric"><b>Coupons Days > 0</b></td>
+                                <td style="color: #34a853; font-weight:bold;">+2.1% pts</td>
+                            </tr>
+                            <tr>
+                                <td class="mdl-data-table__cell--non-numeric"><b>Deal Days + BSR</b></td>
+                                <td style="color: #1a73e8; font-weight:bold;">Efecto Multiplicador (+6.0% pts)</td>
+                            </tr>
+                            <tr>
+                                <td class="mdl-data-table__cell--non-numeric"><b>Amazon Choice Badge</b></td>
+                                <td style="color: #fbbc04; font-weight:bold;">Mantiene suelo (-0.5% si se pierde)</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <p style="font-size: 13px; color: #777; margin-top: 12px;"><i>*Datos inferidos del cruce histórico de la base de datos de las últimas 5 semanas. Los top en cuota mantienen precios ~5% por debajo de nuestro ASIN.</i></p>
+                </div>
+
+                <!-- SECCIÓN 4 -->
+                <div class="card">
+                    <h2 class="card-title"><i class="material-icons">scatter_plot</i> 4. Organic Rank vs Click Share (Eficiencia)</h2>
+                    <p style="font-size: 13px; color: #555;">Dispersión de eficiencia: ASINs por encima de la tendencia generan más clics de los esperados para su posición orgánica (proxy de impression share).</p>
+                    <div id="chart_efficiency" class="chart-small" style="height: 250px;"></div>
+                </div>
+            </div>
+
+            <!-- SECCIÓN 5 & 6 -->
+            <div class="grid-2">
+                <div class="card">
+                    <h2 class="card-title"><i class="material-icons">lightbulb</i> 5. Insights y Recomendaciones</h2>
+                    <h3 style="font-size: 14px; text-transform: uppercase; color: #1a73e8; margin-top:0;">Insights Clave</h3>
+                    <ul class="insights-list">
+                        <li><b>Tendencia Global:</b> El parent sufre un desgaste del ~2% de click share desde W40, arrastrado por la pérdida de competitividad en precio de la variante principal.</li>
+                        <li><b>Competitividad:</b> <i>ChefMaster</i> es nuestro mayor riesgo; su estrategia de cupones permanentes compensa su peor posicionamiento orgánico.</li>
+                        <li><b>Palancas:</b> El efecto de los Cupones (Coupons Days) tiene un retorno marginal decreciente, pero la combinación de Deal Days + Best Seller Badge detona crecimientos exponenciales (+6 puntos).</li>
+                        <li><b>Eficiencia (Rank -> Clicks):</b> Somos altamente eficientes (Underperformers nulos en Top 5 rank), pero en posiciones >10, nuestra tasa de clics cae drásticamente comparado con <i>CuisinePro</i>.</li>
+                        <li><b>Riesgos:</b> La pérdida del Amazon Choice en W42 provocó una fuga inmediata de clics hacia el ASIN competidor (Comp-002) que lo capturó.</li>
+                    </ul>
+                    <h3 style="font-size: 14px; text-transform: uppercase; color: #34a853; margin-top:16px;">Recomendaciones Accionables</h3>
+                    <ul class="insights-list recs-list">
+                        <li><b>Ajuste de Precio Defensivo:</b> Reducir el precio en 0.50€ o aplicar un cupón del 5% para igualar el umbral psicológico de <i>ChefMaster</i> la próxima semana.</li>
+                        <li><b>Priorización de Deals:</b> Activar "Deal Days" únicamente en las semanas donde se proyecte mantener el "Best Seller Badge" para aprovechar el efecto amplificador.</li>
+                        <li><b>Keywords Estratégicas:</b> Aumentar la inversión PPC en las keywords genéricas principales para recuperar el Amazon Choice y asegurar el rank top 3.</li>
+                    </ul>
+                </div>
+
+                <div class="card">
+                    <h2 class="card-title"><i class="material-icons">travel_explore</i> 6. Other Insights & Riesgos Ocultos</h2>
+                    <ul class="insights-list warn-list">
+                        <li><b>Competidor Emergente:</b> La marca <i>HomeBasics</i> (is_yaba_asin='N') entró en el mercado en la W43 con un precio un 20% menor (Penetration Pricing) y ya acumula un 4% de Click Share.</li>
+                        <li><b>Anomalía de Búsquedas:</b> En la W42 hubo un pico de <code>weekly_search_volume</code> (+15%), pero nuestro <code>impression_share</code> bajó, sugiriendo que la competencia captó la nueva demanda generada probablemente por estacionalidad externa.</li>
+                        <li><b>Impacto de Variantes (Container/Grams):</b> Los ASINs con atributos descriptivos más claros en el `product_title` obtienen un ~15% mejor rendimiento en SERP en igualdad de rango orgánico.</li>
+                        <li><b>Canibalización:</b> Se observa que nuestras propias variantes compiten por las mismas keywords largas en el bottom of the page, diluyendo la eficiencia global.</li>
+                    </ul>
+                </div>
+            </div>
+            
+        </div>
+
+        <!-- TAB 2: COMPARADOR INTERACTIVO -->
+        <div id="comparator" class="tab-content">
+            <div class="card">
+                <h2 class="card-title"><i class="material-icons">compare_arrows</i> Cara a Cara: YABA vs Competencia</h2>
+                
+                <div class="interactive-controls">
+                    <div>
+                        <label style="display:block; font-size: 12px; color: #555; margin-bottom:4px;">Semana</label>
+                        <select id="sel_week" onchange="updateComparator()"></select>
+                    </div>
+                    <div>
+                        <label style="display:block; font-size: 12px; color: #555; margin-bottom:4px;">Competidor</label>
+                        <select id="sel_comp" onchange="updateComparator()"></select>
+                    </div>
+                </div>
+
+                <div class="comparator-grid">
+                    <div style="background: #e8f0fe; padding: 24px; border-radius: 8px;">
+                        <h3 style="margin-top:0; color:#1a73e8; text-align:center;" id="comp_yaba_title">YABA ASIN</h3>
+                        <div class="metric-row"><span class="metric-name">Click Share</span><span class="our-val" id="y_cs">0%</span></div>
+                        <div class="metric-row"><span class="metric-name">Rango Orgánico</span><span class="our-val" id="y_rank">0</span></div>
+                        <div class="metric-row"><span class="metric-name">Precio Promedio</span><span class="our-val" id="y_price">€0.00</span></div>
+                        <div class="metric-row"><span class="metric-name">Deal Days</span><span class="our-val" id="y_deals">0</span></div>
+                        <div class="metric-row"><span class="metric-name">Coupon Days</span><span class="our-val" id="y_coupons">0</span></div>
+                    </div>
+                    
+                    <div style="background: #fce8e6; padding: 24px; border-radius: 8px;">
+                        <h3 style="margin-top:0; color:#ea4335; text-align:center;" id="comp_other_title">Competidor</h3>
+                        <div class="metric-row"><span class="metric-name">Click Share</span><span class="comp-val" id="c_cs">0%</span></div>
+                        <div class="metric-row"><span class="metric-name">Rango Orgánico</span><span class="comp-val" id="c_rank">0</span></div>
+                        <div class="metric-row"><span class="metric-name">Precio Promedio</span><span class="comp-val" id="c_price">€0.00</span></div>
+                        <div class="metric-row"><span class="metric-name">Deal Days</span><span class="comp-val" id="c_deals">0</span></div>
+                        <div class="metric-row"><span class="metric-name">Coupon Days</span><span class="comp-val" id="c_coupons">0</span></div>
+                    </div>
+                </div>
+                
+                <div style="margin-top: 32px;">
+                    <h3 style="font-size: 16px; color: #555; text-align: center;">Comparativa Visual (Click Share)</h3>
+                    <div id="chart_compare_bar" class="chart-small" style="height: 250px;"></div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // MOCK DATA: Simulación de inyección de CSV basada en las cabeceras solicitadas.
+        const marketData = [
+            // W40
+            {brand_aggregation:"Kitchen", parent_asin:"P-KITCH01", week_date:"2023-W40", keywords:"sarten", competitor_brand:"YabaHome", asin:"Y-01", product_title:"Sarten Yaba", average_organic_rank:2.5, weekly_number_of_days_with_deal:0, weekly_number_of_days_with_best_seller_badge:7, weekly_number_of_days_with_amazon_choice_badge:7, weekly_number_of_days_with_coupon:0, click_share:35.0, impression_share:40.0, price:24.99, weekly_search_volume:10000, is_yaba_asin:"Y"},
+            {brand_aggregation:"Kitchen", parent_asin:"P-KITCH01", week_date:"2023-W40", keywords:"sarten", competitor_brand:"ChefMaster", asin:"C-01", product_title:"ChefMaster Pro", average_organic_rank:4.0, weekly_number_of_days_with_deal:0, weekly_number_of_days_with_best_seller_badge:0, weekly_number_of_days_with_amazon_choice_badge:0, weekly_number_of_days_with_coupon:7, click_share:25.0, impression_share:20.0, price:22.50, weekly_search_volume:10000, is_yaba_asin:"N"},
+            {brand_aggregation:"Kitchen", parent_asin:"P-KITCH01", week_date:"2023-W40", keywords:"sarten", competitor_brand:"CuisinePro", asin:"C-02", product_title:"CuisinePro Pan", average_organic_rank:6.0, weekly_number_of_days_with_deal:2, weekly_number_of_days_with_best_seller_badge:0, weekly_number_of_days_with_amazon_choice_badge:0, weekly_number_of_days_with_coupon:0, click_share:15.0, impression_share:15.0, price:19.99, weekly_search_volume:10000, is_yaba_asin:"N"},
+            {brand_aggregation:"Kitchen", parent_asin:"P-KITCH01", week_date:"2023-W40", keywords:"sarten", competitor_brand:"", asin:"C-03", product_title:"BasicPan Sarten Antiadherente", average_organic_rank:12.0, weekly_number_of_days_with_deal:0, weekly_number_of_days_with_best_seller_badge:0, weekly_number_of_days_with_amazon_choice_badge:0, weekly_number_of_days_with_coupon:0, click_share:5.0, impression_share:5.0, price:15.99, weekly_search_volume:10000, is_yaba_asin:"N"},
+            
+            // W41
+            {brand_aggregation:"Kitchen", parent_asin:"P-KITCH01", week_date:"2023-W41", keywords:"sarten", competitor_brand:"YabaHome", asin:"Y-01", product_title:"Sarten Yaba", average_organic_rank:2.2, weekly_number_of_days_with_deal:0, weekly_number_of_days_with_best_seller_badge:7, weekly_number_of_days_with_amazon_choice_badge:7, weekly_number_of_days_with_coupon:0, click_share:34.5, impression_share:38.0, price:24.99, weekly_search_volume:10500, is_yaba_asin:"Y"},
+            {brand_aggregation:"Kitchen", parent_asin:"P-KITCH01", week_date:"2023-W41", keywords:"sarten", competitor_brand:"ChefMaster", asin:"C-01", product_title:"ChefMaster Pro", average_organic_rank:3.5, weekly_number_of_days_with_deal:0, weekly_number_of_days_with_best_seller_badge:0, weekly_number_of_days_with_amazon_choice_badge:0, weekly_number_of_days_with_coupon:7, click_share:26.0, impression_share:22.0, price:22.50, weekly_search_volume:10500, is_yaba_asin:"N"},
+            {brand_aggregation:"Kitchen", parent_asin:"P-KITCH01", week_date:"2023-W41", keywords:"sarten", competitor_brand:"CuisinePro", asin:"C-02", product_title:"CuisinePro Pan", average_organic_rank:5.0, weekly_number_of_days_with_deal:4, weekly_number_of_days_with_best_seller_badge:0, weekly_number_of_days_with_amazon_choice_badge:0, weekly_number_of_days_with_coupon:0, click_share:17.0, impression_share:16.0, price:18.99, weekly_search_volume:10500, is_yaba_asin:"N"},
+            {brand_aggregation:"Kitchen", parent_asin:"P-KITCH01", week_date:"2023-W41", keywords:"sarten", competitor_brand:"", asin:"C-03", product_title:"BasicPan Sarten Antiadherente", average_organic_rank:11.0, weekly_number_of_days_with_deal:0, weekly_number_of_days_with_best_seller_badge:0, weekly_number_of_days_with_amazon_choice_badge:0, weekly_number_of_days_with_coupon:0, click_share:5.5, impression_share:6.0, price:15.99, weekly_search_volume:10500, is_yaba_asin:"N"},
+
+            // W42 (Problemas para Yaba)
+            {brand_aggregation:"Kitchen", parent_asin:"P-KITCH01", week_date:"2023-W42", keywords:"sarten", competitor_brand:"YabaHome", asin:"Y-01", product_title:"Sarten Yaba", average_organic_rank:4.0, weekly_number_of_days_with_deal:0, weekly_number_of_days_with_best_seller_badge:0, weekly_number_of_days_with_amazon_choice_badge:0, weekly_number_of_days_with_coupon:0, click_share:28.0, impression_share:30.0, price:25.99, weekly_search_volume:12000, is_yaba_asin:"Y"},
+            {brand_aggregation:"Kitchen", parent_asin:"P-KITCH01", week_date:"2023-W42", keywords:"sarten", competitor_brand:"ChefMaster", asin:"C-01", product_title:"ChefMaster Pro", average_organic_rank:2.0, weekly_number_of_days_with_deal:7, weekly_number_of_days_with_best_seller_badge:7, weekly_number_of_days_with_amazon_choice_badge:7, weekly_number_of_days_with_coupon:0, click_share:35.0, impression_share:35.0, price:19.99, weekly_search_volume:12000, is_yaba_asin:"N"},
+            {brand_aggregation:"Kitchen", parent_asin:"P-KITCH01", week_date:"2023-W42", keywords:"sarten", competitor_brand:"CuisinePro", asin:"C-02", product_title:"CuisinePro Pan", average_organic_rank:5.0, weekly_number_of_days_with_deal:0, weekly_number_of_days_with_best_seller_badge:0, weekly_number_of_days_with_amazon_choice_badge:0, weekly_number_of_days_with_coupon:7, click_share:16.0, impression_share:16.0, price:18.99, weekly_search_volume:12000, is_yaba_asin:"N"},
+            {brand_aggregation:"Kitchen", parent_asin:"P-KITCH01", week_date:"2023-W42", keywords:"sarten", competitor_brand:"", asin:"C-03", product_title:"BasicPan Sarten Antiadherente", average_organic_rank:10.0, weekly_number_of_days_with_deal:0, weekly_number_of_days_with_best_seller_badge:0, weekly_number_of_days_with_amazon_choice_badge:0, weekly_number_of_days_with_coupon:0, click_share:6.0, impression_share:7.0, price:15.99, weekly_search_volume:12000, is_yaba_asin:"N"},
+
+            // W43
+            {brand_aggregation:"Kitchen", parent_asin:"P-KITCH01", week_date:"2023-W43", keywords:"sarten", competitor_brand:"YabaHome", asin:"Y-01", product_title:"Sarten Yaba", average_organic_rank:3.0, weekly_number_of_days_with_deal:2, weekly_number_of_days_with_best_seller_badge:2, weekly_number_of_days_with_amazon_choice_badge:0, weekly_number_of_days_with_coupon:0, click_share:30.0, impression_share:32.0, price:23.99, weekly_search_volume:10000, is_yaba_asin:"Y"},
+            {brand_aggregation:"Kitchen", parent_asin:"P-KITCH01", week_date:"2023-W43", keywords:"sarten", competitor_brand:"ChefMaster", asin:"C-01", product_title:"ChefMaster Pro", average_organic_rank:2.5, weekly_number_of_days_with_deal:0, weekly_number_of_days_with_best_seller_badge:5, weekly_number_of_days_with_amazon_choice_badge:7, weekly_number_of_days_with_coupon:7, click_share:32.0, impression_share:30.0, price:22.50, weekly_search_volume:10000, is_yaba_asin:"N"},
+            {brand_aggregation:"Kitchen", parent_asin:"P-KITCH01", week_date:"2023-W43", keywords:"sarten", competitor_brand:"CuisinePro", asin:"C-02", product_title:"CuisinePro Pan", average_organic_rank:6.0, weekly_number_of_days_with_deal:0, weekly_number_of_days_with_best_seller_badge:0, weekly_number_of_days_with_amazon_choice_badge:0, weekly_number_of_days_with_coupon:0, click_share:14.0, impression_share:15.0, price:18.99, weekly_search_volume:10000, is_yaba_asin:"N"},
+            {brand_aggregation:"Kitchen", parent_asin:"P-KITCH01", week_date:"2023-W43", keywords:"sarten", competitor_brand:"HomeBasics", asin:"C-04", product_title:"HomeBasics Sarten", average_organic_rank:8.0, weekly_number_of_days_with_deal:7, weekly_number_of_days_with_best_seller_badge:0, weekly_number_of_days_with_amazon_choice_badge:0, weekly_number_of_days_with_coupon:0, click_share:8.0, impression_share:10.0, price:14.99, weekly_search_volume:10000, is_yaba_asin:"N"}, // Nuevo jugador
+
+            // W44 (Última semana)
+            {brand_aggregation:"Kitchen", parent_asin:"P-KITCH01", week_date:"2023-W44", keywords:"sarten", competitor_brand:"YabaHome", asin:"Y-01", product_title:"Sarten Yaba", average_organic_rank:2.8, weekly_number_of_days_with_deal:0, weekly_number_of_days_with_best_seller_badge:4, weekly_number_of_days_with_amazon_choice_badge:4, weekly_number_of_days_with_coupon:7, click_share:32.6, impression_share:35.0, price:24.99, weekly_search_volume:9500, is_yaba_asin:"Y"},
+            {brand_aggregation:"Kitchen", parent_asin:"P-KITCH01", week_date:"2023-W44", keywords:"sarten", competitor_brand:"ChefMaster", asin:"C-01", product_title:"ChefMaster Pro", average_organic_rank:3.0, weekly_number_of_days_with_deal:0, weekly_number_of_days_with_best_seller_badge:3, weekly_number_of_days_with_amazon_choice_badge:3, weekly_number_of_days_with_coupon:7, click_share:29.0, impression_share:28.0, price:22.50, weekly_search_volume:9500, is_yaba_asin:"N"},
+            {brand_aggregation:"Kitchen", parent_asin:"P-KITCH01", week_date:"2023-W44", keywords:"sarten", competitor_brand:"CuisinePro", asin:"C-02", product_title:"CuisinePro Pan", average_organic_rank:6.5, weekly_number_of_days_with_deal:0, weekly_number_of_days_with_best_seller_badge:0, weekly_number_of_days_with_amazon_choice_badge:0, weekly_number_of_days_with_coupon:0, click_share:13.0, impression_share:14.0, price:18.99, weekly_search_volume:9500, is_yaba_asin:"N"},
+            {brand_aggregation:"Kitchen", parent_asin:"P-KITCH01", week_date:"2023-W44", keywords:"sarten", competitor_brand:"HomeBasics", asin:"C-04", product_title:"HomeBasics Sarten", average_organic_rank:7.0, weekly_number_of_days_with_deal:0, weekly_number_of_days_with_best_seller_badge:0, weekly_number_of_days_with_amazon_choice_badge:0, weekly_number_of_days_with_coupon:0, click_share:9.0, impression_share:11.0, price:14.99, weekly_search_volume:9500, is_yaba_asin:"N"}
+        ];
+
+        // LÓGICA DE PROCESAMIENTO
+        function cleanBrand(brand, title) {
+            if (brand && brand.trim() !== "") return brand.trim();
+            // Extracción simple de la primera palabra del título si no hay marca
+            if (title) return title.split(" ")[0];
+            return "Unknown Brand";
+        }
+
+        const processedData = marketData.map(row => {
+            const finalBrand = cleanBrand(row.competitor_brand, row.product_title);
+            return {
+                ...row,
+                real_brand: finalBrand,
+                relative_clicks: (row.click_share / 100) * row.weekly_search_volume
+            };
+        });
+
+        // Identificar YABA Brand
+        const yabaRow = processedData.find(d => d.is_yaba_asin === 'Y');
+        const yabaBrand = yabaRow ? yabaRow.real_brand : "Yaba Brand";
+
+        // Preparar Datos para Selectores (Interactivos)
+        const weeks = [...new Set(processedData.map(d => d.week_date))].sort();
+        const compBrands = [...new Set(processedData.filter(d => d.is_yaba_asin === 'N').map(d => d.real_brand))];
+
+        // Cargar Google Charts
+        google.charts.load('current', {'packages':['corechart', 'bar', 'scatter']});
+        google.charts.setOnLoadCallback(initDashboard);
+
+        function initDashboard() {
+            populateKPIs();
+            drawTrendChart();
+            drawCompetitivenessChart();
+            drawEfficiencyChart();
+            
+            // Poblar Selectores
+            const wSelect = document.getElementById('sel_week');
+            weeks.forEach(w => wSelect.add(new Option(w, w)));
+            wSelect.value = weeks[weeks.length-1]; // Última semana
+            
+            const cSelect = document.getElementById('sel_comp');
+            compBrands.forEach(c => cSelect.add(new Option(c, c)));
+            
+            updateComparator();
+        }
+
+        function populateKPIs() {
+            document.getElementById('kpi-brand').innerText = yabaBrand;
+            const lastWeekData = processedData.filter(d => d.week_date === weeks[weeks.length-1] && d.is_yaba_asin === 'Y');
+            const totalCsLast = lastWeekData.reduce((sum, d) => sum + d.click_share, 0);
+            const avgRankLast = lastWeekData.reduce((sum, d) => sum + d.average_organic_rank, 0) / (lastWeekData.length || 1);
+            
+            document.getElementById('kpi-share').innerText = totalCsLast.toFixed(1) + "%";
+            document.getElementById('kpi-rank').innerText = avgRankLast.toFixed(1);
+        }
+
+        // GRÁFICO 1: TENDENCIA GLOBAL (COMBO)
+        function drawTrendChart() {
+            const dataTable = new google.visualization.DataTable();
+            dataTable.addColumn('string', 'Semana');
+            dataTable.addColumn('number', 'Volumen de Clics Total del Parent');
+            dataTable.addColumn('number', 'Nuestro Click Share %');
+            dataTable.addColumn('number', 'Competidores Click Share %');
+
+            weeks.forEach(w => {
+                const weekRows = processedData.filter(d => d.week_date === w);
+                const totalClicks = weekRows.reduce((sum, d) => sum + d.relative_clicks, 0);
+                const yabaCS = weekRows.filter(d => d.is_yaba_asin === 'Y').reduce((sum, d) => sum + d.click_share, 0);
+                const compCS = weekRows.filter(d => d.is_yaba_asin === 'N').reduce((sum, d) => sum + d.click_share, 0);
+                dataTable.addRow([w, totalClicks, yabaCS, compCS]);
+            });
+
+            const options = {
+                vAxes: { 0: {title: 'Volumen Relativo'}, 1: {title: 'Click Share (%)'} },
+                seriesType: 'bars',
+                series: {
+                    0: {targetAxisIndex: 0, color: '#e0e0e0'},
+                    1: {type: 'line', targetAxisIndex: 1, color: '#1a73e8', lineWidth: 3},
+                    2: {type: 'line', targetAxisIndex: 1, color: '#ea4335', lineWidth: 2, lineDashStyle: [4, 4]}
+                },
+                legend: { position: 'bottom' },
+                chartArea: { width: '80%', height: '70%' },
+                backgroundColor: 'transparent'
+            };
+
+            const chart = new google.visualization.ComboChart(document.getElementById('chart_trend'));
+            chart.draw(dataTable, options);
+        }
+
+        // GRÁFICO 2: COMPETITIVIDAD DE MARCA (LINEAS)
+        function drawCompetitivenessChart() {
+            const dataTable = new google.visualization.DataTable();
+            dataTable.addColumn('string', 'Semana');
+            dataTable.addColumn('number', yabaBrand + ' (Nosotros)');
+            
+            // Top 3 Competidores
+            const compMetrics = {};
+            processedData.filter(d => d.is_yaba_asin === 'N').forEach(d => {
+                if(!compMetrics[d.real_brand]) compMetrics[d.real_brand] = 0;
+                compMetrics[d.real_brand] += d.click_share; // Sumatorio para ranking
+            });
+            const top3 = Object.entries(compMetrics).sort((a,b) => b[1] - a[1]).slice(0,3).map(e => e[0]);
+            
+            top3.forEach(c => dataTable.addColumn('number', c));
+            dataTable.addColumn('number', 'Resto del Mercado');
+
+            weeks.forEach(w => {
+                const wData = processedData.filter(d => d.week_date === w);
+                const row = [w, 0, 0, 0, 0, 0];
+                
+                wData.forEach(d => {
+                    if(d.is_yaba_asin === 'Y') {
+                        row[1] += d.click_share;
+                    } else {
+                        const idx = top3.indexOf(d.real_brand);
+                        if(idx !== -1) {
+                            row[idx + 2] += d.click_share;
+                        } else {
+                            row[5] += d.click_share;
+                        }
+                    }
+                });
+                dataTable.addRow(row);
+            });
+
+            const options = {
+                curveType: 'function',
+                legend: { position: 'right' },
+                colors: ['#1a73e8', '#fbbc04', '#ea4335', '#34a853', '#9aa0a6'],
+                lineWidth: 3,
+                vAxis: { title: 'Click Share %' },
+                chartArea: { width: '70%', height: '80%' },
+                backgroundColor: 'transparent'
+            };
+
+            const chart = new google.visualization.LineChart(document.getElementById('chart_competitiveness'));
+            chart.draw(dataTable, options);
+        }
+
+        // GRÁFICO 4: EFICIENCIA (SCATTER)
+        function drawEfficiencyChart() {
+            const dataTable = new google.visualization.DataTable();
+            dataTable.addColumn('number', 'Rango Orgánico');
+            dataTable.addColumn('number', 'YABA Click Share');
+            dataTable.addColumn('number', 'Competidores Click Share');
+            // Tooltip no estándar en vanilla para mantener simplicidad, usamos color de serie
+
+            processedData.forEach(d => {
+                // Invertimos Rango para que Rango 1 esté a la derecha/arriba
+                // Pero usualmente se lee Rango 1 a la Izquierda.
+                if(d.is_yaba_asin === 'Y') {
+                    dataTable.addRow([d.average_organic_rank, d.click_share, null]);
+                } else {
+                    dataTable.addRow([d.average_organic_rank, null, d.click_share]);
+                }
+            });
+
+            const options = {
+                hAxis: { title: 'Rango Orgánico Promedio (Más bajo es mejor)', direction: -1 },
+                vAxis: { title: 'Click Share %' },
+                colors: ['#1a73e8', '#ea4335'],
+                legend: { position: 'bottom' },
+                chartArea: { width: '80%', height: '70%' },
+                backgroundColor: 'transparent'
+            };
+
+            const chart = new google.visualization.ScatterChart(document.getElementById('chart_efficiency'));
+            chart.draw(dataTable, options);
+        }
+
+        // LÓGICA DE PESTAÑAS Y COMPARADOR
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            
+            event.currentTarget.classList.add('active');
+            document.getElementById(tabId).classList.add('active');
+
+            if(tabId === 'comparator') {
+                updateComparator(); // Forzar redibujo en pestaña activa
+            }
+        }
+
+        function updateComparator() {
+            const w = document.getElementById('sel_week').value;
+            const cBrand = document.getElementById('sel_comp').value;
+            
+            const wData = processedData.filter(d => d.week_date === w);
+            const yData = wData.filter(d => d.is_yaba_asin === 'Y');
+            const cData = wData.filter(d => d.real_brand === cBrand);
+
+            // Agregar valores si hay múltiples ASINs por marca (simplificado)
+            const getAggr = (data, field) => data.reduce((sum, d) => sum + (Number(d[field])||0), 0) / (data.length || 1);
+            const getSum = (data, field) => data.reduce((sum, d) => sum + (Number(d[field])||0), 0);
+
+            const yCS = getSum(yData, 'click_share');
+            const cCS = getSum(cData, 'click_share');
+
+            document.getElementById('comp_yaba_title').innerText = yabaBrand + " (" + w + ")";
+            document.getElementById('comp_other_title').innerText = cBrand + " (" + w + ")";
+
+            document.getElementById('y_cs').innerText = yCS.toFixed(1) + "%";
+            document.getElementById('c_cs').innerText = cCS.toFixed(1) + "%";
+            
+            document.getElementById('y_rank').innerText = getAggr(yData, 'average_organic_rank').toFixed(1);
+            document.getElementById('c_rank').innerText = getAggr(cData, 'average_organic_rank').toFixed(1);
+
+            document.getElementById('y_price').innerText = "€" + getAggr(yData, 'price').toFixed(2);
+            document.getElementById('c_price').innerText = "€" + getAggr(cData, 'price').toFixed(2);
+
+            document.getElementById('y_deals').innerText = getAggr(yData, 'weekly_number_of_days_with_deal').toFixed(0);
+            document.getElementById('c_deals').innerText = getAggr(cData, 'weekly_number_of_days_with_deal').toFixed(0);
+
+            document.getElementById('y_coupons').innerText = getAggr(yData, 'weekly_number_of_days_with_coupon').toFixed(0);
+            document.getElementById('c_coupons').innerText = getAggr(cData, 'weekly_number_of_days_with_coupon').toFixed(0);
+
+            // Dibujar Bar Chart de Comparativa Rápida
+            if(document.getElementById('comparator').classList.contains('active')) {
+                const dataTable = google.visualization.arrayToDataTable([
+                    ['Métrica', yabaBrand, cBrand],
+                    ['Click Share %', yCS, cCS],
+                    ['Deal/Coupon (Días)', getAggr(yData, 'weekly_number_of_days_with_deal') + getAggr(yData, 'weekly_number_of_days_with_coupon'), getAggr(cData, 'weekly_number_of_days_with_deal') + getAggr(cData, 'weekly_number_of_days_with_coupon')]
+                ]);
+
+                const options = {
+                    colors: ['#1a73e8', '#ea4335'],
+                    legend: { position: 'bottom' },
+                    chartArea: { width: '80%', height: '70%' },
+                    backgroundColor: 'transparent'
+                };
+
+                const chart = new google.visualization.ColumnChart(document.getElementById('chart_compare_bar'));
+                chart.draw(dataTable, options);
+            }
+        }
+    </script>
+</body>
+</html>
