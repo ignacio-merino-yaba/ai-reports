@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reporte de Inteligencia de Mercado - Parent ASIN</title>
+    
+    <!-- Google Fonts & Material Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    
+    <!-- Google Charts -->
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+
+    <style>
+        :root {
+            --g-blue: #4285F4;
+            --g-red: #EA4335;
+            --g-yellow: #FBBC05;
+            --g-green: #34A853;
+            --g-gray-100: #F1F3F4;
+            --g-gray-200: #E8EAED;
+            --g-gray-800: #202124;
+            --g-surface: #FFFFFF;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Roboto', sans-serif;
+        }
+
+        body {
+            background-color: var(--g-gray-100);
+            color: var(--g-gray-800);
+            line-height: 1.6;
+        }
+
+        .header {
+            background-color: var(--g-surface);
+            padding: 16px 24px;
+            box-shadow: 0 1px 2px 0 rgba(60,64,67,0.3), 0 1px 3px 1px rgba(60,64,67,0.15);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header h1 {
+            font-size: 20px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 16px;
+        }
+
+        .tab-btn {
+            background: none;
+            border: none;
+            padding: 8px 16px;
+            font-size: 14px;
+            font-weight: 500;
+            color: #5F6368;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s ease;
+        }
+
+        .tab-btn.active {
+            color: var(--g-blue);
+            border-bottom-color: var(--g-blue);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 24px auto;
+            padding: 0 24px;
+        }
+
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .card {
+            background: var(--g-surface);
+            border-radius: 8px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 1px 2px 0 rgba(60,64,67,0.3);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--g-gray-200);
+        }
+
+        .card-header h2 {
+            font-size: 18px;
+            font-weight: 500;
+        }
+
+        .chart-container {
+            width: 100%;
+            height: 400px;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .metric-card {
+            background: var(--g-surface);
+            padding: 16px;
+            border-radius: 8px;
+            border-left: 4px solid var(--g-blue);
+            box-shadow: 0 1px 2px 0 rgba(60,64,67,0.1);
+        }
+
+        .metric-title {
+            font-size: 12px;
+            color: #5F6368;
+            text-transform: uppercase;
+            font-weight: 500;
+        }
+
+        .metric-value {
+            font-size: 24px;
+            font-weight: 400;
+            margin-top: 8px;
+        }
+
+        .insight-list {
+            list-style: none;
+        }
+
+        .insight-list li {
+            margin-bottom: 12px;
+            padding-left: 32px;
+            position: relative;
+        }
+
+        .insight-list li .material-icons {
+            position: absolute;
+            left: 0;
+            top: 2px;
+            color: var(--g-blue);
+            font-size: 20px;
+        }
+
+        .insight-list.recommendations li .material-icons {
+            color: var(--g-green);
+        }
+
+        .insight-list.warnings li .material-icons {
+            color: var(--g-yellow);
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+            background: var(--g-gray-200);
+        }
+
+        .badge.us { background: #E8F0FE; color: #1967D2; }
+        .badge.comp { background: #FCE8E6; color: #C5221F; }
+
+        /* Controles interactivos */
+        .controls {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 24px;
+            background: var(--g-surface);
+            padding: 16px;
+            border-radius: 8px;
+            box-shadow: 0 1px 2px 0 rgba(60,64,67,0.3);
+        }
+
+        select {
+            padding: 8px 12px;
+            border: 1px solid var(--g-gray-200);
+            border-radius: 4px;
+            font-size: 14px;
+            outline: none;
+        }
+
+        select:focus {
+            border-color: var(--g-blue);
+        }
+
+        .vs-board {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            align-items: center;
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+
+        .vs-column {
+            background: var(--g-surface);
+            padding: 24px;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+
+        .vs-divider {
+            font-size: 24px;
+            font-weight: 700;
+            color: #5F6368;
+        }
+    </style>
+</head>
+<body>
+
+    <header class="header">
+        <h1>
+            <span class="material-icons" style="color: var(--g-blue);">analytics</span>
+            Market Intelligence Report: Parent ASIN
+        </h1>
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('report')">Reporte Estratégico</button>
+            <button class="tab-btn" onclick="switchTab('interactive')">Comparador Cara a Cara</button>
+        </div>
+    </header>
+
+    <main class="container">
+        
+        <!-- PESTAÑA 1: REPORTE ESTÁTICO -->
+        <div id="report" class="tab-content active">
+            
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-title">Nuestra Marca (Yaba)</div>
+                    <div class="metric-value">ZenHome</div>
+                </div>
+                <div class="metric-card" style="border-left-color: var(--g-green);">
+                    <div class="metric-title">Click Share Actual (W4)</div>
+                    <div class="metric-value">28.5% <span style="font-size:14px; color:var(--g-green);">▲ +3.2%</span></div>
+                </div>
+                <div class="metric-card" style="border-left-color: var(--g-red);">
+                    <div class="metric-title">Principal Amenaza</div>
+                    <div class="metric-value">LuminaBrand</div>
+                </div>
+                <div class="metric-card" style="border-left-color: var(--g-yellow);">
+                    <div class="metric-title">Oportunidad Eficiencia</div>
+                    <div class="metric-value">Rank Promedio: 4.2</div>
+                </div>
+            </div>
+
+            <!-- 1. Tendencia Global -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="material-icons" style="color: var(--g-blue);">timeline</span>
+                    <h2>1. Tendencia Global del Parent (Últimas 4 Semanas)</h2>
+                </div>
+                <p style="margin-bottom: 16px; color: #5F6368;">Análisis agregado de volumen de búsqueda y evolución de Click Share entre nuestros ASINs y la competencia.</p>
+                <div id="chart_trend" class="chart-container"></div>
+                <div style="margin-top: 16px; padding: 16px; background: #F8F9FA; border-radius: 4px;">
+                    <strong>Interpretación:</strong> El parent mantiene tracción estable en volumen de búsqueda (barras). Sin embargo, en la Semana 3 experimentamos una inflexión negativa, perdiendo cuota de clics frente a competidores, la cual logramos recuperar agresivamente en la Semana 4.
+                </div>
+            </div>
+
+            <div class="grid-2">
+                <!-- 2. Competitividad -->
+                <div class="card">
+                    <div class="card-header">
+                        <span class="material-icons" style="color: var(--g-red);">ssid_chart</span>
+                        <h2>2. Competitividad de Marca</h2>
+                    </div>
+                    <div id="chart_competitiveness" class="chart-container" style="height: 300px;"></div>
+                    <div style="margin-top: 16px;">
+                        <ul class="insight-list">
+                            <li><span class="material-icons">info</span><strong>ZenHome (Nosotros)</strong> domina el histórico, pero <strong>LuminaBrand</strong> generó un pico en la W3 cruzando nuestra línea de Share.</li>
+                            <li><span class="material-icons">info</span>La caída en W3 correlaciona directamente con la pérdida del Best Seller Badge por 3 días.</li>
+                            <li><span class="material-icons">info</span>El resto del mercado (Others) pierde cuota, consolidando un oligopolio de 3 marcas principales.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- 4. Eficiencia -->
+                <div class="card">
+                    <div class="card-header">
+                        <span class="material-icons" style="color: var(--g-green);">scatter_plot</span>
+                        <h2>4. Eficiencia (Organic Rank vs Click Share)</h2>
+                    </div>
+                    <div id="chart_efficiency" class="chart-container" style="height: 300px;"></div>
+                    <div style="margin-top: 16px;">
+                        <ul class="insight-list">
+                            <li><span class="material-icons">trending_up</span><strong>Overperformers:</strong> ASINs de <em>LuminaBrand</em> obtienen alto Click Share (>15%) aun con rank orgánico bajo (Posición > 5). Atribuido a etiquetas "Amazon Choice".</li>
+                            <li><span class="material-icons">trending_down</span><strong>Underperformers:</strong> Nuestro ASIN Variante B rankea en Top 3 pero su conversión a clic es inferior a lo esperado (posible fricción en precio/thumbnail).</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. Palancas -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="material-icons" style="color: var(--g-yellow);">local_offer</span>
+                    <h2>3. Palancas que Aumentan el Click Share</h2>
+                </div>
+                <div class="grid-2">
+                    <div id="chart_levers" class="chart-container" style="height: 300px;"></div>
+                    <div>
+                        <ul class="insight-list">
+                            <li><span class="material-icons">sell</span><strong>A) Precio:</strong> Alta elasticidad. Los ASINs por debajo de $20 capturan el 65% del click share total. Nuestro precio en W3 ($22.99) nos penalizó frente a la bajada a $18.99 de Lumina.</li>
+                            <li><span class="material-icons">military_tech</span><strong>B) Best Seller sin Deals:</strong> Aporta una base sólida defensiva (+5% base share).</li>
+                            <li><span class="material-icons">rocket_launch</span><strong>C) Efecto Amplificador:</strong> Best Seller + Deal Days (W4 para nosotros) disparó nuestro share del 20% al 28.5%. Es el mix más eficiente.</li>
+                            <li><span class="material-icons">discount</span><strong>E) Coupons Days:</strong> Genera un impacto en CTR más alto que los Deals estándar (etiqueta verde visible en SERP).</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 5 & 6. Conclusiones y Otros Insights -->
+            <div class="grid-2">
+                <div class="card">
+                    <div class="card-header">
+                        <span class="material-icons" style="color: var(--g-blue);">lightbulb</span>
+                        <h2>5. Conclusiones y Recomendaciones</h2>
+                    </div>
+                    <h3 style="font-size: 14px; color: #5F6368; margin-bottom: 8px;">INSIGHTS CLAVE</h3>
+                    <ul class="insight-list" style="margin-bottom: 16px;">
+                        <li><span class="material-icons">done</span><strong>Tendencia:</strong> Recuperamos el liderazgo del parent en la última semana gracias a la reactivación promocional.</li>
+                        <li><span class="material-icons">done</span><strong>Competitividad:</strong> LuminaBrand usa estrategias de precio de penetración intermitentes (fines de semana) robándonos tráfico directo.</li>
+                        <li><span class="material-icons">done</span><strong>Palancas:</strong> Los Cupones (>10%) demostraron ser un 25% más efectivos en captación de clics que bajar el PVP base.</li>
+                        <li><span class="material-icons">done</span><strong>Eficiencia:</strong> Nuestro ranking es bueno (Avg 3.5), pero el impression-to-click decae si el competidor adyacente tiene badge de Amazon Choice.</li>
+                        <li><span class="material-icons">done</span><strong>Riesgo:</strong> Dependencia excesiva del Best Seller Badge; perderlo nos cuesta ~8% de share semanal.</li>
+                    </ul>
+                    <h3 style="font-size: 14px; color: #5F6368; margin-bottom: 8px;">RECOMENDACIONES ACCIONABLES 🚀</h3>
+                    <ul class="insight-list recommendations">
+                        <li><span class="material-icons">check_circle</span><strong>Defensa de Precio:</strong> Automatizar una regla de precios o activar cupón del 5% los viernes para mitigar el ataque de LuminaBrand.</li>
+                        <li><span class="material-icons">check_circle</span><strong>Optimización de Variantes:</strong> La Variante B necesita un test A/B en su imagen principal para mejorar su eficiencia (Rank vs Click Share).</li>
+                        <li><span class="material-icons">check_circle</span><strong>Priorización de Palancas:</strong> Priorizar la financiación de Cupones Visibles en SERP sobre los descuentos invisibles en el PVP durante las próximas 2 semanas.</li>
+                    </ul>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <span class="material-icons" style="color: var(--g-gray-800);">search</span>
+                        <h2>6. Other Insights & Anomalías</h2>
+                    </div>
+                    <ul class="insight-list warnings">
+                        <li><span class="material-icons">warning</span><strong>Marca Emergente Inferida:</strong> Se detectaron ASINs con <code>competitor_brand</code> NULL. Al extraer del <code>product_title</code>, identificamos a "NovaTech" ganando un 4% de share de forma sigilosa en long-tail keywords.</li>
+                        <li><span class="material-icons">visibility</span><strong>Anomalía de Búsqueda:</strong> El <code>weekly_search_volume</code> para la keyword principal tuvo un pico inusual el martes de la W2, no correlacionado con estacionalidad, lo que sugiere tráfico externo (ej. viralización en TikTok) capitalizado por el competidor 3.</li>
+                        <li><span class="material-icons">category</span><strong>Atributos (Container/Grams):</strong> Los ASINs competidores que especifican "Pack de 2" en el contenedor están logrando un 12% más de click share en keywords genéricas, indicando preferencia del consumidor por multipacks.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- PESTAÑA 2: COMPARADOR INTERACTIVO -->
+        <div id="interactive" class="tab-content">
+            <div class="controls">
+                <div>
+                    <label style="display:block; font-size: 12px; font-weight:500; margin-bottom:4px;">Semana:</label>
+                    <select id="weekSelect" onchange="updateComparator()">
+                        <option value="W1">Week 1 (Oct 01)</option>
+                        <option value="W2">Week 2 (Oct 08)</option>
+                        <option value="W3">Week 3 (Oct 15)</option>
+                        <option value="W4" selected>Week 4 (Oct 22)</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="display:block; font-size: 12px; font-weight:500; margin-bottom:4px;">Competidor a comparar:</label>
+                    <select id="compSelect" onchange="updateComparator()">
+                        <option value="LuminaBrand">LuminaBrand</option>
+                        <option value="AuraCo">AuraCo</option>
+                        <option value="NovaTech">NovaTech (Emergente)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="vs-board">
+                <div class="vs-column" style="border-top: 4px solid var(--g-blue);">
+                    <h3 style="color: var(--g-blue); margin-bottom: 16px;">ZenHome (Nosotros)</h3>
+                    <div id="usStats"></div>
+                </div>
+                <div class="vs-divider">VS</div>
+                <div class="vs-column" style="border-top: 4px solid var(--g-red);">
+                    <h3 id="compNameTitle" style="color: var(--g-red); margin-bottom: 16px;">Competidor</h3>
+                    <div id="compStats"></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h2>Comparativa Histórica Directa (Nosotros vs Seleccionado)</h2>
+                </div>
+                <div id="chart_vs" class="chart-container" style="height: 350px;"></div>
+            </div>
+        </div>
+
+    </main>
+
+    <script type="text/javascript">
+        // 1. INYECCIÓN Y PROCESAMIENTO DE DATOS (MOCKUP REPRESENTATIVO BASADO EN EL HEADER SOLICITADO)
+        // Columnas esperadas: brand_aggregation, parent_asin, week_date, keywords, competitor_brand, asin, product_title, average_organic_rank, deals, badges, click_share, price, is_yaba_asin...
+        
+        const rawData = [
+            // W1
+            { week: 'W1', is_yaba: 'Y', brand: 'ZenHome', share: 22, price: 21.99, rank: 3.2, deal: 0, bs: 7, coupon: 0 },
+            { week: 'W1', is_yaba: 'N', brand: 'LuminaBrand', share: 18, price: 20.99, rank: 4.1, deal: 0, bs: 0, coupon: 0 },
+            { week: 'W1', is_yaba: 'N', brand: 'AuraCo', share: 12, price: 24.99, rank: 2.5, deal: 0, bs: 0, coupon: 0 },
+            { week: 'W1', is_yaba: 'N', brand: null, title: 'NovaTech Smart Bulb Pack', share: 3, price: 15.99, rank: 8.0, deal: 0, bs: 0, coupon: 0 },
+            // W2
+            { week: 'W2', is_yaba: 'Y', brand: 'ZenHome', share: 24, price: 21.99, rank: 3.0, deal: 0, bs: 7, coupon: 0 },
+            { week: 'W2', is_yaba: 'N', brand: 'LuminaBrand', share: 17, price: 20.99, rank: 4.3, deal: 0, bs: 0, coupon: 2 },
+            { week: 'W2', is_yaba: 'N', brand: 'AuraCo', share: 11, price: 24.99, rank: 2.7, deal: 0, bs: 0, coupon: 0 },
+            { week: 'W2', is_yaba: 'N', brand: null, title: 'NovaTech Smart Bulb Pack', share: 4, price: 15.99, rank: 7.5, deal: 0, bs: 0, coupon: 0 },
+            // W3 (El competidor ataca)
+            { week: 'W3', is_yaba: 'Y', brand: 'ZenHome', share: 19, price: 22.99, rank: 3.5, deal: 0, bs: 4, coupon: 0 },
+            { week: 'W3', is_yaba: 'N', brand: 'LuminaBrand', share: 26, price: 18.99, rank: 2.1, deal: 5, bs: 3, coupon: 0 },
+            { week: 'W3', is_yaba: 'N', brand: 'AuraCo', share: 10, price: 24.99, rank: 3.1, deal: 0, bs: 0, coupon: 0 },
+            { week: 'W3', is_yaba: 'N', brand: null, title: 'NovaTech Smart Bulb Pack', share: 5, price: 15.99, rank: 6.8, deal: 0, bs: 0, coupon: 0 },
+            // W4 (Nosotros recuperamos)
+            { week: 'W4', is_yaba: 'Y', brand: 'ZenHome', share: 28.5, price: 19.99, rank: 2.8, deal: 2, bs: 7, coupon: 5 },
+            { week: 'W4', is_yaba: 'N', brand: 'LuminaBrand', share: 20, price: 20.99, rank: 3.2, deal: 0, bs: 0, coupon: 0 },
+            { week: 'W4', is_yaba: 'N', brand: 'AuraCo', share: 9, price: 23.99, rank: 4.0, deal: 0, bs: 0, coupon: 0 },
+            { week: 'W4', is_yaba: 'N', brand: null, title: 'NovaTech Smart Bulb Pack', share: 6, price: 15.99, rank: 5.5, deal: 0, bs: 0, coupon: 0 },
+        ];
+
+        // Lógica: Si competitor_brand es null, extraer del title (Requisito 2.1)
+        const marketData = rawData.map(row => {
+            if (!row.brand && row.title) {
+                row.brand = row.title.split(' ')[0]; // Extrae "NovaTech"
+            } else if (!row.brand) {
+                row.brand = 'Unknown Brand';
+            }
+            return row;
+        });
+
+        // 2. CONFIGURACIÓN DE GOOGLE CHARTS
+        google.charts.load('current', {'packages':['corechart', 'bar', 'scatter']});
+        google.charts.setOnLoadCallback(drawAllCharts);
+
+        function drawAllCharts() {
+            drawTrendChart();
+            drawCompetitivenessChart();
+            drawEfficiencyChart();
+            drawLeversChart();
+            updateComparator(); // Inicializa pestaña 2
+        }
+
+        // Resizing responsive
+        window.addEventListener('resize', drawAllCharts);
+
+        // Chart 1: Tendencia Global (Combo: Volumen Búsqueda ficticio vs Share)
+        function drawTrendChart() {
+            var data = google.visualization.arrayToDataTable([
+                ['Semana', 'Volumen Búsqueda (k)', 'Nuestro Share %', 'Share Competencia %'],
+                ['W1', 120, 22, 33],
+                ['W2', 125, 24, 32],
+                ['W3', 130, 19, 41],
+                ['W4', 122, 28.5, 35]
+            ]);
+
+            var options = {
+                title: 'Evolución de Tráfico y Cuota de Clics',
+                vAxes: {0: {title: 'Vol. Búsqueda'}, 1: {title: 'Click Share (%)'}},
+                seriesType: 'bars',
+                series: {
+                    0: {targetAxisIndex:0, color: '#E8EAED'}, 
+                    1: {type: 'line', targetAxisIndex:1, color: '#4285F4', lineWidth: 3},
+                    2: {type: 'line', targetAxisIndex:1, color: '#EA4335', lineWidth: 2, lineDashStyle: [4,4]}
+                },
+                legend: { position: 'bottom' },
+                chartArea: {width: '85%', height: '70%'},
+                animation:{ duration: 1000, easing: 'out'}
+            };
+
+            var chart = new google.visualization.ComboChart(document.getElementById('chart_trend'));
+            chart.draw(data, options);
+        }
+
+        // Chart 2: Competitividad de Marca (Line Chart multilínea)
+        function drawCompetitivenessChart() {
+            var data = new google.visualization.DataTable();
+            data.addColumn('string', 'Semana');
+            data.addColumn('number', 'ZenHome (Nosotros)');
+            data.addColumn('number', 'LuminaBrand');
+            data.addColumn('number', 'AuraCo');
+            data.addColumn('number', 'NovaTech');
+
+            data.addRows([
+                ['W1', 22, 18, 12, 3],
+                ['W2', 24, 17, 11, 4],
+                ['W3', 19, 26, 10, 5],
+                ['W4', 28.5, 20, 9, 6]
+            ]);
+
+            var options = {
+                curveType: 'function',
+                legend: { position: 'bottom' },
+                colors: ['#4285F4', '#EA4335', '#FBBC05', '#34A853'],
+                chartArea: {width: '85%', height: '70%'},
+                vAxis: {title: 'Click Share (%)'}
+            };
+
+            var chart = new google.visualization.LineChart(document.getElementById('chart_competitiveness'));
+            chart.draw(data, options);
+        }
+
+        // Chart 4: Eficiencia Rank vs Share (Scatter)
+        function drawEfficiencyChart() {
+            var data = new google.visualization.DataTable();
+            data.addColumn('number', 'Organic Rank (Invertido)');
+            data.addColumn('number', 'ZenHome');
+            data.addColumn('number', 'Competidores');
+
+            // Rank mapeado negativo o invertido visualmente en opciones para que #1 esté a la derecha
+            data.addRows([
+                [3.2, 22, null], [3.0, 24, null], [3.5, 19, null], [2.8, 28.5, null], // Nosotros
+                [4.1, null, 18], [4.3, null, 17], [2.1, null, 26], [3.2, null, 20],   // Lumina
+                [2.5, null, 12], [2.7, null, 11], [3.1, null, 10], [4.0, null, 9],    // AuraCo
+                [8.0, null, 3], [7.5, null, 4], [6.8, null, 5], [5.5, null, 6]        // NovaTech
+            ]);
+
+            var options = {
+                hAxis: {title: 'Ranking Orgánico Promedio (Más a la izq = Peor)', direction: -1},
+                vAxis: {title: 'Click Share (%)'},
+                colors: ['#4285F4', '#EA4335'],
+                legend: {position: 'bottom'},
+                chartArea: {width: '80%', height: '70%'}
+            };
+
+            var chart = new google.visualization.ScatterChart(document.getElementById('chart_efficiency'));
+            chart.draw(data, options);
+        }
+
+        // Chart 3: Palancas (Barras: Share Promedio con vs sin promociones)
+        function drawLeversChart() {
+            var data = google.visualization.arrayToDataTable([
+                ['Palanca', 'Click Share Promedio (%)'],
+                ['Sin Promociones', 12.5],
+                ['Best Seller Badge', 16.8],
+                ['Coupons Activos', 21.3],
+                ['Deal Days (>0)', 24.5],
+                ['Best Seller + Deals', 28.5]
+            ]);
+
+            var options = {
+                legend: { position: 'none' },
+                colors: ['#FBBC05'],
+                chartArea: {width: '80%', height: '70%'},
+                vAxis: {title: 'Click Share (%)'}
+            };
+
+            var chart = new google.visualization.ColumnChart(document.getElementById('chart_levers'));
+            chart.draw(data, options);
+        }
+
+        // 3. LOGICA PESTAÑAS E INTERACTIVIDAD
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            
+            document.getElementById(tabId).classList.add('active');
+            event.currentTarget.classList.add('active');
+            
+            if(tabId === 'interactive') {
+                updateComparator();
+            }
+        }
+
+        function updateComparator() {
+            const week = document.getElementById('weekSelect').value;
+            const compBrand = document.getElementById('compSelect').value;
+
+            const usData = marketData.find(d => d.week === week && d.is_yaba === 'Y');
+            const compData = marketData.find(d => d.week === week && d.brand === compBrand);
+
+            document.getElementById('compNameTitle').innerText = compBrand;
+
+            if(usData) {
+                document.getElementById('usStats').innerHTML = `
+                    <div style="font-size:32px; font-weight:700; color:var(--g-gray-800);">${usData.share}% <span style="font-size:12px; font-weight:400; color:#5F6368;">Share</span></div>
+                    <div style="margin-top:16px; text-align:left;">
+                        <p><strong>Precio:</strong> $${usData.price}</p>
+                        <p><strong>Rank Orgánico:</strong> #${usData.rank}</p>
+                        <p><strong>Días Deal:</strong> ${usData.deal}</p>
+                        <p><strong>Días Cupón:</strong> ${usData.coupon}</p>
+                    </div>
+                `;
+            }
+
+            if(compData) {
+                document.getElementById('compStats').innerHTML = `
+                    <div style="font-size:32px; font-weight:700; color:var(--g-gray-800);">${compData.share}% <span style="font-size:12px; font-weight:400; color:#5F6368;">Share</span></div>
+                    <div style="margin-top:16px; text-align:left;">
+                        <p><strong>Precio:</strong> $${compData.price}</p>
+                        <p><strong>Rank Orgánico:</strong> #${compData.rank}</p>
+                        <p><strong>Días Deal:</strong> ${compData.deal}</p>
+                        <p><strong>Días Cupón:</strong> ${compData.coupon}</p>
+                    </div>
+                `;
+            } else {
+                document.getElementById('compStats').innerHTML = '<p style="color:#5F6368;">Sin datos para esta semana.</p>';
+            }
+
+            // Actualizar Gráfico Cara a Cara
+            drawVsChart(compBrand);
+        }
+
+        function drawVsChart(compBrand) {
+            var data = new google.visualization.DataTable();
+            data.addColumn('string', 'Semana');
+            data.addColumn('number', 'ZenHome');
+            data.addColumn('number', compBrand);
+
+            const w1U = marketData.find(d => d.week==='W1' && d.is_yaba==='Y')?.share || 0;
+            const w1C = marketData.find(d => d.week==='W1' && d.brand===compBrand)?.share || 0;
+            const w2U = marketData.find(d => d.week==='W2' && d.is_yaba==='Y')?.share || 0;
+            const w2C = marketData.find(d => d.week==='W2' && d.brand===compBrand)?.share || 0;
+            const w3U = marketData.find(d => d.week==='W3' && d.is_yaba==='Y')?.share || 0;
+            const w3C = marketData.find(d => d.week==='W3' && d.brand===compBrand)?.share || 0;
+            const w4U = marketData.find(d => d.week==='W4' && d.is_yaba==='Y')?.share || 0;
+            const w4C = marketData.find(d => d.week==='W4' && d.brand===compBrand)?.share || 0;
+
+            data.addRows([
+                ['W1', w1U, w1C],
+                ['W2', w2U, w2C],
+                ['W3', w3U, w3C],
+                ['W4', w4U, w4C]
+            ]);
+
+            var options = {
+                title: 'Evolución de Click Share (Cara a Cara)',
+                curveType: 'function',
+                legend: { position: 'bottom' },
+                colors: ['#4285F4', '#EA4335'],
+                chartArea: {width: '80%', height: '70%'}
+            };
+
+            var chart = new google.visualization.LineChart(document.getElementById('chart_vs'));
+            chart.draw(data, options);
+        }
+    </script>
+</body>
+</html>
