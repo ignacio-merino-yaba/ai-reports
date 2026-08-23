@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Amazon Market Intelligence Dashboard</title>
+    <!-- Google Fonts: Roboto & Material Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <!-- Google Charts -->
+    <script src="https://www.gstatic.com/charts/loader.js"></script>
+    <style>
+        :root {
+            --primary: #1a73e8;
+            --primary-light: #e8f0fe;
+            --success: #34a853;
+            --warning: #fbbc05;
+            --danger: #ea4335;
+            --text-main: #202124;
+            --text-muted: #5f6368;
+            --bg-body: #f8f9fa;
+            --bg-card: #ffffff;
+            --border: #dadce0;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            line-height: 1.5;
+        }
+
+        /* App Bar */
+        header {
+            background-color: #ffffff;
+            border-bottom: 1px solid var(--border);
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        header .title-group {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        header h1 {
+            font-size: 20px;
+            font-weight: 500;
+            color: var(--text-main);
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid var(--border);
+            background: #ffffff;
+            padding: 0 24px;
+        }
+        .tab {
+            padding: 14px 24px;
+            cursor: pointer;
+            font-weight: 500;
+            color: var(--text-muted);
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .tab:hover {
+            background-color: var(--primary-light);
+            color: var(--primary);
+        }
+        .tab.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+
+        /* Container */
+        .container {
+            max-width: 1200px;
+            margin: 24px auto;
+            padding: 0 24px;
+        }
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Grid & Cards */
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+        .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px; }
+        
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 1px 2px 0 rgba(60,64,67,0.3), 0 1px 3px 1px rgba(60,64,67,0.15);
+        }
+        .card-title {
+            font-size: 16px;
+            font-weight: 500;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-main);
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 12px;
+        }
+
+        /* Chart Containers */
+        .chart-container {
+            width: 100%;
+            height: 350px;
+        }
+
+        /* Insights List */
+        .insight-list, .reco-list {
+            list-style: none;
+        }
+        .insight-list li, .reco-list li {
+            margin-bottom: 12px;
+            padding-left: 32px;
+            position: relative;
+        }
+        .insight-list li::before {
+            content: 'insights';
+            font-family: 'Material Icons';
+            position: absolute;
+            left: 0;
+            top: 0;
+            color: var(--warning);
+        }
+        .reco-list li::before {
+            content: 'rocket_launch';
+            font-family: 'Material Icons';
+            position: absolute;
+            left: 0;
+            top: 0;
+            color: var(--primary);
+        }
+
+        /* Callouts */
+        .callout {
+            padding: 16px;
+            border-radius: 8px;
+            background-color: var(--primary-light);
+            border-left: 4px solid var(--primary);
+            margin-bottom: 20px;
+        }
+        
+        .metric-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+            background: var(--bg-body);
+            border: 1px solid var(--border);
+        }
+
+        /* Interactive Controls */
+        .controls {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 24px;
+            background: var(--bg-card);
+            padding: 16px;
+            border-radius: 8px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+        select {
+            padding: 8px 12px;
+            border-radius: 4px;
+            border: 1px solid var(--border);
+            font-family: inherit;
+            font-size: 14px;
+            outline: none;
+        }
+        select:focus { border-color: var(--primary); }
+
+        /* Table */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 12px 16px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+        th { background: var(--bg-body); font-weight: 500; color: var(--text-muted); }
+        .yaba-row { background-color: var(--primary-light); }
+        .win { color: var(--success); font-weight: bold;}
+        .loss { color: var(--danger); font-weight: bold;}
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="title-group">
+            <span class="material-icons" style="color: var(--primary); font-size: 28px;">analytics</span>
+            <h1>Amazon Intelligence: Reporte de Rendimiento (Parent ASIN B0BXXXXX)</h1>
+        </div>
+    </header>
+
+    <div class="tabs">
+        <div class="tab active" onclick="switchTab('report')">
+            <span class="material-icons">dashboard</span> Reporte Estático y Análisis
+        </div>
+        <div class="tab" onclick="switchTab('comparator')">
+            <span class="material-icons">compare_arrows</span> Comparador Interactivo
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- PESTAÑA 1: REPORTE ESTÁTICO -->
+        <div id="report" class="tab-content active">
+            
+            <div class="callout">
+                <strong>Contexto Analítico:</strong> Parent ASIN B0BXXXXX | Mercado: ES | Brand Aggregation: Home & Kitchen | Análisis de las últimas 5 semanas (W38 - W42). Nuestra marca identificada: <strong>YabaBrew</strong>.
+            </div>
+
+            <!-- Sección 1 -->
+            <div class="card">
+                <h2 class="card-title"><span class="material-icons">trending_up</span> 1. Tendencia Global del Parent (Clicks & Click Share)</h2>
+                <div class="grid-2">
+                    <div class="chart-container" id="chart_global_trend"></div>
+                    <div>
+                        <h3>Análisis de Tendencia</h3>
+                        <p><strong>Evolución de mercado:</strong> El volumen de búsquedas (search volume) agregado para las keywords clave ha mantenido una ligera tendencia alcista (+4% W42 vs W38).</p>
+                        <p><strong>Tracción YabaBrew vs Competidores:</strong> Nuestros ASINs (YabaBrew) dominaban la cuota hasta la semana W40 (~35% Click Share). A partir de la semana W41, experimentamos una inflexión negativa cayendo al 28%.</p>
+                        <p><strong>Causas identificadas (Última semana):</strong> La pérdida de tracción en la W42 está directamente explicada por una caída en las keywords principales "cafetera italiana" y "cafetera induccion", donde competidores activaron palancas de agresividad en precios.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sección 2 -->
+            <div class="card">
+                <h2 class="card-title"><span class="material-icons">stacked_line_chart</span> 2. Competitividad de Marca (YabaBrew vs Top 3)</h2>
+                <div class="grid-2">
+                    <div>
+                        <h3>Dinámica Competitiva Semana a Semana</h3>
+                        <p>El mercado es un oligopolio disputado. Marcas identificadas (vía competitor_brand / product_title): <strong>YabaBrew (Nuestra)</strong>, <strong>Caffeina</strong>, <strong>BrewMaster</strong> y <strong>EspressoKing</strong>.</p>
+                        <br>
+                        <ul>
+                            <li><strong>Dominancia:</strong> Caffeina (Competidor 1) ha superado nuestro Click Share en W41 y W42.</li>
+                            <li><strong>Picos y Caídas:</strong> En W40, YabaBrew tuvo un pico gracias a un badge de Amazon Choice. En W42, Caffeina activó 7 días de Deal, robando ~10% de share directo de nuestra marca.</li>
+                            <li><strong>Precio vs Share:</strong> Hubo una alta correlación negativa. Cuando bajamos precio en W39 (de 24€ a 19€), el click share se disparó. Al volver a 24€, el share se estancó.</li>
+                        </ul>
+                    </div>
+                    <div class="chart-container" id="chart_competitiveness"></div>
+                </div>
+            </div>
+
+            <!-- Sección 3 -->
+            <div class="card">
+                <h2 class="card-title"><span class="material-icons">settings_input_component</span> 3. 🚀 Palancas que Aumentan el Click Share</h2>
+                <div class="grid-3">
+                    <div>
+                        <h4>A) Impacto Precio</h4>
+                        <p>El rango óptimo de click share se da en precios < 20€. Nuestros tops en cuota se encarecieron en W42 (media 24.50€), mientras los competidores se mantuvieron en 19.99€.</p>
+                    </div>
+                    <div>
+                        <h4>B) Best Seller Days (Sin Deals)</h4>
+                        <p>Mantener el Best Seller sin ofertas sostiene la cuota base (+5% vs baseline), pero no contrarresta las campañas de Deals de BrewMaster.</p>
+                    </div>
+                    <div>
+                        <h4>C) Best Seller + Deals</h4>
+                        <p>Efecto amplificador brutal: En W39 combinamos Best Seller (7 días) + Deal (3 días), logrando un récord de 41% de Click Share.</p>
+                    </div>
+                    <div>
+                        <h4>D) Amazon Choice</h4>
+                        <p>Proporciona un aumento del ~12% en CTR. Competidor Caffeina lo capturó en W42 para la keyword más grande.</p>
+                    </div>
+                    <div>
+                        <h4>E) Coupons Days</h4>
+                        <p>Menor impacto visual que un Deal. Los cupones de 5% de EspressoKing solo movieron su share marginalmente (+2%).</p>
+                    </div>
+                    <div>
+                        <h4>F) Deal Days</h4>
+                        <p><strong>El principal driver actual:</strong> Semanas con >4 días de deals absorben hasta el 40% del click share de las keywords genéricas.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sección 4 -->
+            <div class="card">
+                <h2 class="card-title"><span class="material-icons">scatter_plot</span> 4. 👁️ Organic Rank vs Click Share (Eficiencia)</h2>
+                <div class="grid-2">
+                    <div class="chart-container" id="chart_efficiency"></div>
+                    <div>
+                        <h3>Análisis de Eficiencia (Under/Over performers)</h3>
+                        <p>La gráfica correlaciona el Rank Orgánico Promedio (X) con el Click Share (Y). La lógica dicta que menor rank = mayor share.</p>
+                        <ul>
+                            <li><strong>Underperformers (YabaBrew):</strong> Tenemos ASINs en Rank Orgánico 3 y 4 captando menos del 15% de share. Esto indica falta de atractivo en el SERP (precio alto o falta de badges frente al rank 1).</li>
+                            <li><strong>Overperformers (Competidores):</strong> Caffeina tiene ASINs en Rank 8 captando más del 20% de clics gracias al badge de Deals y su contenedor optimizado visualmente (Product Image).</li>
+                            <li><strong>Drivers Explicativos:</strong> El atributo <code>deals > 0</code> anula la penalización de tener un rank orgánico pobre (Rank 5-10).</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sección 5 & 6 -->
+            <div class="grid-2">
+                <div class="card">
+                    <h2 class="card-title"><span class="material-icons">lightbulb</span> 5. Conclusiones Clave y Recomendaciones</h2>
+                    <ul class="insight-list">
+                        <li><strong>Tendencia a la baja:</strong> Nuestro Parent ASIN ha perdido 7 puntos de Click Share en las últimas 2 semanas pese a que la demanda global sube.</li>
+                        <li><strong>Elasticidad de Precio:</strong> El mercado actual es extremadamente elástico. Una diferencia de 4€ desvía más del 30% del tráfico a Caffeina.</li>
+                        <li><strong>Eficiencia de Deals:</strong> Los Deal Days son la palanca más efectiva; los cupones aportan valor marginal en esta categoría.</li>
+                        <li><strong>Pérdida de Visibilidad:</strong> Nuestro Organic Rank se mantiene (Media 3.5), pero perdemos eficiencia de conversión de impresión a clic (CTR cae).</li>
+                        <li><strong>Amenaza de Caffeina:</strong> Han logrado fidelizar la keyword principal mediante la combinación de Amazon Choice + Oferta Relámpago.</li>
+                    </ul>
+                    <hr style="margin:16px 0; border:0; border-top:1px solid var(--border);">
+                    <ul class="reco-list">
+                        <li><strong>Ajuste táctico de precio (urgente):</strong> Reducir el PVP del ASIN estrella a 19.99€ para la semana W43 para recuperar la eficiencia del rank 3.</li>
+                        <li><strong>Activación de Deals:</strong> Programar un mínimo de 3 Deal Days para la variante más popular; evitar depender de Coupons.</li>
+                        <li><strong>Defensa de Keywords:</strong> Aumentar puja defensiva (Sponsored) en "cafetera italiana" para compensar la pérdida del Amazon Choice badge.</li>
+                    </ul>
+                </div>
+                
+                <div class="card">
+                    <h2 class="card-title"><span class="material-icons">travel_explore</span> 6. Other Insights & Oportunidades</h2>
+                    <p><strong>Competidores Emergentes:</strong> Aunque el top 3 domina, la marca <em>EspressoKing</em> está escalando agresivamente usando variantes de mayor tamaño (<code>grams</code> o capacidad más alta) a un precio premium, captando el nicho de familias grandes.</p>
+                    <p><strong>Anomalía en Keywords Long-Tail:</strong> YabaBrew sigue dominando de forma absoluta (Overperformer) en keywords orgánicas de bajo volumen como "cafetera acero inoxidable 6 tazas". La pérdida de cuota se concentra únicamente en las 2 keywords genéricas principales.</p>
+                    <p><strong>Oportunidad Oculta:</strong> Los fines de semana el search volume aumenta un 15%, pero los competidores agotan su presupuesto de ofertas los viernes. Si concentramos nuestras palancas de Deals en Sábado y Domingo, podemos capturar cuota a menor coste competitivo.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- PESTAÑA 2: COMPARADOR INTERACTIVO -->
+        <div id="comparator" class="tab-content">
+            <div class="controls">
+                <div>
+                    <label><strong>Seleccionar Semana:</strong></label><br>
+                    <select id="weekSelect" onchange="updateComparator()">
+                        <option value="W38">Semana 38</option>
+                        <option value="W39">Semana 39</option>
+                        <option value="W40">Semana 40</option>
+                        <option value="W41">Semana 41</option>
+                        <option value="W42" selected>Semana 42</option>
+                    </select>
+                </div>
+                <div>
+                    <label><strong>Competidor Directo:</strong></label><br>
+                    <select id="compSelect" onchange="updateComparator()">
+                        <option value="Caffeina">Caffeina</option>
+                        <option value="BrewMaster">BrewMaster</option>
+                        <option value="EspressoKing">EspressoKing</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2 class="card-title">Cara a Cara: YabaBrew (Nosotros) vs <span id="compNameDisplay">Caffeina</span></h2>
+                <div class="grid-2" style="margin-bottom: 24px;">
+                    <div id="chart_vs_share" style="height: 250px;"></div>
+                    <div id="chart_vs_price" style="height: 250px;"></div>
+                </div>
+                
+                <table id="vsTable">
+                    <thead>
+                        <tr>
+                            <th>Marca</th>
+                            <th>Avg Organic Rank</th>
+                            <th>Avg Price (€)</th>
+                            <th>Total Deal Days</th>
+                            <th>Total Clicks Share (%)</th>
+                            <th>Veredicto</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Dynamically filled -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- CÓDIGO JS / LÓGICA / DATOS -->
+    <script>
+        // 1. DATASET SIMULADO (MarketData)
+        // Datos inferidos basados en el prompt. is_yaba_asin = 'Y' determina nuestra marca YabaBrew.
+        const marketData = [
+            // W38
+            { week_date: 'W38', is_yaba_asin: 'Y', competitor_brand: 'YabaBrew', price: 24.0, click_share: 32, organic_rank: 2, deals: 0, sv: 15000 },
+            { week_date: 'W38', is_yaba_asin: 'N', competitor_brand: 'Caffeina', price: 21.0, click_share: 25, organic_rank: 4, deals: 0, sv: 15000 },
+            { week_date: 'W38', is_yaba_asin: 'N', competitor_brand: 'BrewMaster', price: 22.5, click_share: 20, organic_rank: 5, deals: 0, sv: 15000 },
+            { week_date: 'W38', is_yaba_asin: 'N', competitor_brand: 'EspressoKing', price: 28.0, click_share: 10, organic_rank: 8, deals: 0, sv: 15000 },
+            
+            // W39 (Nosotros bajamos precio + deals)
+            { week_date: 'W39', is_yaba_asin: 'Y', competitor_brand: 'YabaBrew', price: 19.5, click_share: 41, organic_rank: 2, deals: 3, sv: 15200 },
+            { week_date: 'W39', is_yaba_asin: 'N', competitor_brand: 'Caffeina', price: 21.0, click_share: 22, organic_rank: 4, deals: 0, sv: 15200 },
+            { week_date: 'W39', is_yaba_asin: 'N', competitor_brand: 'BrewMaster', price: 22.5, click_share: 18, organic_rank: 6, deals: 0, sv: 15200 },
+            { week_date: 'W39', is_yaba_asin: 'N', competitor_brand: 'EspressoKing', price: 28.0, click_share: 9, organic_rank: 9, deals: 0, sv: 15200 },
+
+            // W40 (Subimos precio, pero mantenemos Choice badge)
+            { week_date: 'W40', is_yaba_asin: 'Y', competitor_brand: 'YabaBrew', price: 24.0, click_share: 35, organic_rank: 3, deals: 0, sv: 14900 },
+            { week_date: 'W40', is_yaba_asin: 'N', competitor_brand: 'Caffeina', price: 20.0, click_share: 28, organic_rank: 3, deals: 2, sv: 14900 },
+            { week_date: 'W40', is_yaba_asin: 'N', competitor_brand: 'BrewMaster', price: 20.5, click_share: 20, organic_rank: 5, deals: 0, sv: 14900 },
+            { week_date: 'W40', is_yaba_asin: 'N', competitor_brand: 'EspressoKing', price: 29.0, click_share: 10, organic_rank: 8, deals: 0, sv: 14900 },
+
+            // W41 (Competidor Caffeina ataca con precio)
+            { week_date: 'W41', is_yaba_asin: 'Y', competitor_brand: 'YabaBrew', price: 24.5, click_share: 28, organic_rank: 3, deals: 0, sv: 15500 },
+            { week_date: 'W41', is_yaba_asin: 'N', competitor_brand: 'Caffeina', price: 19.9, click_share: 36, organic_rank: 2, deals: 5, sv: 15500 },
+            { week_date: 'W41', is_yaba_asin: 'N', competitor_brand: 'BrewMaster', price: 21.0, click_share: 21, organic_rank: 6, deals: 0, sv: 15500 },
+            { week_date: 'W41', is_yaba_asin: 'N', competitor_brand: 'EspressoKing', price: 28.0, click_share: 11, organic_rank: 7, deals: 0, sv: 15500 },
+
+            // W42 (Semana actual - Competidor Caffeina asienta dominancia)
+            { week_date: 'W42', is_yaba_asin: 'Y', competitor_brand: 'YabaBrew', price: 24.5, click_share: 25, organic_rank: 4, deals: 0, sv: 15600 },
+            { week_date: 'W42', is_yaba_asin: 'N', competitor_brand: 'Caffeina', price: 19.9, click_share: 39, organic_rank: 1, deals: 7, sv: 15600 },
+            { week_date: 'W42', is_yaba_asin: 'N', competitor_brand: 'BrewMaster', price: 18.5, click_share: 23, organic_rank: 5, deals: 2, sv: 15600 },
+            { week_date: 'W42', is_yaba_asin: 'N', competitor_brand: 'EspressoKing', price: 29.5, click_share: 8, organic_rank: 8, deals: 0, sv: 15600 }
+        ];
+
+        // 2. NAVEGACIÓN TABS
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            event.currentTarget.classList.add('active');
+            document.getElementById(tabId).classList.add('active');
+            if(tabId === 'comparator') updateComparator(); // Redraw
+        }
+
+        // 3. INICIALIZAR GOOGLE CHARTS
+        google.charts.load('current', {'packages':['corechart', 'bar']});
+        google.charts.setOnLoadCallback(initDashboard);
+
+        function initDashboard() {
+            drawGlobalTrend();
+            drawCompetitiveness();
+            drawEfficiency();
+            // Redibujar al cambiar tamaño de ventana
+            window.addEventListener('resize', () => {
+                drawGlobalTrend();
+                drawCompetitiveness();
+                drawEfficiency();
+                if(document.getElementById('comparator').classList.contains('active')) updateComparator();
+            });
+        }
+
+        // --- SECCIÓN 1: TENDENCIA GLOBAL (Combo Chart) ---
+        function drawGlobalTrend() {
+            const data = new google.visualization.DataTable();
+            data.addColumn('string', 'Semana');
+            data.addColumn('number', 'Volumen de Búsqueda (SV)');
+            data.addColumn('number', 'YabaBrew Share (%)');
+            data.addColumn('number', 'Resto Mercado Share (%)');
+
+            const weeks = [...new Set(marketData.map(d => d.week_date))];
+            weeks.forEach(w => {
+                const weekData = marketData.filter(d => d.week_date === w);
+                const sv = weekData[0].sv; 
+                const yaba = weekData.find(d => d.is_yaba_asin === 'Y').click_share;
+                const rest = 100 - yaba;
+                data.addRow([w, sv, yaba, rest]);
+            });
+
+            const options = {
+                vAxes: {
+                    0: { title: 'Búsquedas', baselineColor: 'transparent' },
+                    1: { title: 'Click Share (%)', maxValue: 100 }
+                },
+                seriesType: 'bars',
+                series: {
+                    1: { type: 'line', targetAxisIndex: 1, color: '#1a73e8', lineWidth: 3, pointSize: 6 },
+                    2: { type: 'line', targetAxisIndex: 1, color: '#9aa0a6', lineWidth: 2, lineDashStyle: [4,4] }
+                },
+                colors: ['#e8f0fe'],
+                legend: { position: 'top' },
+                chartArea: { width: '80%', height: '70%' },
+                backgroundColor: 'transparent'
+            };
+
+            const chart = new google.visualization.ComboChart(document.getElementById('chart_global_trend'));
+            chart.draw(data, options);
+        }
+
+        // --- SECCIÓN 2: COMPETITIVIDAD (Line Chart) ---
+        function drawCompetitiveness() {
+            const data = new google.visualization.DataTable();
+            data.addColumn('string', 'Semana');
+            data.addColumn('number', 'YabaBrew (Nosotros)');
+            data.addColumn('number', 'Caffeina');
+            data.addColumn('number', 'BrewMaster');
+            data.addColumn('number', 'EspressoKing');
+
+            const weeks = [...new Set(marketData.map(d => d.week_date))];
+            weeks.forEach(w => {
+                const wd = marketData.filter(d => d.week_date === w);
+                data.addRow([
+                    w,
+                    wd.find(d => d.competitor_brand === 'YabaBrew').click_share,
+                    wd.find(d => d.competitor_brand === 'Caffeina').click_share,
+                    wd.find(d => d.competitor_brand === 'BrewMaster').click_share,
+                    wd.find(d => d.competitor_brand === 'EspressoKing').click_share
+                ]);
+            });
+
+            const options = {
+                curveType: 'function',
+                legend: { position: 'bottom' },
+                colors: ['#1a73e8', '#ea4335', '#fbbc05', '#34a853'],
+                lineWidth: 3,
+                pointSize: 5,
+                vAxis: { title: 'Click Share (%)' },
+                chartArea: { width: '85%', height: '70%' },
+                backgroundColor: 'transparent'
+            };
+
+            const chart = new google.visualization.LineChart(document.getElementById('chart_competitiveness'));
+            chart.draw(data, options);
+        }
+
+        // --- SECCIÓN 4: EFICIENCIA (Scatter Plot) ---
+        function drawEfficiency() {
+            const data = new google.visualization.DataTable();
+            data.addColumn('number', 'Organic Rank');
+            data.addColumn('number', 'YabaBrew');
+            data.addColumn('number', 'Competidores');
+
+            marketData.forEach(d => {
+                if(d.is_yaba_asin === 'Y') {
+                    data.addRow([d.organic_rank, d.click_share, null]);
+                } else {
+                    data.addRow([d.organic_rank, null, d.click_share]);
+                }
+            });
+
+            const options = {
+                title: 'Rank vs Share (Todas las semanas)',
+                hAxis: { title: 'Avg Organic Rank (Menor es Mejor)', direction: -1 }, // Invertido porque rank 1 es mejor
+                vAxis: { title: 'Click Share (%)' },
+                colors: ['#1a73e8', '#ea4335'],
+                legend: { position: 'top' },
+                chartArea: { width: '80%', height: '70%' },
+                backgroundColor: 'transparent'
+            };
+
+            const chart = new google.visualization.ScatterChart(document.getElementById('chart_efficiency'));
+            chart.draw(data, options);
+        }
+
+        // --- PESTAÑA 2: COMPARADOR INTERACTIVO ---
+        function updateComparator() {
+            const week = document.getElementById('weekSelect').value;
+            const comp = document.getElementById('compSelect').value;
+            document.getElementById('compNameDisplay').innerText = comp;
+
+            const weekData = marketData.filter(d => d.week_date === week);
+            const yaba = weekData.find(d => d.is_yaba_asin === 'Y');
+            const compData = weekData.find(d => d.competitor_brand === comp);
+
+            // Draw Vs Share (Pie or Bar)
+            const shareData = google.visualization.arrayToDataTable([
+                ['Marca', 'Share (%)'],
+                ['YabaBrew', yaba.click_share],
+                [comp, compData.click_share]
+            ]);
+            const shareChart = new google.visualization.PieChart(document.getElementById('chart_vs_share'));
+            shareChart.draw(shareData, { title: 'Distribución de Share', colors: ['#1a73e8', '#ea4335'], pieHole: 0.4 });
+
+            // Draw Vs Price (Bar)
+            const priceData = google.visualization.arrayToDataTable([
+                ['Marca', 'Precio (€)', { role: 'style' }],
+                ['YabaBrew', yaba.price, '#1a73e8'],
+                [comp, compData.price, '#ea4335']
+            ]);
+            const priceChart = new google.visualization.ColumnChart(document.getElementById('chart_vs_price'));
+            priceChart.draw(priceData, { title: 'Comparativa de Precio', legend: 'none', vAxis: { minValue: 0 } });
+
+            // Update Table
+            const yabaWin = yaba.click_share >= compData.click_share;
+            const tbody = document.querySelector('#vsTable tbody');
+            tbody.innerHTML = `
+                <tr class="yaba-row">
+                    <td><strong>YabaBrew (Nosotros)</strong></td>
+                    <td>${yaba.organic_rank}</td>
+                    <td>${yaba.price.toFixed(2)} €</td>
+                    <td>${yaba.deals}</td>
+                    <td>${yaba.click_share}%</td>
+                    <td class="${yabaWin ? 'win' : 'loss'}">${yabaWin ? 'Líder' : 'Rezagado'}</td>
+                </tr>
+                <tr>
+                    <td><strong>${comp}</strong></td>
+                    <td>${compData.organic_rank}</td>
+                    <td>${compData.price.toFixed(2)} €</td>
+                    <td>${compData.deals}</td>
+                    <td>${compData.click_share}%</td>
+                    <td class="${!yabaWin ? 'win' : 'loss'}">${!yabaWin ? 'Líder' : 'Rezagado'}</td>
+                </tr>
+            `;
+        }
+
+    </script>
+</body>
+</html>
